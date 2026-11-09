@@ -1,0 +1,33 @@
+# Secrets and local config
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+
+# Node
+node_modules/
+.next/
+out/
+dist/
+coverage/
+
+# Local databases and data
+*.sqlite
+*.sqlite3
+*.db
+local_data/
+
+# OS and editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
