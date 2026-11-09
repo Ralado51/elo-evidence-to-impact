@@ -52,6 +52,9 @@ def _fold(text: str) -> str:
     return "".join(_fold_char(c) for c in text)
 
 
+fold_text = _fold  # public alias: length-preserving, case and accent insensitive
+
+
 # --- registry -------------------------------------------------------------------------
 
 Role = Literal["patient", "guardian"]
