@@ -27,6 +27,16 @@ services:
       - traefik.http.routers.evidence.tls.certresolver=${CERT_RESOLVER:-leresolver}
       - traefik.http.services.evidence.loadbalancer.server.port=80
 
+  api:
+    build: ./api
+    restart: unless-stopped
+    environment:
+      LLM_BASE_URL: ${LLM_BASE_URL:-http://ollama:11434/v1}
+      LLM_API_KEY: ${LLM_API_KEY:-ollama}
+      LLM_MODEL: ${LLM_MODEL:-llama3.2:3b}
+    networks:
+      - evidence_net
+
 networks:
   evidence_net:
     name: evidence_net
