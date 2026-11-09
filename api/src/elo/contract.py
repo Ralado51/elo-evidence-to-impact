@@ -101,7 +101,7 @@ class Observation(BaseModel):
     span_sanitized: Span | None = None
     quote: str = Field(min_length=1)  # exact text in the ORIGINAL note (stays local)
     quote_sanitized: str | None = None  # exact text in the sanitized note (safe for a model)
-    extracted_by: Literal["rules", "llm"] = "rules"
+    extracted_by: Literal["rules", "llm", "both"] = "rules"
 
     @model_validator(mode="after")
     def _source_is_named(self) -> "Observation":

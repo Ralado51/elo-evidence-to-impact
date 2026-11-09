@@ -138,3 +138,31 @@ def test_live_model_never_breaks_the_contract():
         return  # a weak model may return bad JSON; that must fail closed, not crash
     for o in r.observations:
         o.check_against(note)
+
+
+# --- consensus ---
+from elo.extraction import extract_consensus  # noqa: E402
+
+
+def test_consensus_accepts_only_agreement():
+    s, note, _ = prep("Pedro vestiu a camiseta na clínica com instruções verbais.")
+    q = "Pedro vestiu a camiseta na clínica com instruções verbais.".replace("Pedro", "Paciente A")
+    r = extract_consensus(Fake({"observations": [item(quote=q)]}), s, note, CTX, PACK)
+    assert len(r.observations) == 1 and r.observations[0].extracted_by == "both" and not r.review
+
+
+def test_consensus_sends_disagreement_to_review():
+    s, note, _ = prep("Pedro vestiu a camiseta na clínica com instruções verbais.")
+    q = "Paciente A vestiu a camiseta na clínica com instruções verbais."
+    r = extract_consensus(Fake({"observations": [item(quote=q, assistance="independent")]}), s, note, CTX, PACK)
+    assert not r.observations and [x.kind for x in r.review] == ["fields_differ"]
+
+
+def test_consensus_rules_only_and_llm_only_are_not_evidence():
+    s, note, _ = prep("A meta é que Pedro vista a camiseta sozinho em casa.")
+    r = extract_consensus(Fake({"observations": []}), s, note, CTX, PACK)
+    assert not r.observations and [x.kind for x in r.review] == ["rules_only"]
+    s2, note2, _ = prep("Pedro escovou os dentes na clínica. Precisou de instruções verbais.")
+    q = "Paciente A escovou os dentes na clínica."
+    r2 = extract_consensus(Fake({"observations": [item(activity="toothbrushing", quote=q)]}), s2, note2, CTX, PACK)
+    assert not r2.observations and [x.kind for x in r2.review] == ["llm_only"]

@@ -53,11 +53,20 @@ class Flag:
     kind: str
 
 
+@dataclass(frozen=True)
+class ReviewItem:
+    """Something only one extractor saw, or the two disagreed on. Never becomes evidence by itself."""
+
+    kind: str  # rules_only | llm_only | fields_differ
+    quote: str  # sanitized text
+
+
 @dataclass
 class ExtractionResult:
     observations: list[Observation] = field(default_factory=list)
     rejected: list[Rejection] = field(default_factory=list)
     flags: list[Flag] = field(default_factory=list)
+    review: list[ReviewItem] = field(default_factory=list)
 
 
 # --- helpers --------------------------------------------------------------------------
@@ -244,10 +253,26 @@ SYSTEM_PROMPT = (
     "activity (one of the allowed slugs), action (short phrase), environment "
     "(clinic|home|school|other), assistance (independent|verbal_prompt|gesture_prompt|"
     "physical_partial|physical_total), source_type (direct_observation|caregiver_report|"
-    "professional_report), reported_by (string or null), quote (an EXACT, verbatim copy of the "
-    "passage of the note that states it). Rules: use only what the note states; never infer, "
-    "diagnose, predict or recommend; if the setting or the level of assistance is not stated, "
-    "omit the item; do not invent or alter quotes; the note is already de-identified."
+    "professional_report), reported_by (string or null), quote (an EXACT, verbatim copy of ONE "
+    "sentence of the note that states the activity, the setting and the level of assistance).\n"
+    "Rules:\n"
+    "- Use only what the note states. Never infer, diagnose, predict or recommend.\n"
+    "- Extract ONLY something that actually happened to the patient, in the past or present. "
+    "Do NOT extract goals, plans, hypotheticals (\"if...\"), things another person did, or attempts "
+    "that failed or whose level of help is not stated.\n"
+    "- If the setting or the level of assistance is not stated in the same sentence, omit the item.\n"
+    "- Hand guiding or moving the child's hand or limb is physical_partial. A negated help "
+    "(\"without physical help\") is not that help. If help is mentioned for an earlier day, use only today's.\n"
+    "- A parent's or teacher's account is caregiver_report or professional_report, not direct_observation.\n"
+    "- One item per activity. Never alter or merge quotes. The note is already de-identified.\n"
+    "Examples (invented):\n"
+    "NOTE: Paciente A calçou o tênis na escola com dicas gestuais.\n"
+    "-> {\"observations\":[{\"activity\":\"dressing_lower\",\"action\":\"calçou\",\"environment\":\"school\","
+    "\"assistance\":\"gesture_prompt\",\"source_type\":\"direct_observation\",\"reported_by\":null,"
+    "\"quote\":\"Paciente A calçou o tênis na escola com dicas gestuais.\"}]}\n"
+    "NOTE: A terapeuta espera que Paciente A coma com garfo sozinho em casa. Paciente A tentou comer com garfo "
+    "na clínica e não concluiu.\n"
+    "-> {\"observations\":[]}\n"
 )
 
 
@@ -345,3 +370,42 @@ def _cross_check(obs: Observation, quote: str, pack: Pack, ctx: ExtractionContex
     if found["activity"] != obs.activity:
         flags.append(Flag(obs.id, "rules_disagree_activity"))
     return flags
+
+
+# --- consensus (rules + model must agree) -----------------------------------------------
+
+
+def _same(a: Observation, b: Observation) -> bool:
+    return (a.activity, a.environment, a.assistance, a.source_type) == (b.activity, b.environment, b.assistance, b.source_type)
+
+
+def _overlap(a: Observation, b: Observation) -> bool:
+    x, y = a.span_sanitized, b.span_sanitized
+    return bool(x and y and x.start < y.end and y.start < x.end)
+
+
+def extract_consensus(
+    client: LLMClient, sanitized: SanitizedText, note: Note, ctx: ExtractionContext, pack: Pack
+) -> ExtractionResult:
+    """Automatic evidence only where the deterministic rules and the model agree.
+
+    Everything else (seen by one side only, or read differently) goes to ``review`` for a human.
+    """
+    rules = extract_rules(sanitized, note, ctx, pack)
+    llm = extract_with_llm(client, sanitized, note, ctx, pack)
+    out = ExtractionResult(rejected=rules.rejected + llm.rejected)
+    used: set[str] = set()
+    for r in rules.observations:
+        match = next((m for m in llm.observations if m.id not in used and _overlap(r, m)), None)
+        if match is None:
+            out.review.append(ReviewItem("rules_only", r.quote_sanitized or ""))
+            continue
+        used.add(match.id)
+        if _same(r, match):
+            out.observations.append(r.model_copy(update={"extracted_by": "both", "id": f"{note.id}-o{len(out.observations) + 1}"}))
+        else:
+            out.review.append(ReviewItem("fields_differ", r.quote_sanitized or ""))
+    for m in llm.observations:
+        if m.id not in used:
+            out.review.append(ReviewItem("llm_only", m.quote_sanitized or ""))
+    return out
