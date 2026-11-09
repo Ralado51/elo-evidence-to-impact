@@ -38,3 +38,9 @@ Local SQLite persistence plus human review. A claim is approved only if the veri
 `supported`; otherwise the reviewer edits it (it is re-verified) or rejects it with a reason.
 Final states cannot change. Every action goes to an append-only audit log (SQLite triggers
 block UPDATE/DELETE). Downstream outputs (family summary) read `approved_claims()` only.
+
+## Family summary (`summary.py`)
+
+Controlled pt/en templates over approved claims only. Lines are built from structured fields
+(never the claim's free text); gaps say neutrally where nothing is recorded yet; a fixed note
+states it is not a diagnosis or a progress assessment.
