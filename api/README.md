@@ -15,6 +15,7 @@ pytest
 
 - `src/elo/contract.py`: `Note`, `Observation` (with source passage, who observed or reported it, note version and offsets), `Claim`, `VerdictResult`. Four verdicts: `supported`, `contradicted`, `insufficient_evidence`, `needs_review`.
 - `src/elo/verifier.py`: deterministic verifier, independent of any language model. It compares activity, setting, level of assistance, source of evidence and time, and always explains the verdict in Portuguese and English.
+- `src/elo/privacy.py`: Privacy Gate. Local registry, pseudonyms, fail-closed detectors (CPF, RG, phone, e-mail, postal code, address, birth date, handles, titles and relatives followed by a name) and an offset map between original and sanitized text. Only `SanitizedText` issued by the gate should reach a model.
 - `tests/`: critical cases, including the clinic-versus-home case, change over time (not a contradiction), reports versus direct observation, and conflicting observations.
 
 ## Rules the tests lock in
@@ -23,3 +24,10 @@ pytest
 - Change between sessions is not a contradiction; only a conflict on the same day and setting is.
 - A report alone, or a report that disagrees with a direct observation, goes to human review.
 - A valid span proves the passage exists, not that it supports the claim.
+
+## Privacy Gate: what it does and does not do
+
+- Registered names, aliases and name parts are replaced by pseudonyms, ignoring case and accents, whole words only.
+- Unregistered identifiers block the text (`PrivacyBlocked`); the error never contains the matched text.
+- Offsets: a span in the sanitized text maps back to the original text, and a partial overlap with a pseudonym expands to the whole name.
+- **Known limit:** an unregistered name written without a title, relation word or pattern is not detected. This is risk mitigation, not infallible anonymization, and one reason the project uses synthetic data only.
