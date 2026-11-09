@@ -1,0 +1,48 @@
+{
+  "name": "ot_pediatric",
+  "discipline": "occupational_therapy",
+  "activities": {
+    "dressing_upper": {
+      "label": {"pt": "Vestir a parte de cima", "en": "Upper-body dressing"},
+      "keywords": ["camiseta", "camisa", "blusa", "casaco", "jaqueta", "moletom", "t-shirt", "shirt", "jacket", "sweater", "hoodie"]
+    },
+    "dressing_lower": {
+      "label": {"pt": "Vestir a parte de baixo", "en": "Lower-body dressing"},
+      "keywords": ["calça", "bermuda", "short", "shorts", "saia", "pants", "trousers", "skirt"]
+    },
+    "feeding": {
+      "label": {"pt": "Alimentação", "en": "Feeding"},
+      "keywords": ["colher", "garfo", "talher", "talheres", "lanche", "refeição", "spoon", "fork", "utensil", "utensils", "meal", "snack"]
+    },
+    "handwriting": {
+      "label": {"pt": "Escrita", "en": "Handwriting"},
+      "keywords": ["escrever", "escrita", "lápis", "caneta", "letras", "writing", "pencil", "pen", "handwriting"]
+    },
+    "toothbrushing": {
+      "label": {"pt": "Escovar os dentes", "en": "Tooth brushing"},
+      "keywords": ["escovar os dentes", "escovou os dentes", "escova de dentes", "toothbrush", "brushing teeth", "brushed his teeth", "brushed her teeth", "brushed teeth"]
+    },
+    "toileting": {
+      "label": {"pt": "Uso do banheiro", "en": "Toileting"},
+      "keywords": ["banheiro", "toalete", "vaso sanitário", "toilet", "bathroom", "toileting"]
+    }
+  },
+  "assistance_cues": {
+    "physical_total": ["assistência física total", "ajuda física total", "mão sobre mão", "total physical assistance", "hand-over-hand", "hand over hand"],
+    "physical_partial": ["assistência física parcial", "ajuda física parcial", "assistência física", "ajuda física", "apoio físico", "partial physical assistance", "physical assistance", "physical help"],
+    "gesture_prompt": ["dica gestual", "dicas gestuais", "gesto", "gestos", "gestual", "gestuais", "gesture prompt", "gesture prompts", "gestural cue", "gestural cues", "pointing"],
+    "verbal_prompt": ["instrução verbal", "instruções verbais", "comando verbal", "comandos verbais", "dica verbal", "dicas verbais", "orientação verbal", "orientações verbais", "verbal prompt", "verbal prompts", "verbal cue", "verbal cues", "verbal instruction", "verbal instructions", "verbal reminders"]
+  },
+  "independence_cues": ["independente", "independentemente", "sozinho", "sozinha", "sem ajuda", "sem assistência", "independent", "independently", "on his own", "on her own", "without help", "without assistance", "by himself", "by herself"],
+  "independence_not_before": ["física", "físico", "physical"],
+  "negation_words": ["sem", "não", "nao", "without", "no", "not"],
+  "environment_cues": {
+    "clinic": ["clínica", "consultório", "sala de terapia", "clinic", "therapy room"],
+    "home": ["em casa", "casa", "domicílio", "home"],
+    "school": ["escola", "sala de aula", "recreio", "school", "classroom"]
+  },
+  "report_cues": {
+    "caregiver_report": ["mãe relatou", "pai relatou", "segundo a mãe", "segundo o pai", "a mãe disse", "o pai disse", "responsável relatou", "relato da família", "mother reported", "father reported", "according to the mother", "according to the father", "according to the parent", "parents reported", "caregiver reported"],
+    "professional_report": ["professora relatou", "segundo a professora", "teacher reported", "according to the teacher"]
+  }
+}

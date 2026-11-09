@@ -99,7 +99,9 @@ class Observation(BaseModel):
     reported_by: str | None = None
     span_original: Span
     span_sanitized: Span | None = None
-    quote: str = Field(min_length=1)
+    quote: str = Field(min_length=1)  # exact text in the ORIGINAL note (stays local)
+    quote_sanitized: str | None = None  # exact text in the sanitized note (safe for a model)
+    extracted_by: Literal["rules", "llm"] = "rules"
 
     @model_validator(mode="after")
     def _source_is_named(self) -> "Observation":
@@ -125,8 +127,13 @@ class Observation(BaseModel):
             raise ValueError("span_original is outside the original text")
         if note.original_text[self.span_original.start : self.span_original.end] != self.quote:
             raise ValueError("quote does not match the original text at span_original")
-        if self.span_sanitized is not None and self.span_sanitized.end > len(note.sanitized_text):
-            raise ValueError("span_sanitized is outside the sanitized text")
+        if self.span_sanitized is not None:
+            if self.span_sanitized.end > len(note.sanitized_text):
+                raise ValueError("span_sanitized is outside the sanitized text")
+            if self.quote_sanitized is not None and (
+                note.sanitized_text[self.span_sanitized.start : self.span_sanitized.end] != self.quote_sanitized
+            ):
+                raise ValueError("quote_sanitized does not match the sanitized text at span_sanitized")
 
 
 class Claim(BaseModel):
