@@ -67,7 +67,7 @@ This repository was created after the Hack Brasil 2026 opening session (2026-11-
 
 ### Links
 
-- Landing page: *to be added*
+- Landing page: https://evidence.eloterapia.com.br
 - Demo: *to be added*
 - Video: *to be added*
 
@@ -135,7 +135,7 @@ Este repositório foi criado depois da sessão de abertura do Hack Brasil 2026 (
 
 ### Links
 
-- Landing page: *a adicionar*
+- Landing page: https://evidence.eloterapia.com.br
 - Demo: *a adicionar*
 - Vídeo: *a adicionar*
 
