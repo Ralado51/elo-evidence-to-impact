@@ -4,6 +4,7 @@ COPY pyproject.toml ./
 COPY src ./src
 COPY scripts ./scripts
 COPY tests ./tests
+COPY benchmark ./benchmark
 RUN pip install --no-cache-dir -e ".[dev]"
 # Placeholder until the HTTP API exists: keeps the container up so tools can be run from its console.
 CMD ["sleep", "infinity"]
