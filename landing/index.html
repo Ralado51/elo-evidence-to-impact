@@ -7,187 +7,255 @@
 <meta name="description" content="Documentação baseada em evidências para reabilitação infantil. Evidence-first documentation for pediatric rehabilitation. Hack Brasil 2026.">
 <style>
   :root {
-    --bg: #fbfaf7; --surface: #ffffff; --ink: #1d2433; --muted: #5b6475;
-    --line: #e4e1d8; --accent: #1f5f8b; --accent-soft: #e6f0f7;
-    --warn: #8a5a00; --warn-soft: #fbf0d9; --good: #1d6b46; --good-soft: #e3f3ea;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg: #12161d; --surface: #1a2029; --ink: #e8ebf1; --muted: #a2abbb;
-      --line: #2b3342; --accent: #7db7e0; --accent-soft: #1b2c3b;
-      --warn: #f0c36a; --warn-soft: #33290f; --good: #7ccba0; --good-soft: #14291f;
-    }
+    --ink: #1c1c1c; --muted: #5d5d5d; --paper: #ffffff; --line: #e6e4de;
+    --char: #262626; --char-2: #323232; --yel: #fff56b; --yel-soft: #fffbc7;
+    --ok: #17766b; --ok-bg: #d9eeea; --bad: #b4372c; --bad-bg: #f6dedb;
+    --wait: #9a6208; --wait-bg: #f5e8cc;
   }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--ink);
-    font: 17px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-  .wrap { max-width: 880px; margin: 0 auto; padding: 0 16px; }
-  header.top { display: flex; justify-content: space-between; align-items: center;
-    gap: 12px; padding: 20px 0; flex-wrap: wrap; }
-  .brand { font-weight: 700; letter-spacing: .01em; }
-  .tag { font-size: 13px; color: var(--muted); }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--paper); color: var(--ink);
+    font: 15px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  a { color: inherit; }
+  :focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+
+  .banner { background: var(--yel); text-align: center; font-size: 13px; padding: 6px 16px; }
+  .banner b { font-weight: 700; }
+
+  header.nav { border-bottom: 1px solid var(--line); }
+  .nav-in { max-width: 1160px; margin: 0 auto; padding: 12px 16px; display: flex;
+    align-items: center; gap: 12px; flex-wrap: wrap; }
+  .brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 17px; text-decoration: none; }
+  .brand svg { width: 22px; height: 22px; }
+  nav.links { display: flex; gap: 4px; flex-wrap: wrap; }
+  nav.links a { text-decoration: none; padding: 6px 12px; border-radius: 8px; font-size: 14px; }
+  nav.links a.on, nav.links a:hover { background: var(--yel); }
+  .spacer { flex: 1; }
   .lang { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
   .lang button { border: 0; background: transparent; color: var(--ink); padding: 6px 14px;
-    font: inherit; font-size: 14px; cursor: pointer; }
-  .lang button[aria-pressed="true"] { background: var(--accent); color: #fff; }
-  .lang button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-  h1 { font-size: clamp(30px, 6vw, 48px); line-height: 1.12; margin: 40px 0 16px; letter-spacing: -.02em; }
-  h2 { font-size: 24px; margin: 0 0 12px; letter-spacing: -.01em; }
-  p { margin: 0 0 14px; }
-  .lead { font-size: 19px; color: var(--muted); max-width: 640px; }
-  .status { display: inline-block; margin-top: 8px; padding: 8px 14px; border-radius: 10px;
-    background: var(--warn-soft); color: var(--warn); font-size: 15px; }
-  section { padding: 36px 0; border-top: 1px solid var(--line); }
-  .steps { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; padding: 0; margin: 16px 0 0; }
-  .steps li { padding: 8px 14px; border: 1px solid var(--line); border-radius: 999px;
-    background: var(--surface); font-size: 15px; }
-  .steps li:nth-child(4) { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
-  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px; }
-  .row { display: grid; grid-template-columns: 150px 1fr; gap: 6px 16px; padding: 10px 0;
-    border-bottom: 1px solid var(--line); }
-  .row:last-of-type { border-bottom: 0; }
-  .row dt { color: var(--muted); font-size: 14px; }
-  .row dd { margin: 0; }
-  .chip { display: inline-block; padding: 2px 10px; border-radius: 999px; background: var(--warn-soft);
-    color: var(--warn); font-weight: 600; font-size: 15px; }
-  .note { font-size: 14px; color: var(--muted); margin-top: 12px; }
-  ul.principles { padding-left: 20px; margin: 0; }
-  ul.principles li { margin-bottom: 6px; }
-  .links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
-  .links a, .links span { padding: 10px 16px; border-radius: 10px; border: 1px solid var(--line);
-    background: var(--surface); text-decoration: none; color: var(--ink); font-size: 15px; }
-  .links a { border-color: var(--accent); color: var(--accent); font-weight: 600; }
-  .links span { color: var(--muted); }
-  footer { padding: 28px 0 48px; border-top: 1px solid var(--line); font-size: 14px; color: var(--muted); }
-  html[data-lang="pt"] .en { display: none; }
-  html[data-lang="en"] .pt { display: none; }
-  @media (max-width: 560px) { .row { grid-template-columns: 1fr; } }
+    font: inherit; font-size: 13px; cursor: pointer; }
+  .lang button[aria-pressed="true"] { background: var(--ink); color: #fff; }
+
+  main { max-width: 1160px; margin: 0 auto; padding: 24px 16px 0; }
+
+  .hero { background: var(--char); color: #fff; border-radius: 22px; padding: 36px 32px 28px;
+    background-image: radial-gradient(rgba(255,255,255,.07) 1px, transparent 1px);
+    background-size: 18px 18px; }
+  .hero h1 { font-size: clamp(30px, 5vw, 46px); line-height: 1.12; margin: 0 0 14px; font-weight: 600;
+    letter-spacing: -.02em; max-width: 760px; }
+  .hero .sub { color: #cfcfcf; font-size: 17px; max-width: 620px; margin: 0 0 22px; }
+  .cta { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 30px; }
+  .btn { display: inline-block; padding: 10px 20px; border-radius: 999px; font-weight: 700;
+    text-decoration: none; font-size: 14px; border: 1px solid transparent; }
+  .btn.y { background: var(--yel); color: var(--ink); }
+  .btn.o { border-color: #4a4a4a; color: #fff; }
+  .btn.o:hover { border-color: var(--yel); }
+
+  .flow { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 22px; }
+  .node { background: var(--char-2); border: 1px solid #484848; border-radius: 10px; padding: 12px 10px;
+    font-size: 13px; text-align: center; position: relative; }
+  .node small { display: block; color: #b9b9b9; font-size: 11px; margin-top: 2px; }
+  .node.hot { background: var(--yel-soft); color: var(--ink); border-color: var(--yel);
+    box-shadow: 0 0 18px rgba(255,245,107,.35); font-weight: 700; }
+  .node.hot small { color: #555; font-weight: 400; }
+  .node:not(:last-child)::after { content: "›"; position: absolute; right: -9px; top: 50%;
+    transform: translateY(-52%); color: #8a8a8a; font-size: 16px; }
+
+  .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .tile { background: var(--char-2); border-radius: 10px; padding: 14px 16px; }
+  .tile b { font-size: 22px; margin-right: 8px; }
+  .tile span { color: #c8c8c8; font-size: 13px; }
+  .hero .fine { color: #aaa; font-size: 12.5px; margin: 14px 0 0; }
+
+  section { padding: 44px 0 8px; }
+  .eyebrow { color: var(--muted); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 6px; }
+  h2 { font-size: 26px; line-height: 1.2; margin: 0 0 12px; letter-spacing: -.01em; }
+  p { margin: 0 0 12px; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: start; }
+
+  .case { background: var(--char); color: #e9e9e9; border-radius: 14px; padding: 18px 20px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; line-height: 1.7; }
+  .case h3 { font: 600 13px system-ui, sans-serif; margin: 0 0 8px; color: #fff; }
+  .case .q { color: #bdbdbd; font-family: system-ui, sans-serif; font-size: 13px; margin-bottom: 10px; }
+  .met { color: var(--yel); font-weight: 700; }
+  .not { color: #ff9b8f; font-weight: 700; }
+  .pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font: 600 13px system-ui, sans-serif; }
+  .pill.wait { background: var(--wait-bg); color: var(--wait); }
+  .pill.ok { background: var(--ok-bg); color: var(--ok); }
+  .pill.bad { background: var(--bad-bg); color: var(--bad); }
+
+  .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 14px; }
+  .vcard { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .vcard code { font: 600 12px ui-monospace, Menlo, Consolas, monospace; }
+  .vcard p { margin: 6px 0 0; font-size: 13.5px; color: var(--muted); }
+
+  ul.rules { padding-left: 0; list-style: none; margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  ul.rules li { border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; }
+
+  .notice { background: var(--wait-bg); color: var(--wait); border-radius: 10px; padding: 10px 14px; font-size: 14px; display: inline-block; }
+  .links-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .links-row .btn.d { background: var(--ink); color: #fff; }
+  .links-row .soon { border: 1px dashed var(--line); color: var(--muted); font-weight: 400; }
+
+  footer { max-width: 1160px; margin: 40px auto 0; padding: 22px 16px 40px; border-top: 1px solid var(--line);
+    color: var(--muted); font-size: 13px; }
+
+  html[data-lang="pt"] .en { display: none !important; }
+  html[data-lang="en"] .pt { display: none !important; }
+
+  @media (max-width: 860px) {
+    .flow { grid-template-columns: repeat(2, 1fr); }
+    .node:not(:last-child)::after { display: none; }
+    .tiles, .two, .cards, ul.rules { grid-template-columns: 1fr; }
+    .hero { padding: 26px 18px 22px; }
+  }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header class="top">
-    <div>
-      <div class="brand">Elo Evidence-to-Impact</div>
-      <div class="tag">Hack Brasil 2026 · <span class="pt">Saúde &amp; bem-estar · Em desenvolvimento</span><span class="en">Health &amp; well-being · In development</span></div>
-    </div>
+<div class="banner">
+  <span class="pt">Feito para o Hack Brasil 2026 · Somente dados sintéticos · <b>Nenhum paciente real aqui</b></span>
+  <span class="en">Built for Hack Brasil 2026 · Synthetic data only · <b>No real patients here</b></span>
+</div>
+
+<header class="nav">
+  <div class="nav-in">
+    <a class="brand" href="#top" aria-label="Elo Evidence-to-Impact">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M9 3 7 21M17 3l-2 18M4 9h17M3 15h17"/></svg>
+      Elo Evidence-to-Impact
+    </a>
+    <nav class="links" aria-label="Seções / Sections">
+      <a class="on" href="#top"><span class="pt">Visão geral</span><span class="en">Overview</span></a>
+      <a href="#exemplo"><span class="pt">Exemplo</span><span class="en">Example</span></a>
+      <a href="#veredictos"><span class="pt">Veredictos</span><span class="en">Verdicts</span></a>
+      <a href="#principios"><span class="pt">Princípios</span><span class="en">Principles</span></a>
+      <a href="#links">Links</a>
+    </nav>
+    <span class="spacer"></span>
     <div class="lang" role="group" aria-label="Idioma / Language">
       <button type="button" data-set="pt" aria-pressed="true">Português</button>
       <button type="button" data-set="en" aria-pressed="false">English</button>
     </div>
-  </header>
+  </div>
+</header>
 
-  <main>
+<main id="top">
+  <div class="hero">
     <div class="pt">
       <h1>Cada afirmação clínica merece uma evidência.</h1>
-      <p class="lead">Transformamos observações terapêuticas em documentação rastreável, com contexto, revisão profissional e devolutivas compreensíveis para famílias.</p>
-      <span class="status">Protótipo em desenvolvimento. Nenhuma alegação de eficácia clínica é feita.</span>
+      <p class="sub">Transformamos observações terapêuticas em documentação rastreável, com contexto, revisão profissional e devolutivas compreensíveis para famílias.</p>
     </div>
     <div class="en">
       <h1>Every clinical claim deserves evidence.</h1>
-      <p class="lead">We turn therapy observations into traceable documentation, with context, professional review and summaries families can understand.</p>
-      <span class="status">Prototype in development. No claim of clinical effectiveness is made.</span>
+      <p class="sub">We turn therapy observations into traceable documentation, with context, professional review and summaries families can understand.</p>
+    </div>
+    <div class="cta">
+      <a class="btn y" href="#exemplo"><span class="pt">Ver o exemplo</span><span class="en">See the example</span></a>
+      <a class="btn o" href="https://github.com/Ralado51/elo-evidence-to-impact">GitHub</a>
     </div>
 
-    <section>
-      <div class="pt">
-        <h2>O problema</h2>
-        <p>Uma observação feita na clínica não prova que a mesma atividade ocorre com independência em casa ou na escola. Ferramentas de IA escrevem textos coerentes e ainda assim podem extrapolar o que foi realmente documentado.</p>
-      </div>
-      <div class="en">
-        <h2>The problem</h2>
-        <p>An observation made in the clinic does not prove that the same activity happens independently at home or at school. AI tools write coherent text and can still go beyond what was actually documented.</p>
-      </div>
-    </section>
+    <div class="flow" role="list">
+      <div class="node" role="listitem"><span class="pt">Nota<small>sintética</small></span><span class="en">Note<small>synthetic</small></span></div>
+      <div class="node" role="listitem"><span class="pt">Privacy Gate<small>cadastro local</small></span><span class="en">Privacy Gate<small>local registry</small></span></div>
+      <div class="node" role="listitem"><span class="pt">Extração<small>atividade, ambiente, assistência</small></span><span class="en">Extraction<small>activity, setting, assistance</small></span></div>
+      <div class="node hot" role="listitem"><span class="pt">Verificação<small>evidência por afirmação</small></span><span class="en">Verification<small>evidence per claim</small></span></div>
+      <div class="node" role="listitem"><span class="pt">Revisão humana<small>aprova, edita, rejeita</small></span><span class="en">Human review<small>approve, edit, reject</small></span></div>
+      <div class="node" role="listitem"><span class="pt">Devolutiva<small>só o aprovado</small></span><span class="en">Family summary<small>approved only</small></span></div>
+    </div>
 
-    <section>
-      <div class="pt">
-        <h2>A ideia</h2>
-        <p>Tornar explícitos os limites da informação, em vez de escondê-los em relatórios bem escritos.</p>
-      </div>
-      <div class="en">
-        <h2>The idea</h2>
-        <p>Make the limits of the information explicit instead of hiding them inside well-written reports.</p>
-      </div>
-      <ol class="steps pt">
-        <li>Observar</li><li>Estruturar</li><li>Vincular evidências</li><li>Verificar</li><li>Revisar</li><li>Comunicar</li>
-      </ol>
-      <ol class="steps en">
-        <li>Observe</li><li>Structure</li><li>Link evidence</li><li>Verify</li><li>Review</li><li>Communicate</li>
-      </ol>
-    </section>
+    <div class="tiles">
+      <div class="tile"><b>4</b><span class="pt">veredictos possíveis, incluindo “evidência insuficiente”</span><span class="en">possible verdicts, including “insufficient evidence”</span></div>
+      <div class="tile"><b>0</b><span class="pt">pacientes reais: dados 100% sintéticos</span><span class="en">real patients: data is entirely synthetic</span></div>
+      <div class="tile"><b>1</b><span class="pt">profissional aprova antes de qualquer devolutiva</span><span class="en">professional approves before any family summary</span></div>
+    </div>
+    <p class="fine pt">Protótipo em desenvolvimento para o Hack Brasil 2026. Nenhuma alegação de eficácia clínica é feita.</p>
+    <p class="fine en">Prototype in development for Hack Brasil 2026. No claim of clinical effectiveness is made.</p>
+  </div>
 
-    <section>
-      <div class="pt">
-        <h2>Exemplo planejado (dados fictícios)</h2>
-        <p>É assim que o sistema deve se comportar. Esta demonstração ainda está em construção.</p>
+  <section id="exemplo">
+    <div class="two">
+      <div>
+        <div class="eyebrow"><span class="pt">O problema</span><span class="en">The problem</span></div>
+        <div class="pt">
+          <h2>Observado na clínica não é o mesmo que alcançado em casa.</h2>
+          <p>Ferramentas de IA escrevem textos coerentes e ainda assim podem extrapolar o que foi realmente documentado. Nosso objetivo é tornar explícitos os limites da informação, em vez de escondê-los em relatórios bem escritos.</p>
+          <p class="notice">Exemplo planejado, com dados fictícios. A demonstração ainda está em construção.</p>
+        </div>
+        <div class="en">
+          <h2>Observed in the clinic is not the same as achieved at home.</h2>
+          <p>AI tools write coherent text and can still go beyond what was actually documented. Our goal is to make the limits of the information explicit instead of hiding them inside well-written reports.</p>
+          <p class="notice">Planned example with fictional data. The demo is still under construction.</p>
+        </div>
       </div>
-      <div class="en">
-        <h2>Planned example (fictional data)</h2>
-        <p>This is how the system should behave. The demo is still under construction.</p>
+      <div class="case">
+        <div class="pt">
+          <h3>Nota da sessão (fictícia)</h3>
+          <div class="q">“Na clínica, a criança vestiu a camiseta sem assistência física, após instruções verbais.”</div>
+          <h3>Afirmação proposta</h3>
+          <div class="q">“A criança se veste de forma independente em casa.”</div>
+          <div><span class="met">MET</span> atividade observada</div>
+          <div><span class="not">NOT MET</span> ambiente: casa</div>
+          <div><span class="not">NOT MET</span> independência (houve instrução verbal)</div>
+          <div style="margin-top:10px"><span class="pill wait">Evidência insuficiente</span></div>
+        </div>
+        <div class="en">
+          <h3>Session note (fictional)</h3>
+          <div class="q">“In the clinic, the child put on the t-shirt without physical assistance after verbal prompts.”</div>
+          <h3>Proposed claim</h3>
+          <div class="q">“The child dresses independently at home.”</div>
+          <div><span class="met">MET</span> activity observed</div>
+          <div><span class="not">NOT MET</span> setting: home</div>
+          <div><span class="not">NOT MET</span> independence (verbal prompts were needed)</div>
+          <div style="margin-top:10px"><span class="pill wait">Insufficient evidence</span></div>
+        </div>
       </div>
-      <div class="card">
-        <dl style="margin:0" class="pt">
-          <div class="row"><dt>Nota</dt><dd>“Na clínica, a criança vestiu a camiseta sem assistência física, após instruções verbais.”</dd></div>
-          <div class="row"><dt>Afirmação proposta</dt><dd>“A criança se veste de forma independente em casa.”</dd></div>
-          <div class="row"><dt>Resultado</dt><dd><span class="chip">Evidência insuficiente</span> A fonte é da clínica, não de casa, e houve instruções verbais.</dd></div>
-        </dl>
-        <dl style="margin:0" class="en">
-          <div class="row"><dt>Note</dt><dd>“In the clinic, the child put on the t-shirt without physical assistance after verbal prompts.”</dd></div>
-          <div class="row"><dt>Proposed claim</dt><dd>“The child dresses independently at home.”</dd></div>
-          <div class="row"><dt>Result</dt><dd><span class="chip">Insufficient evidence</span> The source is from the clinic, not home, and verbal prompts were needed.</dd></div>
-        </dl>
-        <p class="note pt">A profissional revisa e aprova. A devolutiva para a família herda apenas o que foi aprovado.</p>
-        <p class="note en">The professional reviews and approves. The family summary inherits only what was approved.</p>
-      </div>
-    </section>
+    </div>
+  </section>
 
-    <section>
-      <div class="pt"><h2>Princípios</h2>
-        <ul class="principles">
-          <li>Dados inteiramente sintéticos na competição.</li>
-          <li>Sem diagnóstico ou prescrição automática.</li>
-          <li>Nenhuma afirmação publicada sem revisão profissional.</li>
-          <li>Sem previsões clínicas ou simulações de eficácia.</li>
-        </ul>
-      </div>
-      <div class="en"><h2>Principles</h2>
-        <ul class="principles">
-          <li>Entirely synthetic data in the competition.</li>
-          <li>No automatic diagnosis or prescription.</li>
-          <li>No statement published without professional review.</li>
-          <li>No clinical predictions or effectiveness simulations.</li>
-        </ul>
-      </div>
-    </section>
+  <section id="veredictos">
+    <div class="eyebrow"><span class="pt">Como decidimos</span><span class="en">How we decide</span></div>
+    <h2><span class="pt">Quatro veredictos, sempre com o trecho de origem.</span><span class="en">Four verdicts, always with the source passage.</span></h2>
+    <div class="cards">
+      <div class="vcard"><span class="pill ok"><code>supported</code></span><p class="pt">A nota sustenta todas as restrições da afirmação.</p><p class="en">The note supports every constraint of the claim.</p></div>
+      <div class="vcard"><span class="pill bad"><code>contradicted</code></span><p class="pt">A evidência diz o contrário sobre o mesmo evento.</p><p class="en">The evidence says the opposite about the same event.</p></div>
+      <div class="vcard"><span class="pill wait"><code>insufficient_evidence</code></span><p class="pt">Falta observação direta no ambiente ou nível de assistência afirmado.</p><p class="en">No direct observation in the claimed setting or assistance level.</p></div>
+      <div class="vcard"><span class="pill wait"><code>needs_review</code></span><p class="pt">O sistema se abstém e passa a decisão à profissional.</p><p class="en">The system abstains and hands the decision to the professional.</p></div>
+    </div>
+  </section>
 
-    <section>
-      <div class="pt">
-        <h2>Visão futura</h2>
-        <p>A organização longitudinal de observações verificadas poderá fundamentar um Participation Twin, capaz de representar diferenças de participação entre contextos sem confundir hipótese com fato. É uma direção de pesquisa, não parte deste protótipo.</p>
-      </div>
-      <div class="en">
-        <h2>Future vision</h2>
-        <p>Organizing verified observations over time could support a Participation Twin that represents differences in participation across contexts without confusing hypothesis with fact. It is a research direction, not part of this prototype.</p>
-      </div>
-    </section>
+  <section id="principios">
+    <div class="eyebrow"><span class="pt">Princípios</span><span class="en">Principles</span></div>
+    <ul class="rules pt">
+      <li>Dados inteiramente sintéticos na competição.</li>
+      <li>Sem diagnóstico ou prescrição automática.</li>
+      <li>Nenhuma afirmação publicada sem revisão profissional.</li>
+      <li>Sem previsões clínicas ou simulações de eficácia.</li>
+    </ul>
+    <ul class="rules en">
+      <li>Entirely synthetic data in the competition.</li>
+      <li>No automatic diagnosis or prescription.</li>
+      <li>No statement published without professional review.</li>
+      <li>No clinical predictions or effectiveness simulations.</li>
+    </ul>
+    <p style="margin-top:16px" class="pt"><b>Visão futura:</b> a organização longitudinal de observações verificadas poderá fundamentar um Participation Twin, sem confundir hipótese com fato. É uma direção de pesquisa, não parte deste protótipo.</p>
+    <p style="margin-top:16px" class="en"><b>Future vision:</b> organizing verified observations over time could support a Participation Twin without confusing hypothesis with fact. It is a research direction, not part of this prototype.</p>
+  </section>
 
-    <section>
-      <div class="pt"><h2>Links</h2></div>
-      <div class="en"><h2>Links</h2></div>
-      <div class="links">
-        <a href="https://github.com/Ralado51/elo-evidence-to-impact">GitHub</a>
-        <span class="pt">Vídeo: em breve</span><span class="en">Video: coming soon</span>
-        <span class="pt">Demo: em breve</span><span class="en">Demo: coming soon</span>
-      </div>
-    </section>
-  </main>
+  <section id="links">
+    <div class="eyebrow">Links</div>
+    <div class="links-row">
+      <a class="btn d" href="https://github.com/Ralado51/elo-evidence-to-impact">GitHub</a>
+      <span class="btn soon"><span class="pt">Vídeo: em breve</span><span class="en">Video: coming soon</span></span>
+      <span class="btn soon"><span class="pt">Demo: em breve</span><span class="en">Demo: coming soon</span></span>
+    </div>
+  </section>
+</main>
 
-  <footer>
-    <p class="pt">Projeto independente desenvolvido para o Hack Brasil 2026. Pesquisa e prototipação, não ferramenta de uso clínico.</p>
-    <p class="en">Independent project built for Hack Brasil 2026. Research and prototyping, not a clinical tool.</p>
-  </footer>
-</div>
+<footer>
+  <span class="pt">Projeto independente desenvolvido para o Hack Brasil 2026. Pesquisa e prototipação, não ferramenta de uso clínico.</span>
+  <span class="en">Independent project built for Hack Brasil 2026. Research and prototyping, not a clinical tool.</span>
+</footer>
+
 <script>
 (function () {
   var root = document.documentElement, buttons = document.querySelectorAll('.lang button');
@@ -196,10 +264,9 @@
     root.setAttribute('lang', l === 'en' ? 'en' : 'pt-BR');
     buttons.forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-set') === l)); });
   }
-  var start = 'pt';
-  try { start = localStorage.getItem('lang') || ((navigator.language || '').toLowerCase().indexOf('pt') === 0 ? 'pt' : 'en'); } catch (e) {
-    start = (navigator.language || '').toLowerCase().indexOf('pt') === 0 ? 'pt' : 'en';
-  }
+  var pt = (navigator.language || '').toLowerCase().indexOf('pt') === 0;
+  var start = pt ? 'pt' : 'en';
+  try { start = localStorage.getItem('lang') || start; } catch (e) {}
   apply(start);
   buttons.forEach(function (b) {
     b.addEventListener('click', function () {
