@@ -31,3 +31,10 @@ pytest
 - Unregistered identifiers block the text (`PrivacyBlocked`); the error never contains the matched text.
 - Offsets: a span in the sanitized text maps back to the original text, and a partial overlap with a pseudonym expands to the whole name.
 - **Known limit:** an unregistered name written without a title, relation word or pattern is not detected. This is risk mitigation, not infallible anonymization, and one reason the project uses synthetic data only.
+
+## Review (`review.py`)
+
+Local SQLite persistence plus human review. A claim is approved only if the verifier says
+`supported`; otherwise the reviewer edits it (it is re-verified) or rejects it with a reason.
+Final states cannot change. Every action goes to an append-only audit log (SQLite triggers
+block UPDATE/DELETE). Downstream outputs (family summary) read `approved_claims()` only.
