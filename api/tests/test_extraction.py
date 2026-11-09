@@ -125,3 +125,16 @@ def test_llm_disagreement_flagged():
     s, note, _ = prep("Pedro vestiu a camiseta na clínica com instruções verbais.")
     r = extract_with_llm(Fake({"observations": [item(assistance="independent", quote="vestiu a camiseta na clínica com instruções verbais")]}), s, note, CTX, PACK)
     assert any(f.kind == "rules_disagree_assistance" for f in r.flags)
+
+
+@pytest.mark.skipif(not __import__("os").environ.get("LLM_BASE_URL"), reason="no LLM configured")
+def test_live_model_never_breaks_the_contract():
+    from elo.llm import OpenAICompatibleClient
+    client = OpenAICompatibleClient.from_env()
+    s, note, _ = prep("Pedro vestiu a camiseta na clínica sem assistência física, após instruções verbais.")
+    try:
+        r = extract_with_llm(client, s, note, CTX, PACK)
+    except ExtractionError:
+        return  # a weak model may return bad JSON; that must fail closed, not crash
+    for o in r.observations:
+        o.check_against(note)
