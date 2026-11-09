@@ -4,6 +4,7 @@ Usage: LLM_BASE_URL=... LLM_API_KEY=ollama python scripts/compare_models.py llam
 Prints, per model: observations accepted, rejections by reason, rule disagreements, seconds.
 """
 import sys
+import urllib.error
 import time
 from collections import Counter
 from datetime import date
@@ -38,9 +39,15 @@ def main(models):
             except ExtractionError:
                 bad_json += 1
                 continue
+            except urllib.error.URLError as exc:
+                print(f"{model}: request failed ({exc}); is the model name installed?")
+                break
             ok += len(r.observations)
             rej.update(x.reason for x in r.rejected)
             flags += len(r.flags)
+            for f in r.flags:
+                o = next(x for x in r.observations if x.id == f.observation_id)
+                print(f"  [{model}] {f.kind}: {o.quote_sanitized!r} -> {o.assistance.value}/{o.environment.value}")
         print(f"{model}: accepted={ok} rejected={dict(rej)} flags={flags} bad_json={bad_json} seconds={time.time()-t0:.1f}")
 
 if __name__ == "__main__":
