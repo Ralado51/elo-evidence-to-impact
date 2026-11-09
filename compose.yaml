@@ -1,0 +1,28 @@
+# Portainer stack (Git repository). Uses an existing Traefik.
+# Set these in the stack's environment variables if they differ from the defaults:
+#   APP_DOMAIN          evidence.eloterapia.com.br
+#   TRAEFIK_NETWORK     name of Traefik's Docker network (default: traefik)
+#   TRAEFIK_ENTRYPOINT  HTTPS entrypoint (default: websecure)
+#   CERT_RESOLVER       certificate resolver (default: letsencrypt)
+# Secrets (model API key etc.) go in the stack's environment, never in this repo.
+# After the 2026-11-30 23:59 freeze, turn off Git auto-update and pin the stack to a tag/commit.
+
+services:
+  landing:
+    build: ./landing
+    restart: unless-stopped
+    networks:
+      - proxy
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=${TRAEFIK_NETWORK:-traefik}
+      - traefik.http.routers.evidence.rule=Host(`${APP_DOMAIN:-evidence.eloterapia.com.br}`)
+      - traefik.http.routers.evidence.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}
+      - traefik.http.routers.evidence.tls=true
+      - traefik.http.routers.evidence.tls.certresolver=${CERT_RESOLVER:-letsencrypt}
+      - traefik.http.services.evidence.loadbalancer.server.port=80
+
+networks:
+  proxy:
+    name: ${TRAEFIK_NETWORK:-traefik}
+    external: true
