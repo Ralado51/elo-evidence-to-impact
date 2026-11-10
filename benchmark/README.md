@@ -53,3 +53,11 @@ Dev result (59 cases): model alone 94.9% accuracy, 0 unsafe-supported, precision
 - Disclosure: when I generated the cases I ran the **rules-only** mode once on round 5 to check the file was well formed. Result: 5 of 6 right; `r5-03` ("Pelo que a vó contou") is read as direct observation, as designed. `r5-06` passed because the generic frame "de acordo com" already covers it, so it is less adversarial than I intended. Nothing was changed after seeing this. The model and consensus runs on round 5 are still unseen.
 - Run only round 5 with `python scripts/run_benchmark.py --mode consensus --model qwen2.5:3b --split eval --only-round 5`. Rounds 1 to 4 keep their one-time result above.
 - Default mode for the product: consensus (pre-registered). The model-alone numbers are reported next to it.
+
+## Round 5 result and the last extraction change
+
+Round 5 (consensus and model alone, identical): accuracy 33%, 1 unsafe `supported` (`r5-03`, the case written to fail), recall 0.33 because the model returned a non-verbatim quote in 3 cases (rejected, a safe failure).
+
+Last extraction change, decided from that result: **when in doubt, a sentence with an attribution verb is a report**, unless the speech is to or by the patient. It replaces further phrase lists. Another professional (physio, speech therapist, psychologist) counts as a professional report. Round 6 (`r6-*`, 6 cases, forced into `eval`) was written after the change and **was not run, not even in rules mode**, before the model run. One case (`r6-06`, "Ficamos sabendo pela babá...") has no listed verb and is expected to fail: it documents the remaining limit.
+
+Extraction code, pack and prompt are **frozen from here on**. Run: `python scripts/run_benchmark.py --mode consensus --model qwen2.5:3b --split eval --only-round 6` (and `--mode llm`).

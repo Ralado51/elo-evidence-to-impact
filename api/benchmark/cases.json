@@ -2724,5 +2724,189 @@
   "label_status": "constructed; pending clinical review",
   "split": "eval",
   "round": 5
+ },
+ {
+  "id": "r6-01",
+  "category": "unlisted_noun_listed_verb",
+  "difficulty": "hard",
+  "locale": "pt",
+  "notes": [
+   {
+    "id": "r6-01-n1",
+    "date": "2026-10-20",
+    "text": "Davi usou a colher sozinho em casa, comentou a vizinha."
+   }
+  ],
+  "claim": {
+   "activity": "feeding",
+   "environment": "home",
+   "assistance": "independent",
+   "as_of": "2026-10-20"
+  },
+  "expected_verdict": "needs_review",
+  "expected_observations": [
+   {
+    "note_id": "r6-01-n1",
+    "activity": "feeding",
+    "environment": "home",
+    "assistance": "independent",
+    "source_type": "caregiver_report"
+   }
+  ],
+  "label_status": "constructed; pending clinical review",
+  "split": "eval",
+  "round": 6
+ },
+ {
+  "id": "r6-02",
+  "category": "unlisted_noun_listed_verb",
+  "difficulty": "hard",
+  "locale": "pt",
+  "notes": [
+   {
+    "id": "r6-02-n1",
+    "date": "2026-10-21",
+    "text": "Davi escovou os dentes sozinho em casa, afirma o motorista da van."
+   }
+  ],
+  "claim": {
+   "activity": "toothbrushing",
+   "environment": "home",
+   "assistance": "independent",
+   "as_of": "2026-10-21"
+  },
+  "expected_verdict": "needs_review",
+  "expected_observations": [
+   {
+    "note_id": "r6-02-n1",
+    "activity": "toothbrushing",
+    "environment": "home",
+    "assistance": "independent",
+    "source_type": "caregiver_report"
+   }
+  ],
+  "label_status": "constructed; pending clinical review",
+  "split": "eval",
+  "round": 6
+ },
+ {
+  "id": "r6-03",
+  "category": "unlisted_noun_listed_verb",
+  "difficulty": "hard",
+  "locale": "en",
+  "notes": [
+   {
+    "id": "r6-03-n1",
+    "date": "2026-10-22",
+    "text": "The neighbor mentioned that Davi put on the shirt on his own at home."
+   }
+  ],
+  "claim": {
+   "activity": "dressing_upper",
+   "environment": "home",
+   "assistance": "independent",
+   "as_of": "2026-10-22"
+  },
+  "expected_verdict": "needs_review",
+  "expected_observations": [
+   {
+    "note_id": "r6-03-n1",
+    "activity": "dressing_upper",
+    "environment": "home",
+    "assistance": "independent",
+    "source_type": "caregiver_report"
+   }
+  ],
+  "label_status": "constructed; pending clinical review",
+  "split": "eval",
+  "round": 6
+ },
+ {
+  "id": "r6-04",
+  "category": "another_professional",
+  "difficulty": "hard",
+  "locale": "pt",
+  "notes": [
+   {
+    "id": "r6-04-n1",
+    "date": "2026-10-23",
+    "text": "A fisioterapeuta disse que Davi vestiu a camiseta na clínica com dicas gestuais."
+   }
+  ],
+  "claim": {
+   "activity": "dressing_upper",
+   "environment": "clinic",
+   "assistance": "gesture_prompt",
+   "as_of": "2026-10-23"
+  },
+  "expected_verdict": "needs_review",
+  "expected_observations": [
+   {
+    "note_id": "r6-04-n1",
+    "activity": "dressing_upper",
+    "environment": "clinic",
+    "assistance": "gesture_prompt",
+    "source_type": "professional_report"
+   }
+  ],
+  "label_status": "constructed; pending clinical review",
+  "split": "eval",
+  "round": 6
+ },
+ {
+  "id": "r6-05",
+  "category": "child_speech_is_not_an_event",
+  "difficulty": "hard",
+  "locale": "pt",
+  "notes": [
+   {
+    "id": "r6-05-n1",
+    "date": "2026-10-24",
+    "text": "Davi disse que queria ajuda para vestir a camiseta na clínica."
+   }
+  ],
+  "claim": {
+   "activity": "dressing_upper",
+   "environment": "clinic",
+   "assistance": "verbal_prompt",
+   "as_of": "2026-10-24"
+  },
+  "expected_verdict": "insufficient_evidence",
+  "expected_observations": [],
+  "label_status": "constructed; pending clinical review",
+  "split": "eval",
+  "round": 6
+ },
+ {
+  "id": "r6-06",
+  "category": "unlisted_verb_designed_to_fail",
+  "difficulty": "hard",
+  "locale": "pt",
+  "notes": [
+   {
+    "id": "r6-06-n1",
+    "date": "2026-10-25",
+    "text": "Ficamos sabendo pela babá que Davi escovou os dentes sozinho em casa."
+   }
+  ],
+  "claim": {
+   "activity": "toothbrushing",
+   "environment": "home",
+   "assistance": "independent",
+   "as_of": "2026-10-25"
+  },
+  "expected_verdict": "needs_review",
+  "expected_observations": [
+   {
+    "note_id": "r6-06-n1",
+    "activity": "toothbrushing",
+    "environment": "home",
+    "assistance": "independent",
+    "source_type": "caregiver_report"
+   }
+  ],
+  "label_status": "constructed; pending clinical review",
+  "split": "eval",
+  "round": 6
  }
 ]
