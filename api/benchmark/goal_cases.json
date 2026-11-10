@@ -1,0 +1,575 @@
+[
+ {
+  "id": "g01",
+  "goal": {
+   "activity": "dressing_upper",
+   "environment": "clinic",
+   "assistance": "verbal_prompt",
+   "measure": "direct observation",
+   "start_date": "2026-09-01",
+   "review_date": "2026-09-30"
+  },
+  "notes": [
+   {
+    "id": "g01-n1",
+    "date": "2026-09-08",
+    "text": "Davi vestiu a camiseta na clínica com instruções verbais."
+   }
+  ],
+  "as_of": "2026-09-15",
+  "expected": {
+   "verdict": "supported",
+   "no_recent_direct": false,
+   "review_due": false,
+   "environments_without_evidence": [
+    "home",
+    "school"
+   ],
+   "report_only_environments": [],
+   "latest_direct_date": "2026-09-08"
+  },
+  "label_status": "constructed; pending clinical review"
+ },
+ {
+  "id": "g02",
+  "goal": {
+   "activity": "dressing_upper",
+   "environment": "clinic",
+   "assistance": "verbal_prompt",
+   "measure": "direct observation",
+   "start_date": "2026-09-01",
+   "review_date": "2026-09-30"
+  },
+  "notes": [
+   {
+    "id": "g02-n1",
+    "date": "2026-09-01",
+    "text": "Davi vestiu a camiseta na clínica com assistência física parcial."
+   },
+   {
+    "id": "g02-n2",
+    "date": "2026-09-08",
+    "text": "Davi vestiu a camiseta na clínica com dicas gestuais."
+   },
+   {
+    "id": "g02-n3",
+    "date": "2026-09-15",
+    "text": "Davi vestiu a camiseta na clínica com instruções verbais."
+   }
+  ],
+  "as_of": "2026-09-16",
+  "expected": {
+   "verdict": "supported",
+   "no_recent_direct": false,
+   "review_due": false,
+   "environments_without_evidence": [
+    "home",
+    "school"
+   ],
+   "report_only_environments": [],
+   "latest_direct_date": "2026-09-15"
+  },
+  "label_status": "constructed; pending clinical review"
+ },
+ {
+  "id": "g03",
+  "goal": {
+   "activity": "dressing_upper",
+   "environment": "clinic",
+   "assistance": "verbal_prompt",
+   "measure": "direct observation",
+   "start_date": "2026-09-01",
+   "review_date": "2026-09-30"
+  },
+  "notes": [
+   {
+    "id": "g03-n1",
+    "date": "2026-09-01",
+    "text": "Davi vestiu a camiseta na clínica com instruções verbais."
+   },
+   {
+    "id": "g03-n2",
+    "date": "2026-09-08",
+    "text": "Davi vestiu a camiseta na clínica sozinho."
+   },
+   {
+    "id": "g03-n3",
+    "date": "2026-09-15",
+    "text": "Davi vestiu a camiseta na clínica com dicas gestuais."
+   }
+  ],
+  "as_of": "2026-09-16",
+  "expected": {
+   "verdict": "insufficient_evidence",
+   "no_recent_direct": false,
+   "review_due": false,
+   "environments_without_evidence": [
+    "home",
+    "school"
+   ],
+   "report_only_environments": [],
+   "latest_direct_date": "2026-09-15"
+  },
+  "label_status": "constructed; pending clinical review"
+ },
+ {
+  "id": "g04",
+  "goal": {
+   "activity": "dressing_upper",
+   "environment": "clinic",
+   "assistance": "verbal_prompt",
+   "measure": "direct observation",
+   "start_date": "2026-09-01",
+   "review_date": "2026-09-30"
+  },
+  "notes": [
+   {
+    "id": "g04-n1",
+    "date": "2026-09-08",
+    "text": "Davi vestiu a camiseta na clínica sozinho."
+   }
+  ],
+  "as_of": "2026-09-10",
+  "expected": {
+   "verdict": "needs_review",
+   "no_recent_direct": false,
+   "review_due": false,
+   "environments_without_evidence": [
+    "home",
+    "school"
+   ],
+   "report_only_environments": [],
+   "latest_direct_date": "2026-09-08"
+  },
+  "label_status": "constructed; pending clinical review"
+ },
+ {
+  "id": "g05",
+  "goal": {
+   "activity": "dressing_upper",
+   "environment": "home",
+   "assistance": "verbal_prompt",
+   "measure": "direct observation",
+   "start_date": "2026-09-01",
+   "review_date": "2026-09-30"
+  },
+  "notes": [
+   {
+    "id": "g05-n1",
+    "date": "2026-09-08",
+    "text": "A mãe relatou que em casa Davi vestiu a camiseta com instruções verbais."
+   }
+  ],
+  "as_of": "2026-09-15",
+  "expected": {
+   "verdict": "needs_review",
+   "no_recent_direct": true,
+   "review_due": false,
+   "environments_without_evidence": [
+    "clinic",
+    "school"
+   ],
+   "report_only_environments": [
+    "home"
+   ],
+   "latest_direct_date": null
+  },
+  "label_status": "constructed; pending clinical review"
+ },
+ {
+  "id": "g06",
+  "goal": {
+   "activity": "dressing_upper",
+   "environment": "home",
+   "assistance": "verbal_prompt",
+   "measure": "direct observation",
+   "start_date": "2026-09-01",
+   "review_date": "2026-09-30"
+  },
+  "notes": [
+   {
+    "id": "g06-n1",
+    "date": "2026-09-08",
+    "text": "Davi vestiu a camiseta na clínica com instruções verbais."
+   }
+  ],
+  "as_of": "2026-09-15",
+  "expected": {
+   "verdict": "insufficient_evidence",
+   "no_recent_direct": true,
+   "review_due": false,
+   "environments_without_evidence": [
+    "home",
+    "school"
+   ],
+   "report_only_environments": [],
+   "latest_direct_date": null
+  },
+  "label_status": "constructed; pending clinical review"
+ },
+ {
+  "id": "g07",
+  "goal": {
+   "activity": "dressing_upper",
+   "environment": "clinic",
+   "assistance": "verbal_prompt",
+   "measure": "direct observation",
+   "start_date": "2026-09-01",
+   "review_date": "2026-10-15"
+  },
+  "notes": [
+   {
+    "id": "g07-n1",
+    "date": "2026-09-01",
+    "text": "Davi vestiu a camiseta na clínica com instruções verbais."
+   }
+  ],
+  "as_of": "2026-10-01",
+  "expected": {
+   "verdict": "supported",
+   "no_recent_direct": true,
+   "review_due": false,
+   "environments_without_evidence": [
+    "home",
+    "school"
+   ],
+   "report_only_environments": [],
+   "latest_direct_date": "2026-09-01"
+  },
+  "label_status": "constructed; pending clinical review"
+ },
+ {
+  "id": "g08",
+  "goal": {
+   "activity": "dressing_upper",
+   "environment": "clinic",
+   "assistance": "verbal_prompt",
+   "measure": "direct observation",
+   "start_date": "2026-09-01",
+   "review_date": "2026-10-01"
+  },
+  "notes": [
+   {
+    "id": "g08-n1",
+    "date": "2026-09-08",
+    "text": "Davi vestiu a camiseta na clínica com instruções verbais."
+   }
+  ],
+  "as_of": "2026-10-05",
+  "expected": {
+   "verdict": "supported",
+   "no_recent_direct": true,
+   "review_due": true,
+   "environments_without_evidence": [
+    "home",
+    "school"
+   ],
+   "report_only_environments": [],
+   "latest_direct_date": "2026-09-08"
+  },
+  "label_status": "constructed; pending clinical review"
+ },
+ {
+  "id": "g09",
+  "goal": {
+   "activity": "dressing_upper",
+   "environment": "clinic",
+   "assistance": "verbal_prompt",
+   "measure": "direct observation",
+   "start_date": "2026-09-01",
+   "review_date": "2026-09-30"
+  },
+  "notes": [
+   {
+    "id": "g09-n1",
+    "date": "2026-09-08",
+    "text": "Davi usou a colher na clínica com instruções verbais."
+   }
+  ],
+  "as_of": "2026-09-15",
+  "expected": {
+   "verdict": "insufficient_evidence",
+   "no_recent_direct": true,
+   "review_due": false,
+   "environments_without_evidence": [
+    "clinic",
+    "home",
+    "school"
+   ],
+   "report_only_environments": [],
+   "latest_direct_date": null
+  },
+  "label_status": "constructed; pending clinical review"
+ },
+ {
+  "id": "g10",
+  "goal": {
+   "activity": "dressing_upper",
+   "environment": "clinic",
+   "assistance": "verbal_prompt",
+   "measure": "direct observation",
+   "start_date": "2026-09-01",
+   "review_date": "2026-09-30"
+  },
+  "notes": [
+   {
+    "id": "g10-n1",
+    "date": "2026-09-08",
+    "text": "Davi vestiu a camiseta na clínica com instruções verbais."
+   },
+   {
+    "id": "g10-n2",
+    "date": "2026-10-20",
+    "text": "Davi vestiu a camiseta na clínica sozinho."
+   }
+  ],
+  "as_of": "2026-09-15",
+  "expected": {
+   "verdict": "supported",
+   "no_recent_direct": false,
+   "review_due": false,
+   "environments_without_evidence": [
+    "home",
+    "school"
+   ],
+   "report_only_environments": [],
+   "latest_direct_date": "2026-09-08"
+  },
+  "label_status": "constructed; pending clinical review"
+ },
+ {
+  "id": "g11",
+  "goal": {
+   "activity": "dressing_upper",
+   "environment": "home",
+   "assistance": "independent",
+   "measure": "direct observation",
+   "start_date": "2026-09-01",
+   "review_date": "2026-09-30"
+  },
+  "notes": [
+   {
+    "id": "g11-n1",
+    "date": "2026-09-08",
+    "text": "Davi vestiu a camiseta em casa com instruções verbais."
+   },
+   {
+    "id": "g11-n2",
+    "date": "2026-09-08",
+    "text": "A mãe relatou que em casa Davi vestiu a camiseta sozinho."
+   }
+  ],
+  "as_of": "2026-09-10",
+  "expected": {
+   "verdict": "needs_review",
+   "no_recent_direct": false,
+   "review_due": false,
+   "environments_without_evidence": [
+    "clinic",
+    "school"
+   ],
+   "report_only_environments": [],
+   "latest_direct_date": "2026-09-08"
+  },
+  "label_status": "constructed; pending clinical review"
+ },
+ {
+  "id": "g12",
+  "goal": {
+   "activity": "dressing_upper",
+   "environment": "clinic",
+   "assistance": "verbal_prompt",
+   "measure": "direct observation",
+   "start_date": "2026-09-01",
+   "review_date": "2026-09-30"
+  },
+  "notes": [
+   {
+    "id": "g12-n1",
+    "date": "2026-09-08",
+    "text": "Davi vestiu a camiseta na clínica com instruções verbais."
+   },
+   {
+    "id": "g12-n2",
+    "date": "2026-09-09",
+    "text": "A mãe relatou que em casa Davi vestiu a camiseta sozinho."
+   }
+  ],
+  "as_of": "2026-09-12",
+  "expected": {
+   "verdict": "supported",
+   "no_recent_direct": false,
+   "review_due": false,
+   "environments_without_evidence": [
+    "school"
+   ],
+   "report_only_environments": [
+    "home"
+   ],
+   "latest_direct_date": "2026-09-08"
+  },
+  "label_status": "constructed; pending clinical review"
+ },
+ {
+  "id": "g13",
+  "goal": {
+   "activity": "dressing_upper",
+   "environment": "clinic",
+   "assistance": "verbal_prompt",
+   "measure": "direct observation",
+   "start_date": "2026-09-01",
+   "review_date": "2026-09-30"
+  },
+  "notes": [
+   {
+    "id": "g13-n1",
+    "date": "2026-09-08",
+    "text": "Davi vestiu a camiseta na clínica com instruções verbais."
+   },
+   {
+    "id": "g13-n2",
+    "date": "2026-09-08",
+    "text": "Davi vestiu a camiseta na clínica sozinho."
+   }
+  ],
+  "as_of": "2026-09-10",
+  "expected": {
+   "verdict": "needs_review",
+   "no_recent_direct": false,
+   "review_due": false,
+   "environments_without_evidence": [
+    "home",
+    "school"
+   ],
+   "report_only_environments": [],
+   "latest_direct_date": "2026-09-08"
+  },
+  "label_status": "constructed; pending clinical review"
+ },
+ {
+  "id": "g14",
+  "goal": {
+   "activity": "dressing_upper",
+   "environment": "clinic",
+   "assistance": "verbal_prompt",
+   "measure": "direct observation",
+   "start_date": "2026-09-01",
+   "review_date": "2026-09-30"
+  },
+  "notes": [
+   {
+    "id": "g14-n1",
+    "date": "2026-09-08",
+    "text": "Davi vestiu a camiseta na clínica com instruções verbais."
+   }
+  ],
+  "as_of": "2026-09-08",
+  "expected": {
+   "verdict": "supported",
+   "no_recent_direct": false,
+   "review_due": false,
+   "environments_without_evidence": [
+    "home",
+    "school"
+   ],
+   "report_only_environments": [],
+   "latest_direct_date": "2026-09-08"
+  },
+  "label_status": "constructed; pending clinical review"
+ },
+ {
+  "id": "g15",
+  "goal": {
+   "activity": "dressing_upper",
+   "environment": "clinic",
+   "assistance": "verbal_prompt",
+   "measure": "direct observation",
+   "start_date": "2026-09-01",
+   "review_date": "2026-09-30"
+  },
+  "notes": [
+   {
+    "id": "g15-n1",
+    "date": "2026-09-08",
+    "text": "Davi put on the shirt at the clinic with verbal prompts."
+   }
+  ],
+  "as_of": "2026-09-15",
+  "expected": {
+   "verdict": "supported",
+   "no_recent_direct": false,
+   "review_due": false,
+   "environments_without_evidence": [
+    "home",
+    "school"
+   ],
+   "report_only_environments": [],
+   "latest_direct_date": "2026-09-08"
+  },
+  "label_status": "constructed; pending clinical review"
+ },
+ {
+  "id": "g16",
+  "goal": {
+   "activity": "dressing_upper",
+   "environment": "school",
+   "assistance": "verbal_prompt",
+   "measure": "direct observation",
+   "start_date": "2026-09-01",
+   "review_date": "2026-09-30"
+  },
+  "notes": [
+   {
+    "id": "g16-n1",
+    "date": "2026-09-08",
+    "text": "Davi vestiu a camiseta na clínica com instruções verbais."
+   }
+  ],
+  "as_of": "2026-10-05",
+  "expected": {
+   "verdict": "insufficient_evidence",
+   "no_recent_direct": true,
+   "review_due": true,
+   "environments_without_evidence": [
+    "home",
+    "school"
+   ],
+   "report_only_environments": [],
+   "latest_direct_date": null
+  },
+  "label_status": "constructed; pending clinical review"
+ },
+ {
+  "id": "g17",
+  "goal": {
+   "activity": "dressing_upper",
+   "environment": "school",
+   "assistance": "independent",
+   "measure": "direct observation",
+   "start_date": "2026-09-01",
+   "review_date": "2026-09-30"
+  },
+  "notes": [
+   {
+    "id": "g17-n1",
+    "date": "2026-09-08",
+    "text": "A professora relatou que na escola Davi vestiu a camiseta sozinho."
+   }
+  ],
+  "as_of": "2026-09-15",
+  "expected": {
+   "verdict": "needs_review",
+   "no_recent_direct": true,
+   "review_due": false,
+   "environments_without_evidence": [
+    "clinic",
+    "home"
+   ],
+   "report_only_environments": [
+    "school"
+   ],
+   "latest_direct_date": null
+  },
+  "label_status": "constructed; pending clinical review"
+ }
+]

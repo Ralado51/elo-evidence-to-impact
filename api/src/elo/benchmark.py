@@ -150,3 +150,48 @@ def summarize(rows: list[dict]) -> dict:
         "by_category": {k: _ratio(sum(r["expected"] == r["predicted"] for r in v), len(v)) for k, v in sorted(by_cat.items())},
         "confusion_matrix": matrix,
     }
+
+
+# --- goals over time -----------------------------------------------------------------------
+
+GOAL_CASES_PATH = Path(__file__).resolve().parents[2] / "benchmark" / "goal_cases.json"
+
+
+def load_goal_cases() -> list[dict]:
+    return json.loads(GOAL_CASES_PATH.read_text(encoding="utf-8"))
+
+
+def run_goal_case(case: dict) -> dict:
+    from .goals import Goal, check_goal
+
+    reg = PatientRegistry()
+    reg.add("patient", "Davi Moreira", "Paciente A")
+    gate, pack = PrivacyGate(reg), load_pack()
+    observations: list[Observation] = []
+    for n in case["notes"]:
+        s = gate.process(n["text"])
+        note = Note(id=n["id"], session_id=case["id"], original_text=n["text"], sanitized_text=s.text)
+        observations += extract_rules(s, note, ExtractionContext(session_date=date.fromisoformat(n["date"])), pack).observations
+    goal = Goal(id=case["id"], session_id=case["id"], **case["goal"])
+    chk = check_goal(goal, observations, date.fromisoformat(case["as_of"]), pack)
+    e = case["expected"]
+    got = {
+        "verdict": chk.verdict.value,
+        "no_recent_direct": chk.no_recent_direct,
+        "review_due": chk.review_due,
+        "environments_without_evidence": sorted(x.value for x in chk.environments_without_evidence),
+        "report_only_environments": sorted(x.value for x in chk.report_only_environments),
+        "latest_direct_date": chk.latest_direct.observed_on.isoformat() if chk.latest_direct else None,
+    }
+    want = {**e, "environments_without_evidence": sorted(e["environments_without_evidence"]),
+            "report_only_environments": sorted(e["report_only_environments"])}
+    return {"id": case["id"], "wrong": [k for k in want if got[k] != want[k]], "got": got, "want": want}
+
+
+def summarize_goals(rows: list[dict]) -> dict:
+    fields = ["verdict", "no_recent_direct", "review_due", "environments_without_evidence", "report_only_environments", "latest_direct_date"]
+    n = len(rows)
+    unsafe = [r["id"] for r in rows if r["got"]["verdict"] == "supported" and r["want"]["verdict"] != "supported"]
+    return {"cases": n, "all_fields_correct": sum(not r["wrong"] for r in rows) / n if n else None,
+            "per_field_accuracy": {f: round(sum(f not in r["wrong"] for r in rows) / n, 3) for f in fields},
+            "unsafe_supported": unsafe, "failures": [{"id": r["id"], "wrong": r["wrong"]} for r in rows if r["wrong"]]}
