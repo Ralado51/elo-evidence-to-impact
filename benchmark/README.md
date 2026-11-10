@@ -69,3 +69,7 @@ Consensus and model alone were identical: accuracy 66.7%, 1 unsafe `supported`, 
 ### Honest limit, after four clean runs (eval, rounds 5 and 6)
 
 Every unsafe `supported` was a family report read as direct observation when the attribution phrase was outside the verb and frame lists. Consensus never showed a safety gain over the model alone and cost accuracy and coverage. The product therefore requires human review of every claim, with the quote and its source type in view; these numbers describe the automatic layer only.
+
+## Default mode (decision after the results)
+
+`EXTRACTION_MODE` selects the extractor: `llm` (default: model proposal, code-verified quotes, deterministic markers), `consensus` (strict: rules and model must agree; the rest goes to human review) or `rules` (deterministic contingency). The pre-registered primary was `consensus`; it was changed to the **strict option** after four clean runs showed no safety gain over the model alone and a cost in accuracy and coverage. Without a model configured the system degrades to the rules and reports it in `mode_used`.

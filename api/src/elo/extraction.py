@@ -67,6 +67,7 @@ class ExtractionResult:
     rejected: list[Rejection] = field(default_factory=list)
     flags: list[Flag] = field(default_factory=list)
     review: list[ReviewItem] = field(default_factory=list)
+    mode_used: str = ""
 
 
 # --- helpers --------------------------------------------------------------------------
@@ -487,3 +488,40 @@ def extract_consensus(
         if m.id not in used:
             out.review.append(ReviewItem("llm_only", m.quote_sanitized or ""))
     return out
+
+
+# --- mode selection ---------------------------------------------------------------------
+
+MODES = ("llm", "consensus", "rules")
+
+
+def default_mode() -> str:
+    """EXTRACTION_MODE: llm (default), consensus (strict) or rules (deterministic contingency)."""
+    import os
+
+    mode = os.environ.get("EXTRACTION_MODE", "llm")
+    if mode not in MODES:
+        raise ExtractionError(f"EXTRACTION_MODE must be one of {', '.join(MODES)}")
+    return mode
+
+
+def extract_note(
+    sanitized: SanitizedText, note: Note, ctx: ExtractionContext, pack: Pack,
+    client: LLMClient | None = None, mode: str | None = None,
+) -> ExtractionResult:
+    """Single entry point. Without a model client it degrades to the rules and says so in ``mode_used``."""
+    mode = mode or default_mode()
+    if mode not in MODES:
+        raise ExtractionError(f"unknown mode {mode}")
+    if mode != "rules" and client is None:
+        result = extract_rules(sanitized, note, ctx, pack)
+        result.mode_used = "rules (no model configured)"
+        return result
+    if mode == "rules":
+        result = extract_rules(sanitized, note, ctx, pack)
+    elif mode == "consensus":
+        result = extract_consensus(client, sanitized, note, ctx, pack)
+    else:
+        result = extract_with_llm(client, sanitized, note, ctx, pack)
+    result.mode_used = mode
+    return result

@@ -243,3 +243,20 @@ def test_when_in_doubt_an_attribution_is_a_report_but_speech_to_the_patient_is_n
     assert extract_rules(s, note, CTX, PACK).observations[0].source_type is SourceType.PROFESSIONAL_REPORT
     s, note, _ = prep("A terapeuta disse a Pedro para vestir a camiseta e ele vestiu na clínica sozinho.")
     assert extract_rules(s, note, CTX, PACK).observations[0].source_type is SourceType.DIRECT_OBSERVATION
+
+
+def test_mode_selection_and_degradation(monkeypatch):
+    from elo.extraction import default_mode, extract_note
+    monkeypatch.delenv("EXTRACTION_MODE", raising=False)
+    assert default_mode() == "llm"
+    monkeypatch.setenv("EXTRACTION_MODE", "consensus")
+    assert default_mode() == "consensus"
+    monkeypatch.setenv("EXTRACTION_MODE", "nope")
+    with pytest.raises(ExtractionError):
+        default_mode()
+    s, note, _ = prep("Pedro vestiu a camiseta na clínica com instruções verbais.")
+    r = extract_note(s, note, CTX, PACK, client=None, mode="llm")
+    assert r.mode_used == "rules (no model configured)" and r.observations
+    q = "Paciente A vestiu a camiseta na clínica com instruções verbais."
+    assert extract_note(s, note, CTX, PACK, Fake({"observations": [item(quote=q)]}), "llm").mode_used == "llm"
+    assert extract_note(s, note, CTX, PACK, Fake({"observations": [item(quote=q)]}), "consensus").mode_used == "consensus"
