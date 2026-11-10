@@ -1,0 +1,13 @@
+flowchart LR
+  N[Session note<br/>text] --> PG{Privacy Gate<br/>local registry<br/>fail-closed}
+  PG -- blocked --> X[Kinds only,<br/>nothing leaves]
+  PG -- pseudonymized --> EX[Extraction<br/>llm / consensus / rules<br/>verbatim quotes checked by code]
+  EX --> EV[(Evidence store<br/>SQLite)]
+  EV --> V[Deterministic Verifier<br/>supported · contradicted<br/>insufficient · needs review]
+  V --> HR[Human review<br/>approve only if supported<br/>edit re-verifies · audit log]
+  HR --> FS[Family summary<br/>approved claims only]
+  EV --> G[Goals check<br/>+ evidence map<br/>+ attendance]
+  G --> D[Report draft .docx<br/>judgment left to therapist]
+  FS --> D
+  classDef gate fill:#fff56b,stroke:#262626,color:#1c1c1c
+  class PG,V,HR gate

@@ -3,7 +3,7 @@
 **Evidence-first documentation for pediatric rehabilitation.**
 **Documentação baseada em evidências para reabilitação infantil.**
 
-Hack Brasil 2026 · Track: Health & well-being (Saúde & bem-estar) · **Status: in development / em desenvolvimento**
+Hack Brasil 2026 · Track: Health & well-being (Saúde & bem-estar) · **Status: working prototype, not clinically validated / protótipo funcional, sem validação clínica**
 
 [English](#english) · [Português (Brasil)](#português-brasil)
 
@@ -35,9 +35,40 @@ Elo Evidence-to-Impact is an independent prototype that turns **synthetic pediat
 - Unsupported claim: "The child dresses independently at home."
 - Expected behavior: **insufficient evidence**. The source is from the clinic, not from home, and verbal prompts were required.
 
-### Status
+### What works today
 
-**Planning and early development.** Functionality, accuracy and clinical utility have **not** been validated. The example above describes target behavior, not a tested feature.
+An end-to-end, bilingual (pt-BR / English) web app and API, running on synthetic data:
+
+- notes go through the **Privacy Gate** (names replaced by pseudonyms before any model sees them; unregistered personal data blocks the note);
+- extraction with a language model **or** deterministic rules; every quoted passage is verified verbatim by code, and code (not the model) decides whether it was directly observed or reported;
+- a **deterministic verifier** (independent of the model) returns `supported`, `contradicted`, `insufficient_evidence` or `needs_review`;
+- **human review**: approve only if supported, edit re-verifies, reject needs a reason; append-only audit log;
+- goals checked against evidence over time, an **evidence map** (activity × setting), attendance with an explicit adherence rule;
+- a family summary from approved claims only, and a **.docx report draft** that leaves conclusions, ratings (GAS) and conduct to the therapist.
+
+![Architecture](docs/architecture.png)
+
+### Measured results (synthetic benchmark, 95 cases + 17 goal checks)
+
+Engineering test of the automatic layer only, **not clinical validation**. Details, split rules and every disclosure are in [benchmark/README.md](benchmark/README.md).
+
+| Set | Mode | Verdict accuracy | Unsafe `supported` |
+|---|---|---|---|
+| Development (59 cases) | model alone (`qwen2.5:3b`) | 94.9% | 0 |
+| Development (59 cases) | consensus (rules + model must agree) | 84.7% | 0 |
+| Sealed evaluation, run once (24 cases) | model alone / consensus | 95.8% / 83.3% | 1 / 1 |
+| Sealed rounds 5 / 6 (designed to fail) | both modes, same result | 33% / 67% | 1 each |
+
+**Honest limit:** every unsafe `supported` found was a family report read as direct observation under a phrasing the lists do not cover (for example "pelo que a vó contou"). Because of this, **human review with the quote and its source visible is mandatory** in the product, and "consensus" exists as a strict mode (`EXTRACTION_MODE=consensus`) that sends disagreements to the reviewer. The goal check passes 17 of 17 constructed cases. Labels were written by construction and await review by the occupational therapist.
+
+### Run it
+
+```bash
+cd api && pip install -e ".[dev]" && python -m pytest -q          # 138 tests
+ELO_WEB_DIR=../web python -m uvicorn elo.api:app_factory --factory --app-dir src   # app at /app/
+```
+
+Without a model configured the app uses the deterministic rules and says so on each note. To use a model set `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL` (any OpenAI-compatible endpoint) and `EXTRACTION_MODE` (`llm`, `consensus` or `rules`). In the app, press **Load demo case** for an invented case. For a public deployment set `ELO_ACCESS_TOKEN`. `compose.yaml` runs landing, app and API behind Traefik (see the header of that file).
 
 ### Safety and boundaries
 
@@ -50,11 +81,11 @@ Elo Evidence-to-Impact is an independent prototype that turns **synthetic pediat
 
 ### Technology plan
 
-Next.js / React (bilingual UI) · Python, FastAPI, Pydantic · SQLite or PostgreSQL · pytest · optional language model through an API, with a deterministic fallback. Extensible through configurable *discipline packs* (occupational therapy first).
+Static web app (vanilla JS, no build step; a deliberate simplification of the earlier Next.js plan) · Python, FastAPI, Pydantic · SQLite · python-docx · pytest · optional language model through any OpenAI-compatible API, with a deterministic fallback. Extensible through configurable *discipline packs* (occupational therapy first).
 
 ### Evaluation plan
 
-A synthetic, adversarial benchmark (development and sealed evaluation split) with reported counts, denominators, confusion matrix, abstentions and false alarms. It is an engineering test, not clinical validation.
+The synthetic, adversarial benchmark is reported above, with counts, denominators, confusion matrix, abstentions and false alarms. It is an engineering test, not clinical validation. Next: the therapist reviews the labels and writes her own fictional case.
 
 ### Independence from Elo 1.0
 
@@ -103,9 +134,40 @@ O Elo Evidence-to-Impact é um protótipo independente que transforma **notas si
 - Afirmação sem sustentação: "A criança se veste de forma independente em casa."
 - Comportamento esperado: **evidência insuficiente**. A fonte é da clínica, não de casa, e houve instruções verbais.
 
-### Estado
+### O que funciona hoje
 
-**Planejamento e desenvolvimento inicial.** Funcionalidade, acurácia e utilidade clínica **não foram validadas**. O exemplo acima descreve o comportamento-alvo, não um recurso testado.
+Um app web e uma API de ponta a ponta, bilíngues (pt-BR / inglês), com dados sintéticos:
+
+- as evoluções passam pelo **Privacy Gate** (nomes viram pseudônimos antes de qualquer modelo ver o texto; dado pessoal não registrado bloqueia a nota);
+- extração por modelo de linguagem **ou** regras determinísticas; todo trecho citado é verificado literalmente por código, e é o código (não o modelo) que decide se foi observação direta ou relato;
+- um **verificador determinístico** (independente do modelo) devolve `supported`, `contradicted`, `insufficient_evidence` ou `needs_review`;
+- **revisão humana**: só aprova se sustentada, editar reverifica, rejeitar exige motivo; trilha de auditoria somente de acréscimo;
+- metas checadas contra a evidência ao longo do tempo, **mapa de evidências** (atividade × ambiente), presença com regra de adesão explícita;
+- resumo para a família só com afirmações aprovadas e **rascunho de devolutiva em .docx**, que deixa conclusão, pontuação (GAS) e conduta para a terapeuta.
+
+![Arquitetura](docs/architecture.png)
+
+### Resultados medidos (benchmark sintético, 95 casos + 17 checagens de meta)
+
+Teste de engenharia só da camada automática, **não é validação clínica**. Detalhes, regras de separação e todas as divulgações estão em [benchmark/README.md](benchmark/README.md).
+
+| Conjunto | Modo | Acurácia do veredito | `supported` inseguro |
+|---|---|---|---|
+| Desenvolvimento (59 casos) | só o modelo (`qwen2.5:3b`) | 94,9% | 0 |
+| Desenvolvimento (59 casos) | consenso (regras + modelo precisam concordar) | 84,7% | 0 |
+| Avaliação fechada, rodada uma vez (24 casos) | só o modelo / consenso | 95,8% / 83,3% | 1 / 1 |
+| Rodadas fechadas 5 / 6 (feitas para falhar) | os dois modos, mesmo resultado | 33% / 67% | 1 cada |
+
+**Limite honesto:** todo `supported` inseguro encontrado foi um relato da família lido como observação direta, com uma redação que as listas não cobrem (por exemplo "pelo que a vó contou"). Por isso, **a revisão humana, com o trecho e a fonte visíveis, é obrigatória** no produto, e o "consenso" existe como modo estrito (`EXTRACTION_MODE=consensus`) que manda as divergências para a revisora. A checagem de metas passa em 17 de 17 casos construídos. Os gabaritos foram escritos por construção e aguardam revisão da terapeuta ocupacional.
+
+### Como rodar
+
+```bash
+cd api && pip install -e ".[dev]" && python -m pytest -q          # 138 testes
+ELO_WEB_DIR=../web python -m uvicorn elo.api:app_factory --factory --app-dir src   # app em /app/
+```
+
+Sem modelo configurado o app usa as regras determinísticas e avisa em cada nota. Para usar um modelo, defina `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL` (qualquer endpoint compatível com OpenAI) e `EXTRACTION_MODE` (`llm`, `consensus` ou `rules`). No app, use **Carregar caso de demonstração** para um caso inventado. Em implantação pública defina `ELO_ACCESS_TOKEN`. O `compose.yaml` sobe landing, app e API atrás do Traefik (veja o cabeçalho do arquivo).
 
 ### Segurança e limites
 
@@ -118,11 +180,11 @@ O Elo Evidence-to-Impact é um protótipo independente que transforma **notas si
 
 ### Plano de tecnologia
 
-Next.js / React (interface bilíngue) · Python, FastAPI, Pydantic · SQLite ou PostgreSQL · pytest · modelo de linguagem opcional via API, com contingência determinística. Extensível por *discipline packs* configuráveis (terapia ocupacional primeiro).
+App web estático (JS puro, sem etapa de build; simplificação deliberada do plano anterior com Next.js) · Python, FastAPI, Pydantic · SQLite · python-docx · pytest · modelo de linguagem opcional por qualquer API compatível com OpenAI, com contingência determinística. Extensível por *discipline packs* configuráveis (terapia ocupacional primeiro).
 
 ### Plano de avaliação
 
-Benchmark sintético adversarial (conjunto de desenvolvimento e conjunto de avaliação fechado) com contagens, denominadores, matriz de confusão, abstenções e falsos alertas. É um teste de engenharia, não validação clínica.
+O benchmark sintético adversarial está nos resultados acima, com contagens, denominadores, matriz de confusão, abstenções e falsos alertas. É um teste de engenharia, não validação clínica. Próximo passo: a terapeuta revisa os gabaritos e escreve o próprio caso fictício.
 
 ### Independência do Elo 1.0
 
