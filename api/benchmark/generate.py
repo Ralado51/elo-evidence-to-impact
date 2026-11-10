@@ -187,9 +187,27 @@ add("r2-11", "progress_over_time", "hard", "pt", prog, claim("dressing_upper", "
 reg = [(d(0), direct("en", "dressing_upper", "clinic", "independent")), (d(7), direct("en", "dressing_upper", "clinic", "verbal_prompt"))]
 add("r2-12", "latest_overrides", "hard", "en", reg, claim("dressing_upper", "clinic", "independent", d(10)), "insufficient_evidence",
     [obs("r2-12-n1", "dressing_upper", "clinic", "independent"), obs("r2-12-n2", "dressing_upper", "clinic", "verbal_prompt")])
+# ---- round 3: kinds of difficulty not covered by any marker or cue added so far ----
+R3 = [
+    ("wish_not_event", "pt", "A mãe espera que Davi consiga usar a colher sozinho na escola.", ("feeding", "school", "independent"), "insufficient_evidence", []),
+    ("need_not_event", "pt", "Davi precisa aprender a escovar os dentes sozinho em casa.", ("toothbrushing", "home", "independent"), "insufficient_evidence", []),
+    ("other_person", "pt", "A colega de Davi vestiu a calça sozinha na escola.", ("dressing_lower", "school", "independent"), "insufficient_evidence", []),
+    ("refusal", "pt", "Davi recusou vestir a camiseta na clínica, mesmo sem ajuda.", ("dressing_upper", "clinic", "independent"), "insufficient_evidence", []),
+    ("unlisted_synonym", "pt", "Davi escreveu as letras na escola apenas com orientação oral.", ("handwriting", "school", "verbal_prompt"), "supported", [("handwriting", "school", "verbal_prompt", "direct_observation")]),
+    ("unlisted_report_phrase", "pt", "De acordo com a professora, Davi usou o banheiro sozinho na escola.", ("toileting", "school", "independent"), "needs_review", [("toileting", "school", "independent", "professional_report")]),
+    ("plan_not_event", "en", "Plan: practice putting on the shirt on his own at the clinic.", ("dressing_upper", "clinic", "independent"), "insufficient_evidence", []),
+    ("unlisted_physical_help", "pt", "Davi vestiu a calça na escola com a terapeuta segurando o quadril dele.", ("dressing_lower", "school", "independent"), "contradicted", [("dressing_lower", "school", "physical_partial", "direct_observation")]),
+]
+for i, (cat, loc, text, cl, verdict, exp) in enumerate(R3):
+    cid = f"r3-{i+1:02d}"
+    add(cid, cat, "hard", loc, [(d(i), text)], claim(cl[0], cl[1], cl[2], d(i)), verdict,
+        [obs(f"{cid}-n1", a, e, l, s) for a, e, l, s in exp])
+
 for c in cases:
     if c["id"].startswith("r2-"):
         c["round"] = 2
+    elif c["id"].startswith("r3-"):
+        c["round"] = 3
 
 for c in cases:
     c["split"] = "eval" if int(hashlib.sha1(c["id"].encode()).hexdigest(), 16) % 3 == 0 else "dev"

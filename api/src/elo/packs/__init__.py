@@ -23,6 +23,9 @@ class Pack(BaseModel):
     independence_cues: list[str]
     independence_not_before: list[str]
     negation_words: list[str]
+    non_event_markers: list[str] = []
+    non_event_sentence_starts: list[str] = []
+    uncertainty_markers: list[str] = []
     environment_cues: dict[Environment, list[str]]
     report_cues: dict[SourceType, list[str]]
 

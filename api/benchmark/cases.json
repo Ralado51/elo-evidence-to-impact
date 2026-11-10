@@ -2156,5 +2156,221 @@
   "label_status": "constructed; pending clinical review",
   "round": 2,
   "split": "dev"
+ },
+ {
+  "id": "r3-01",
+  "category": "wish_not_event",
+  "difficulty": "hard",
+  "locale": "pt",
+  "notes": [
+   {
+    "id": "r3-01-n1",
+    "date": "2026-10-20",
+    "text": "A mãe espera que Davi consiga usar a colher sozinho na escola."
+   }
+  ],
+  "claim": {
+   "activity": "feeding",
+   "environment": "school",
+   "assistance": "independent",
+   "as_of": "2026-10-20"
+  },
+  "expected_verdict": "insufficient_evidence",
+  "expected_observations": [],
+  "label_status": "constructed; pending clinical review",
+  "round": 3,
+  "split": "dev"
+ },
+ {
+  "id": "r3-02",
+  "category": "need_not_event",
+  "difficulty": "hard",
+  "locale": "pt",
+  "notes": [
+   {
+    "id": "r3-02-n1",
+    "date": "2026-10-21",
+    "text": "Davi precisa aprender a escovar os dentes sozinho em casa."
+   }
+  ],
+  "claim": {
+   "activity": "toothbrushing",
+   "environment": "home",
+   "assistance": "independent",
+   "as_of": "2026-10-21"
+  },
+  "expected_verdict": "insufficient_evidence",
+  "expected_observations": [],
+  "label_status": "constructed; pending clinical review",
+  "round": 3,
+  "split": "eval"
+ },
+ {
+  "id": "r3-03",
+  "category": "other_person",
+  "difficulty": "hard",
+  "locale": "pt",
+  "notes": [
+   {
+    "id": "r3-03-n1",
+    "date": "2026-10-22",
+    "text": "A colega de Davi vestiu a calça sozinha na escola."
+   }
+  ],
+  "claim": {
+   "activity": "dressing_lower",
+   "environment": "school",
+   "assistance": "independent",
+   "as_of": "2026-10-22"
+  },
+  "expected_verdict": "insufficient_evidence",
+  "expected_observations": [],
+  "label_status": "constructed; pending clinical review",
+  "round": 3,
+  "split": "dev"
+ },
+ {
+  "id": "r3-04",
+  "category": "refusal",
+  "difficulty": "hard",
+  "locale": "pt",
+  "notes": [
+   {
+    "id": "r3-04-n1",
+    "date": "2026-10-23",
+    "text": "Davi recusou vestir a camiseta na clínica, mesmo sem ajuda."
+   }
+  ],
+  "claim": {
+   "activity": "dressing_upper",
+   "environment": "clinic",
+   "assistance": "independent",
+   "as_of": "2026-10-23"
+  },
+  "expected_verdict": "insufficient_evidence",
+  "expected_observations": [],
+  "label_status": "constructed; pending clinical review",
+  "round": 3,
+  "split": "dev"
+ },
+ {
+  "id": "r3-05",
+  "category": "unlisted_synonym",
+  "difficulty": "hard",
+  "locale": "pt",
+  "notes": [
+   {
+    "id": "r3-05-n1",
+    "date": "2026-10-24",
+    "text": "Davi escreveu as letras na escola apenas com orientação oral."
+   }
+  ],
+  "claim": {
+   "activity": "handwriting",
+   "environment": "school",
+   "assistance": "verbal_prompt",
+   "as_of": "2026-10-24"
+  },
+  "expected_verdict": "supported",
+  "expected_observations": [
+   {
+    "note_id": "r3-05-n1",
+    "activity": "handwriting",
+    "environment": "school",
+    "assistance": "verbal_prompt",
+    "source_type": "direct_observation"
+   }
+  ],
+  "label_status": "constructed; pending clinical review",
+  "round": 3,
+  "split": "dev"
+ },
+ {
+  "id": "r3-06",
+  "category": "unlisted_report_phrase",
+  "difficulty": "hard",
+  "locale": "pt",
+  "notes": [
+   {
+    "id": "r3-06-n1",
+    "date": "2026-10-25",
+    "text": "De acordo com a professora, Davi usou o banheiro sozinho na escola."
+   }
+  ],
+  "claim": {
+   "activity": "toileting",
+   "environment": "school",
+   "assistance": "independent",
+   "as_of": "2026-10-25"
+  },
+  "expected_verdict": "needs_review",
+  "expected_observations": [
+   {
+    "note_id": "r3-06-n1",
+    "activity": "toileting",
+    "environment": "school",
+    "assistance": "independent",
+    "source_type": "professional_report"
+   }
+  ],
+  "label_status": "constructed; pending clinical review",
+  "round": 3,
+  "split": "dev"
+ },
+ {
+  "id": "r3-07",
+  "category": "plan_not_event",
+  "difficulty": "hard",
+  "locale": "en",
+  "notes": [
+   {
+    "id": "r3-07-n1",
+    "date": "2026-10-26",
+    "text": "Plan: practice putting on the shirt on his own at the clinic."
+   }
+  ],
+  "claim": {
+   "activity": "dressing_upper",
+   "environment": "clinic",
+   "assistance": "independent",
+   "as_of": "2026-10-26"
+  },
+  "expected_verdict": "insufficient_evidence",
+  "expected_observations": [],
+  "label_status": "constructed; pending clinical review",
+  "round": 3,
+  "split": "dev"
+ },
+ {
+  "id": "r3-08",
+  "category": "unlisted_physical_help",
+  "difficulty": "hard",
+  "locale": "pt",
+  "notes": [
+   {
+    "id": "r3-08-n1",
+    "date": "2026-10-27",
+    "text": "Davi vestiu a calça na escola com a terapeuta segurando o quadril dele."
+   }
+  ],
+  "claim": {
+   "activity": "dressing_lower",
+   "environment": "school",
+   "assistance": "independent",
+   "as_of": "2026-10-27"
+  },
+  "expected_verdict": "contradicted",
+  "expected_observations": [
+   {
+    "note_id": "r3-08-n1",
+    "activity": "dressing_lower",
+    "environment": "school",
+    "assistance": "physical_partial",
+    "source_type": "direct_observation"
+   }
+  ],
+  "label_status": "constructed; pending clinical review",
+  "round": 3,
+  "split": "dev"
  }
 ]
