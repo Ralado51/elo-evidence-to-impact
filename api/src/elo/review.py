@@ -25,6 +25,8 @@ SCHEMA = """
 CREATE TABLE IF NOT EXISTS notes (id TEXT, version INTEGER, session_id TEXT, data TEXT, PRIMARY KEY (id, version));
 CREATE TABLE IF NOT EXISTS observations (id TEXT PRIMARY KEY, session_id TEXT, data TEXT);
 CREATE TABLE IF NOT EXISTS claims (id TEXT PRIMARY KEY, session_id TEXT, state TEXT, data TEXT, verdict TEXT);
+CREATE TABLE IF NOT EXISTS cases (id TEXT PRIMARY KEY, label TEXT NOT NULL, created TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS attendance (case_id TEXT, day TEXT, status TEXT, PRIMARY KEY (case_id, day));
 CREATE TABLE IF NOT EXISTS goals (id TEXT PRIMARY KEY, session_id TEXT, data TEXT);
 CREATE TABLE IF NOT EXISTS audit (
   seq INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT NOT NULL, claim_id TEXT NOT NULL, action TEXT NOT NULL,
@@ -85,6 +87,37 @@ class ReviewService:
             q, args = q + " WHERE claim_id=?", (claim_id,)
         cols = ["seq", "at", "claim_id", "action", "actor", "reason", "before", "after", "verdict"]
         return [dict(zip(cols, r)) for r in self.db.execute(q + " ORDER BY seq", args).fetchall()]
+
+    # --- cases and attendance ----------------------------------------------------------
+    def create_case(self, case_id: str, label: str) -> None:
+        if not case_id.strip() or not label.strip():
+            raise ReviewError("case id and label are required")
+        self.db.execute("INSERT OR IGNORE INTO cases VALUES (?,?,?)", (case_id, label, _now()))
+        self.db.commit()
+
+    def list_cases(self) -> list[dict]:
+        return [{"id": r[0], "label": r[1], "created": r[2]} for r in self.db.execute("SELECT id, label, created FROM cases ORDER BY created, id")]
+
+    def get_case(self, case_id: str) -> dict:
+        row = self.db.execute("SELECT id, label, created FROM cases WHERE id=?", (case_id,)).fetchone()
+        if row is None:
+            raise ReviewError("unknown case")
+        return {"id": row[0], "label": row[1], "created": row[2]}
+
+    def set_attendance(self, case_id: str, day: str, status: str, actor: str) -> None:
+        from .attendance import STATUSES
+
+        if status not in STATUSES:
+            raise ReviewError("status must be one of " + ", ".join(STATUSES))
+        if not actor or not actor.strip():
+            raise ReviewError("a named reviewer is required")
+        self.get_case(case_id)
+        self.db.execute("INSERT OR REPLACE INTO attendance VALUES (?,?,?)", (case_id, day, status))
+        self._log(case_id, "attendance_set", actor, f"{day}: {status}", None, None, "n/a")
+        self.db.commit()
+
+    def attendance(self, case_id: str) -> list[dict]:
+        return [{"day": r[0], "status": r[1]} for r in self.db.execute("SELECT day, status FROM attendance WHERE case_id=? ORDER BY day", (case_id,))]
 
     # --- goals -----------------------------------------------------------------------
     def save_goal(self, goal) -> None:
