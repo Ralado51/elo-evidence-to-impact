@@ -234,7 +234,26 @@
       "according to the father",
       "according to the parent",
       "parents reported",
-      "caregiver reported"
+      "caregiver reported",
+      "segundo a avó",
+      "segundo o avô",
+      "segundo a tia",
+      "segundo o tio",
+      "segundo a madrasta",
+      "segundo o padrasto",
+      "segundo a responsável",
+      "segundo o responsável",
+      "segundo a cuidadora",
+      "segundo o cuidador",
+      "according to his grandmother",
+      "according to her grandmother",
+      "according to the grandmother",
+      "according to his grandfather",
+      "according to her grandfather",
+      "according to the grandfather",
+      "according to his aunt",
+      "according to her aunt",
+      "according to the caregiver"
     ],
     "professional_report": [
       "professora relatou",
@@ -242,5 +261,42 @@
       "teacher reported",
       "according to the teacher"
     ]
-  }
+  },
+  "non_event_markers": [
+    "a meta",
+    "meta:",
+    "goal:",
+    "goal is",
+    "objetivo:",
+    "will ",
+    "poderá",
+    "would "
+  ],
+  "non_event_sentence_starts": [
+    "se ",
+    "caso ",
+    "if "
+  ],
+  "uncertainty_markers": [
+    "quase",
+    "tentou",
+    "tentando",
+    "tentativa",
+    "não conseguiu",
+    "nao conseguiu",
+    "não consegue",
+    "nao consegue",
+    "incapaz",
+    "almost",
+    "nearly",
+    "tried",
+    "attempted",
+    "trying",
+    "could not",
+    "couldn't",
+    "did not manage",
+    "didn't manage",
+    "unable",
+    "failed to"
+  ]
 }

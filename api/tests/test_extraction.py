@@ -159,7 +159,7 @@ def test_consensus_sends_disagreement_to_review():
 
 
 def test_consensus_rules_only_and_llm_only_are_not_evidence():
-    s, note, _ = prep("A meta é que Pedro vista a camiseta sozinho em casa.")
+    s, note, _ = prep("Pedro vestiu a camiseta na clínica com instruções verbais.")
     r = extract_consensus(Fake({"observations": []}), s, note, CTX, PACK)
     assert not r.observations and [x.kind for x in r.review] == ["rules_only"]
     s2, note2, _ = prep("Pedro escovou os dentes na clínica. Precisou de instruções verbais.")
@@ -181,3 +181,26 @@ def test_hand_guiding_is_partial_physical_help():
     s, note, _ = prep("Pedro escovou os dentes em casa quase sozinho, mas a mãe guiou a mão dele.")
     o = extract_rules(s, note, CTX, PACK).observations[0]
     assert o.assistance is Assistance.PHYSICAL_PARTIAL
+
+
+def test_markers_block_unsafe_independence_in_rules_and_in_the_model_path():
+    for text in ("Pedro não conseguiu vestir a camiseta sozinho na clínica.",
+                 "Pedro quase vestiu a camiseta sozinho na escola.",
+                 "A meta é que Pedro vista a camiseta sozinho em casa.",
+                 "Se Pedro vestir a camiseta sozinho em casa, será reforçado."):
+        s, note, _ = prep(text)
+        assert not extract_rules(s, note, CTX, PACK).observations, text
+        env = "home" if "casa" in text else "clinic" if "clínica" in text else "school"
+        q = text.replace("Pedro", "Paciente A")
+        r = extract_with_llm(Fake({"observations": [item(quote=q, environment=env, assistance="independent")]}), s, note, CTX, PACK)
+        assert not r.observations and r.rejected, text
+
+
+def test_failure_marker_does_not_hide_real_help():
+    s, note, _ = prep("Pedro escovou os dentes em casa quase sozinho, mas a mãe guiou a mão dele.")
+    assert extract_rules(s, note, CTX, PACK).observations[0].assistance is Assistance.PHYSICAL_PARTIAL
+
+
+def test_family_report_phrases():
+    s, note, _ = prep("Segundo a avó, Pedro usou a colher sozinho em casa.")
+    assert extract_rules(s, note, CTX, PACK).observations[0].source_type is SourceType.CAREGIVER_REPORT

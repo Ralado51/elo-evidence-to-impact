@@ -110,10 +110,24 @@ def _source_of(folded: str, pack: Pack) -> SourceType:
     return SourceType.DIRECT_OBSERVATION
 
 
+def _non_event(folded: str, pack: Pack) -> bool:
+    """Goals, plans and conditionals describe no event that happened."""
+    if folded.lstrip().startswith(tuple(fold_text(x) for x in pack.non_event_sentence_starts)):
+        return True
+    return bool(_matches(folded, pack.non_event_markers))
+
+
+def _hedged(folded: str, pack: Pack) -> bool:
+    """Failed, almost-done or attempted: it can never support independence."""
+    return bool(_matches(folded, pack.uncertainty_markers))
+
+
 def _classify(sentence: str, pack: Pack, ctx: ExtractionContext) -> dict | Rejection:
     """Return the fields found in one sentence, or a Rejection, or {} if it has no activity."""
     folded = fold_text(sentence)
     negations = {fold_text(w) for w in pack.negation_words}
+    if _non_event(folded, pack):
+        return Rejection("not_an_observed_event", sentence)
 
     hits: dict[str, list[tuple[int, int]]] = {}
     for slug, act in pack.activities.items():
@@ -162,6 +176,8 @@ def _classify(sentence: str, pack: Pack, ctx: ExtractionContext) -> dict | Rejec
             break
     if assistance is None:
         return Rejection("assistance_unclear", sentence)
+    if assistance is Assistance.INDEPENDENT and _hedged(folded, pack):
+        return Rejection("hedged_or_failed", sentence)
 
     source = _source_of(folded, pack)
 
@@ -341,7 +357,14 @@ def extract_with_llm(
         if found is None:
             result.rejected.append(Rejection("quote_not_found", quote))
             continue
-        code_source = _source_of(fold_text(quote), pack)
+        fq = fold_text(quote)
+        if _non_event(fq, pack):
+            result.rejected.append(Rejection("not_an_observed_event", quote))
+            continue
+        if fields["assistance"] is Assistance.INDEPENDENT and _hedged(fq, pack):
+            result.rejected.append(Rejection("hedged_or_failed", quote))
+            continue
+        code_source = _source_of(fq, pack)
         source_overridden = code_source is not fields["source_type"]
         fields["source_type"] = code_source
         fields["reported_by"] = None
