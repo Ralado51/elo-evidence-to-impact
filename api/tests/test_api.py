@@ -169,3 +169,13 @@ def test_demo_seed_runs_the_real_pipeline():
     assert len(c.get("/api/cases/demo/goals").json()) == 5
     assert c.get("/api/cases/demo/attendance").json()["adherence"]["rate"] == 0.857
     assert "Demonstração" not in c.get("/api/cases/demo/observations").text
+
+
+def test_access_token_when_configured(monkeypatch):
+    monkeypatch.setenv("ELO_ACCESS_TOKEN", "s3cret")
+    c = TestClient(create_app(":memory:", client=None))
+    assert c.get("/api/health").status_code == 200
+    assert c.get("/api/meta").json()["token_required"] is True
+    assert c.get("/api/cases").status_code == 401
+    assert c.get("/api/cases", headers={"x-access-token": "wrong"}).status_code == 401
+    assert c.get("/api/cases", headers={"x-access-token": "s3cret"}).status_code == 200

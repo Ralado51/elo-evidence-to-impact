@@ -23,7 +23,7 @@ class OpenAICompatibleClient:
         base, key, model = (os.environ.get(k) for k in ("LLM_BASE_URL", "LLM_API_KEY", "LLM_MODEL"))
         if not (base and key and model):
             return None
-        return cls(base, key, model)
+        return cls(base, key, model, timeout=float(os.environ.get("LLM_TIMEOUT", "180")))
 
     def __repr__(self) -> str:
         return f"OpenAICompatibleClient(base_url={self.base_url!r}, model={self.model!r})"

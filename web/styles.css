@@ -1,0 +1,49 @@
+:root{--ink:#1c1c1c;--muted:#5d5d5d;--paper:#fff;--line:#e6e4de;--char:#262626;--yel:#fff56b;--yel-soft:#fffbc7;
+--ok:#17766b;--ok-bg:#d9eeea;--bad:#b4372c;--bad-bg:#f6dedb;--wait:#9a6208;--wait-bg:#f5e8cc;--soft:#f6f5f1}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.banner{background:var(--yel);text-align:center;font-size:13px;padding:6px 16px}
+.top{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--line)}
+.brand{font-weight:700;text-decoration:none;color:inherit}.brand span{font-weight:400;color:var(--muted)}
+.grow{flex:1}
+.sel{display:flex;gap:6px;align-items:center;font-size:13px;color:var(--muted)}
+select,input,textarea{font:inherit;padding:7px 9px;border:1px solid #cfcdc6;border-radius:8px;background:#fff;color:var(--ink);max-width:100%}
+textarea{width:100%;min-height:96px}
+button{font:inherit;cursor:pointer;border-radius:999px;border:1px solid var(--ink);background:var(--ink);color:#fff;padding:7px 16px;font-weight:600;font-size:14px}
+button.ghost{background:#fff;color:var(--ink);border-color:#cfcdc6}
+button.y{background:var(--yel);color:var(--ink);border-color:var(--yel)}
+button.bad{background:#fff;color:var(--bad);border-color:var(--bad)}
+button:disabled{opacity:.5;cursor:not-allowed}
+.lang{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.lang button{border:0;border-radius:0;background:transparent;color:var(--ink);padding:6px 12px;font-weight:500}
+.lang button[aria-pressed=true]{background:var(--ink);color:#fff}
+.tabs{display:flex;gap:4px;flex-wrap:wrap;padding:8px 16px;border-bottom:1px solid var(--line);background:var(--soft)}
+.tabs button{background:transparent;color:var(--ink);border:0;border-radius:8px;font-weight:500}
+.tabs button[aria-selected=true]{background:var(--yel);font-weight:700}
+main{max-width:1100px;margin:0 auto;padding:20px 16px 60px}
+h2{margin:0 0 6px;font-size:20px}h3{margin:18px 0 6px;font-size:16px}
+.muted{color:var(--muted);font-size:13px}
+.card{border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:10px 0;background:#fff}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}.row>*{flex:0 1 auto}
+.field{display:flex;flex-direction:column;gap:3px;font-size:13px;color:var(--muted)}
+.pill{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700}
+.p-supported,.p-direct,.p-approved,.p-edited{background:var(--ok-bg);color:var(--ok)}
+.p-contradicted,.p-rejected{background:var(--bad-bg);color:var(--bad)}
+.p-insufficient_evidence,.p-needs_review,.p-pending,.p-report_only{background:var(--wait-bg);color:var(--wait)}
+.p-none{background:#eee;color:#555}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{border-bottom:1px solid var(--line);padding:7px 8px;text-align:left;vertical-align:top}
+th{font-size:12px;color:var(--muted);font-weight:600}
+.scroll{overflow-x:auto}
+q{background:var(--yel-soft);padding:0 4px;border-radius:4px}
+.warn{background:var(--wait-bg);border-radius:10px;padding:10px 14px;margin:10px 0;font-size:14px}
+.err{background:var(--bad-bg);color:var(--bad);border-radius:10px;padding:10px 14px;margin:10px 0;font-size:14px}
+.ok{background:var(--ok-bg);color:var(--ok);border-radius:10px;padding:10px 14px;margin:10px 0;font-size:14px}
+pre.txt{white-space:pre-wrap;background:var(--soft);border-radius:10px;padding:12px;font:inherit}
+#toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:8px 16px;border-radius:999px;opacity:0;transition:opacity .2s;pointer-events:none}
+#toast.on{opacity:1}
+dialog{border:1px solid var(--line);border-radius:14px;max-width:520px;width:calc(100% - 32px)}
+dialog form{display:flex;flex-direction:column;gap:10px}
+.cell-direct{background:var(--ok-bg)}.cell-report_only{background:var(--wait-bg)}.cell-none{background:#f3f2ee}
+.cell{text-align:center;font-size:12px;font-weight:600}
+@media(max-width:640px){main{padding:14px 12px}.top{padding:8px 12px}}

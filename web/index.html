@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Elo Evidence-to-Impact — App</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="banner" id="banner" role="note"></div>
+<header class="top">
+  <a class="brand" href="/">Elo <span>Evidence-to-Impact</span></a>
+  <div class="grow"></div>
+  <label class="sel"><span data-i="case"></span>
+    <select id="caseSel"></select></label>
+  <button id="newCase" class="ghost" data-i="newCase"></button>
+  <button id="demoBtn" class="ghost" data-i="loadDemo"></button>
+  <div class="lang" role="group" aria-label="Language">
+    <button data-lang="pt" aria-pressed="true">PT</button><button data-lang="en" aria-pressed="false">EN</button>
+  </div>
+</header>
+<nav class="tabs" id="tabs" role="tablist"></nav>
+<main id="view" tabindex="-1"></main>
+<div id="toast" role="status" aria-live="polite"></div>
+<dialog id="dlg"><form method="dialog" id="dlgForm"></form></dialog>
+<script src="app.js"></script>
+</body>
+</html>
