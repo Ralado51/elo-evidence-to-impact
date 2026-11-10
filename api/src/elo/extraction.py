@@ -114,6 +114,18 @@ def _source_of(folded: str, pack: Pack) -> SourceType:
         if m and m.group(1) not in ("paciente",):
             teachers = {fold_text(w) for w in pack.teacher_words}
             return SourceType.PROFESSIONAL_REPORT if m.group(1) in teachers else SourceType.CAREGIVER_REPORT
+    # attribution by verb, before or after the noun: "diz a mãe", "a professora contou", "says the mother"
+    verbs = "|".join(re.escape(fold_text(v)) for v in pack.attribution_verbs)
+    teachers = {fold_text(w) for w in pack.teacher_words if fold_text(w) != "escola"}
+    nouns = [fold_text(n) for n in pack.caregiver_nouns] + sorted(teachers)
+    if verbs and nouns:
+        noun_re = "|".join(re.escape(n) for n in nouns)
+        art = r"(?:a|o|as|os|his|her|the)?\s*"
+        m = re.search(rf"(?<![^\W_])(?:{verbs})\s+{art}({noun_re})(?![^\W_])", folded) or re.search(
+            rf"(?<![^\W_])(?:a|o|as|os|his|her|the)\s+({noun_re})\s+(?:{verbs})(?![^\W_])", folded
+        )
+        if m:
+            return SourceType.PROFESSIONAL_REPORT if m.group(1) in teachers else SourceType.CAREGIVER_REPORT
     return SourceType.DIRECT_OBSERVATION
 
 
