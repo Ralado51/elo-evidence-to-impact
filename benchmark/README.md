@@ -30,3 +30,18 @@ After the second model run, round-2 failures (almost achieved, report phrases su
 Extraction, pack, prompt and benchmark cases are frozen at commit `fa38c38` for the one-time `eval` run. Primary mode (decided before seeing eval): **consensus** with `qwen2.5:3b`; the model-alone mode is also run and reported. Any change to extraction code, pack, prompt or cases after this point makes the `eval` result invalid and requires saying so.
 
 Dev result (59 cases): model alone 94.9% accuracy, 0 unsafe-supported, precision 0.92, recall 0.90. Consensus 84.7%, 0 unsafe-supported, precision 0.98, recall 0.81, 10 items sent to human review.
+
+## Eval result (run once, frozen code `3efd0f6`, qwen2.5:3b, 24 cases)
+
+| | Consensus (pre-registered primary) | Model alone |
+|---|---|---|
+| Verdict accuracy | 83.3% | 95.8% |
+| Unsafe `supported` | 1 (`r4-02`) | 1 (`r4-02`) |
+| False `contradicted` | 0 | 0 |
+| Extraction precision / recall | 0.94 / 0.80 | 0.95 / 0.95 |
+| Sent to human review | 7 | 0 |
+
+- The only unsafe case is sealed `r4-02` ("... sozinho em casa, **diz a mãe**."): a trailing attribution the report cues do not recognize, so the code reads it as direct observation. Both modes share that code, so the consensus did not help.
+- Consensus lost three legitimate cases (unlisted synonyms the rules cannot read); they go to review, which is the designed behavior.
+- Reporting fix after the run: the `round` tag of the six `r4-*` cases was missing, so the run's `by_round` counted them under round 1. Case text, labels and split are unchanged (verified by diff); in that output the 8 "round 1" cases are 2 round-1 cases plus the 6 sealed ones.
+- Nothing in the extraction code, pack or prompt was changed after this run.
