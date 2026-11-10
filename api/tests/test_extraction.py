@@ -204,3 +204,15 @@ def test_failure_marker_does_not_hide_real_help():
 def test_family_report_phrases():
     s, note, _ = prep("Segundo a avó, Pedro usou a colher sozinho em casa.")
     assert extract_rules(s, note, CTX, PACK).observations[0].source_type is SourceType.CAREGIVER_REPORT
+
+
+def test_other_subject_and_generic_report_frames_and_wishes():
+    for text in ("A colega de Pedro vestiu a calça sozinha na escola.",
+                 "A mãe espera que Pedro consiga usar a colher sozinho na escola.",
+                 "Pedro precisa aprender a escovar os dentes sozinho em casa."):
+        s, note, _ = prep(text)
+        assert not extract_rules(s, note, CTX, PACK).observations, text
+    s, note, _ = prep("De acordo com a professora, Pedro usou o banheiro sozinho na escola.")
+    assert extract_rules(s, note, CTX, PACK).observations[0].source_type is SourceType.PROFESSIONAL_REPORT
+    s, note, _ = prep("A mãe de Pedro relatou que Pedro vestiu a camiseta sozinho em casa.")
+    assert extract_rules(s, note, CTX, PACK).observations  # the patient is also a subject: not blocked

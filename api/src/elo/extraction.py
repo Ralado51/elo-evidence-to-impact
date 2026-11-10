@@ -107,7 +107,26 @@ def _source_of(folded: str, pack: Pack) -> SourceType:
     for stype, cues in pack.report_cues.items():
         if _matches(folded, cues):
             return stype
+    # generic reporting frame: "segundo a X", "de acordo com o X", "according to his X"
+    frames = "|".join(re.escape(fold_text(f)) for f in pack.reporting_frames)
+    if frames:
+        m = re.search(rf"(?<![^\W_])(?:{frames})\s+(?:a|o|as|os|his|her|the|its)?\s*([\w-]+)", folded)
+        if m and m.group(1) not in ("paciente",):
+            teachers = {fold_text(w) for w in pack.teacher_words}
+            return SourceType.PROFESSIONAL_REPORT if m.group(1) in teachers else SourceType.CAREGIVER_REPORT
     return SourceType.DIRECT_OBSERVATION
+
+
+def _other_subject(text: str, span: tuple[int, int], sanitized: SanitizedText) -> bool:
+    """True when the patient appears in the passage only as someone's relative ("a colega de Paciente A")."""
+    mentions = [r for r in sanitized.replacements if r.role == "patient" and r.sanitized.start < span[1] and span[0] < r.sanitized.end]
+    if not mentions:
+        return False
+    for r in mentions:
+        before = fold_text(text[max(0, span[0]) : r.sanitized.start])
+        if not re.search(r"(?<![^\W_])(?:de|do|da|dos|das|of)\s*$", before):
+            return False
+    return True
 
 
 def _non_event(folded: str, pack: Pack) -> bool:
@@ -247,6 +266,8 @@ def extract_rules(
     for a, b in _sentences(sanitized.text):
         sentence = sanitized.text[a:b]
         found = _classify(sentence, pack, ctx)
+        if not isinstance(found, Rejection) and found and _other_subject(sanitized.text, (a, b), sanitized):
+            found = Rejection("subject_unclear", sentence)
         if isinstance(found, Rejection):
             result.rejected.append(found)
         elif found:
@@ -358,6 +379,9 @@ def extract_with_llm(
             result.rejected.append(Rejection("quote_not_found", quote))
             continue
         fq = fold_text(quote)
+        if _other_subject(sanitized.text, found, sanitized):
+            result.rejected.append(Rejection("subject_unclear", quote))
+            continue
         if _non_event(fq, pack):
             result.rejected.append(Rejection("not_an_observed_event", quote))
             continue

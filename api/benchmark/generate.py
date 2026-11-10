@@ -208,10 +208,29 @@ for c in cases:
         c["round"] = 2
     elif c["id"].startswith("r3-"):
         c["round"] = 3
+    elif c["id"].startswith("r4-"):
+        c["round"] = 4
+
+# ---- round 4: SEALED. Written after every fix above, forced into `eval`, never run during tuning. ----
+R4 = [
+    ("reported_negative", "en", "The teacher said Davi could not button the shirt at school.", ("dressing_upper", "school", "independent"), "insufficient_evidence", []),
+    ("habitual_report", "pt", "Davi costuma vestir a camiseta sozinho em casa, diz a mãe.", ("dressing_upper", "home", "independent"), "needs_review", [("dressing_upper", "home", "independent", "caregiver_report")]),
+    ("uncertain_statement", "pt", "Não ficou claro se Davi escovou os dentes sozinho em casa.", ("toothbrushing", "home", "independent"), "insufficient_evidence", []),
+    ("other_person", "en", "His sister put on the pants on her own at home.", ("dressing_lower", "home", "independent"), "insufficient_evidence", []),
+    ("future_plan", "pt", "Na próxima semana vamos treinar a colher na escola sem ajuda.", ("feeding", "school", "independent"), "insufficient_evidence", []),
+    ("unlisted_synonym", "en", "Davi put on the shirt at the clinic with only spoken reminders.", ("dressing_upper", "clinic", "verbal_prompt"), "supported", [("dressing_upper", "clinic", "verbal_prompt", "direct_observation")]),
+]
+for i, (cat, loc, text, cl, verdict, exp) in enumerate(R4):
+    cid = f"r4-{i+1:02d}"
+    add(cid, cat, "hard", loc, [(d(i), text)], claim(cl[0], cl[1], cl[2], d(i)), verdict,
+        [obs(f"{cid}-n1", a, e, l, s) for a, e, l, s in exp])
 
 for c in cases:
     c["split"] = "eval" if int(hashlib.sha1(c["id"].encode()).hexdigest(), 16) % 3 == 0 else "dev"
 
+for c in cases:
+    if c["id"].startswith("r4-"):
+        c["split"] = "eval"
 out = Path(__file__).parent / "cases.json"
 out.write_text(json.dumps(cases, ensure_ascii=False, indent=1), encoding="utf-8")
 print(len(cases), "cases;", sum(c["split"] == "eval" for c in cases), "eval")
