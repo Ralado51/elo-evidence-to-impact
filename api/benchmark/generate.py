@@ -158,6 +158,39 @@ for i, (cat, loc, texts, cl, verdict, exp) in enumerate(H):
     add(cid, cat, "hard", loc, [(d(i), t) for t in texts], claim(cl[0], cl[1], cl[2], d(i)), verdict,
         [obs(f"{cid}-n1", a, e, l, s) for a, e, l, s in exp])
 
+# ---- round 2: new kinds of hard cases, written after the prompt/pack were tuned on round 1.
+# Nothing in the pack or the prompt was changed for them. They measure generalization. ----
+R2 = [
+    ("almost_achieved", "pt", [("Davi quase conseguiu escovar os dentes sozinho em casa.")], ("toothbrushing", "home", "independent"), "insufficient_evidence", []),
+    ("almost_achieved", "en", [("Davi almost put on the shirt on his own at school.")], ("dressing_upper", "school", "independent"), "insufficient_evidence", []),
+    ("temporal_order", "pt", [("Hoje Davi vestiu a calça na escola sozinho; na semana passada precisou de instruções verbais.")], ("dressing_lower", "school", "independent"), "supported", [("dressing_lower", "school", "independent", "direct_observation")]),
+    ("environment_implicit", "pt", [("Na sessão de hoje, Davi vestiu a camiseta com instruções verbais.")], ("dressing_upper", "clinic", "verbal_prompt"), "insufficient_evidence", []),
+    ("unlisted_synonym", "pt", [("Davi vestiu a camiseta na clínica, apenas com lembretes da terapeuta.")], ("dressing_upper", "clinic", "verbal_prompt"), "supported", [("dressing_upper", "clinic", "verbal_prompt", "direct_observation")]),
+    ("unlisted_independent_phrase", "en", [("Davi did not need help to put on his shirt at school.")], ("dressing_upper", "school", "independent"), "supported", [("dressing_upper", "school", "independent", "direct_observation")]),
+    ("unlisted_report_phrase", "pt", [("Segundo a avó, Davi usou a colher sozinho em casa.")], ("feeding", "home", "independent"), "needs_review", [("feeding", "home", "independent", "caregiver_report")]),
+    ("unlisted_report_phrase", "en", [("According to his grandmother, Davi used the spoon on his own at home.")], ("feeding", "home", "independent"), "needs_review", [("feeding", "home", "independent", "caregiver_report")]),
+    ("unlisted_hand_guiding", "pt", [("Davi escovou os dentes na clínica, mas a terapeuta conduziu o movimento da mão.")], ("toothbrushing", "clinic", "independent"), "contradicted", [("toothbrushing", "clinic", "physical_partial", "direct_observation")]),
+]
+for i, (cat, loc, texts, cl, verdict, exp) in enumerate(R2):
+    cid = f"r2-{i+1:02d}"
+    add(cid, cat, "hard", loc, [(d(i), t) for t in texts], claim(cl[0], cl[1], cl[2], d(i)), verdict,
+        [obs(f"{cid}-n1", a, e, l, s) for a, e, l, s in exp])
+
+# observation dated after the claim does not count
+add("r2-10", "observation_after_claim", "hard", "pt", [(d(5), direct("pt", "dressing_upper", "clinic", "verbal_prompt"))],
+    claim("dressing_upper", "clinic", "verbal_prompt", d(2)), "insufficient_evidence", [obs("r2-10-n1", "dressing_upper", "clinic", "verbal_prompt")])
+# progress over time: latest observation is the one that counts
+prog = [(d(0), direct("pt", "dressing_upper", "clinic", "physical_partial")), (d(7), direct("pt", "dressing_upper", "clinic", "verbal_prompt")),
+        (d(14), direct("pt", "dressing_upper", "clinic", "independent"))]
+add("r2-11", "progress_over_time", "hard", "pt", prog, claim("dressing_upper", "clinic", "independent", d(14)), "supported",
+    [obs("r2-11-n1", "dressing_upper", "clinic", "physical_partial"), obs("r2-11-n2", "dressing_upper", "clinic", "verbal_prompt"), obs("r2-11-n3", "dressing_upper", "clinic", "independent")])
+reg = [(d(0), direct("en", "dressing_upper", "clinic", "independent")), (d(7), direct("en", "dressing_upper", "clinic", "verbal_prompt"))]
+add("r2-12", "latest_overrides", "hard", "en", reg, claim("dressing_upper", "clinic", "independent", d(10)), "insufficient_evidence",
+    [obs("r2-12-n1", "dressing_upper", "clinic", "independent"), obs("r2-12-n2", "dressing_upper", "clinic", "verbal_prompt")])
+for c in cases:
+    if c["id"].startswith("r2-"):
+        c["round"] = 2
+
 for c in cases:
     c["split"] = "eval" if int(hashlib.sha1(c["id"].encode()).hexdigest(), 16) % 3 == 0 else "dev"
 

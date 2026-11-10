@@ -166,3 +166,18 @@ def test_consensus_rules_only_and_llm_only_are_not_evidence():
     q = "Paciente A escovou os dentes na clínica."
     r2 = extract_consensus(Fake({"observations": [item(activity="toothbrushing", quote=q)]}), s2, note2, CTX, PACK)
     assert not r2.observations and [x.kind for x in r2.review] == ["llm_only"]
+
+
+def test_code_decides_source_not_the_model():
+    s, note, _ = prep("A mãe relatou que em casa Pedro vestiu a camiseta sozinho.")
+    q = "A mãe relatou que em casa Paciente A vestiu a camiseta sozinho."
+    wrong = item(quote=q, environment="home", assistance="independent", source_type="direct_observation")
+    r = extract_with_llm(Fake({"observations": [wrong]}), s, note, CTX, PACK)
+    assert r.observations[0].source_type is SourceType.CAREGIVER_REPORT and r.observations[0].reported_by
+    assert any(f.kind == "model_source_overridden" for f in r.flags)
+
+
+def test_hand_guiding_is_partial_physical_help():
+    s, note, _ = prep("Pedro escovou os dentes em casa quase sozinho, mas a mãe guiou a mão dele.")
+    o = extract_rules(s, note, CTX, PACK).observations[0]
+    assert o.assistance is Assistance.PHYSICAL_PARTIAL

@@ -102,6 +102,14 @@ def _sentences(text: str) -> list[tuple[int, int]]:
     return spans
 
 
+def _source_of(folded: str, pack: Pack) -> SourceType:
+    """Who says so is decided by code from the pack's report cues, never by the model."""
+    for stype, cues in pack.report_cues.items():
+        if _matches(folded, cues):
+            return stype
+    return SourceType.DIRECT_OBSERVATION
+
+
 def _classify(sentence: str, pack: Pack, ctx: ExtractionContext) -> dict | Rejection:
     """Return the fields found in one sentence, or a Rejection, or {} if it has no activity."""
     folded = fold_text(sentence)
@@ -155,12 +163,7 @@ def _classify(sentence: str, pack: Pack, ctx: ExtractionContext) -> dict | Rejec
     if assistance is None:
         return Rejection("assistance_unclear", sentence)
 
-    # who says so
-    source = SourceType.DIRECT_OBSERVATION
-    for stype, cues in pack.report_cues.items():
-        if _matches(folded, cues):
-            source = stype
-            break
+    source = _source_of(folded, pack)
 
     return {
         "activity": activity,
@@ -338,6 +341,10 @@ def extract_with_llm(
         if found is None:
             result.rejected.append(Rejection("quote_not_found", quote))
             continue
+        code_source = _source_of(fold_text(quote), pack)
+        source_overridden = code_source is not fields["source_type"]
+        fields["source_type"] = code_source
+        fields["reported_by"] = None
         used.append(found)
         try:
             obs = _build(
@@ -353,6 +360,8 @@ def extract_with_llm(
             result.rejected.append(Rejection("invalid_observation", quote))
             continue
         result.observations.append(obs)
+        if source_overridden:
+            result.flags.append(Flag(obs.id, "model_source_overridden"))
         result.flags.extend(_cross_check(obs, quote, pack, ctx))
     return result
 

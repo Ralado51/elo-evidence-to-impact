@@ -1760,5 +1760,401 @@
   ],
   "label_status": "constructed; pending clinical review",
   "split": "dev"
+ },
+ {
+  "id": "r2-01",
+  "category": "almost_achieved",
+  "difficulty": "hard",
+  "locale": "pt",
+  "notes": [
+   {
+    "id": "r2-01-n1",
+    "date": "2026-10-20",
+    "text": "Davi quase conseguiu escovar os dentes sozinho em casa."
+   }
+  ],
+  "claim": {
+   "activity": "toothbrushing",
+   "environment": "home",
+   "assistance": "independent",
+   "as_of": "2026-10-20"
+  },
+  "expected_verdict": "insufficient_evidence",
+  "expected_observations": [],
+  "label_status": "constructed; pending clinical review",
+  "round": 2,
+  "split": "dev"
+ },
+ {
+  "id": "r2-02",
+  "category": "almost_achieved",
+  "difficulty": "hard",
+  "locale": "en",
+  "notes": [
+   {
+    "id": "r2-02-n1",
+    "date": "2026-10-21",
+    "text": "Davi almost put on the shirt on his own at school."
+   }
+  ],
+  "claim": {
+   "activity": "dressing_upper",
+   "environment": "school",
+   "assistance": "independent",
+   "as_of": "2026-10-21"
+  },
+  "expected_verdict": "insufficient_evidence",
+  "expected_observations": [],
+  "label_status": "constructed; pending clinical review",
+  "round": 2,
+  "split": "dev"
+ },
+ {
+  "id": "r2-03",
+  "category": "temporal_order",
+  "difficulty": "hard",
+  "locale": "pt",
+  "notes": [
+   {
+    "id": "r2-03-n1",
+    "date": "2026-10-22",
+    "text": "Hoje Davi vestiu a calça na escola sozinho; na semana passada precisou de instruções verbais."
+   }
+  ],
+  "claim": {
+   "activity": "dressing_lower",
+   "environment": "school",
+   "assistance": "independent",
+   "as_of": "2026-10-22"
+  },
+  "expected_verdict": "supported",
+  "expected_observations": [
+   {
+    "note_id": "r2-03-n1",
+    "activity": "dressing_lower",
+    "environment": "school",
+    "assistance": "independent",
+    "source_type": "direct_observation"
+   }
+  ],
+  "label_status": "constructed; pending clinical review",
+  "round": 2,
+  "split": "dev"
+ },
+ {
+  "id": "r2-04",
+  "category": "environment_implicit",
+  "difficulty": "hard",
+  "locale": "pt",
+  "notes": [
+   {
+    "id": "r2-04-n1",
+    "date": "2026-10-23",
+    "text": "Na sessão de hoje, Davi vestiu a camiseta com instruções verbais."
+   }
+  ],
+  "claim": {
+   "activity": "dressing_upper",
+   "environment": "clinic",
+   "assistance": "verbal_prompt",
+   "as_of": "2026-10-23"
+  },
+  "expected_verdict": "insufficient_evidence",
+  "expected_observations": [],
+  "label_status": "constructed; pending clinical review",
+  "round": 2,
+  "split": "dev"
+ },
+ {
+  "id": "r2-05",
+  "category": "unlisted_synonym",
+  "difficulty": "hard",
+  "locale": "pt",
+  "notes": [
+   {
+    "id": "r2-05-n1",
+    "date": "2026-10-24",
+    "text": "Davi vestiu a camiseta na clínica, apenas com lembretes da terapeuta."
+   }
+  ],
+  "claim": {
+   "activity": "dressing_upper",
+   "environment": "clinic",
+   "assistance": "verbal_prompt",
+   "as_of": "2026-10-24"
+  },
+  "expected_verdict": "supported",
+  "expected_observations": [
+   {
+    "note_id": "r2-05-n1",
+    "activity": "dressing_upper",
+    "environment": "clinic",
+    "assistance": "verbal_prompt",
+    "source_type": "direct_observation"
+   }
+  ],
+  "label_status": "constructed; pending clinical review",
+  "round": 2,
+  "split": "eval"
+ },
+ {
+  "id": "r2-06",
+  "category": "unlisted_independent_phrase",
+  "difficulty": "hard",
+  "locale": "en",
+  "notes": [
+   {
+    "id": "r2-06-n1",
+    "date": "2026-10-25",
+    "text": "Davi did not need help to put on his shirt at school."
+   }
+  ],
+  "claim": {
+   "activity": "dressing_upper",
+   "environment": "school",
+   "assistance": "independent",
+   "as_of": "2026-10-25"
+  },
+  "expected_verdict": "supported",
+  "expected_observations": [
+   {
+    "note_id": "r2-06-n1",
+    "activity": "dressing_upper",
+    "environment": "school",
+    "assistance": "independent",
+    "source_type": "direct_observation"
+   }
+  ],
+  "label_status": "constructed; pending clinical review",
+  "round": 2,
+  "split": "eval"
+ },
+ {
+  "id": "r2-07",
+  "category": "unlisted_report_phrase",
+  "difficulty": "hard",
+  "locale": "pt",
+  "notes": [
+   {
+    "id": "r2-07-n1",
+    "date": "2026-10-26",
+    "text": "Segundo a avó, Davi usou a colher sozinho em casa."
+   }
+  ],
+  "claim": {
+   "activity": "feeding",
+   "environment": "home",
+   "assistance": "independent",
+   "as_of": "2026-10-26"
+  },
+  "expected_verdict": "needs_review",
+  "expected_observations": [
+   {
+    "note_id": "r2-07-n1",
+    "activity": "feeding",
+    "environment": "home",
+    "assistance": "independent",
+    "source_type": "caregiver_report"
+   }
+  ],
+  "label_status": "constructed; pending clinical review",
+  "round": 2,
+  "split": "eval"
+ },
+ {
+  "id": "r2-08",
+  "category": "unlisted_report_phrase",
+  "difficulty": "hard",
+  "locale": "en",
+  "notes": [
+   {
+    "id": "r2-08-n1",
+    "date": "2026-10-27",
+    "text": "According to his grandmother, Davi used the spoon on his own at home."
+   }
+  ],
+  "claim": {
+   "activity": "feeding",
+   "environment": "home",
+   "assistance": "independent",
+   "as_of": "2026-10-27"
+  },
+  "expected_verdict": "needs_review",
+  "expected_observations": [
+   {
+    "note_id": "r2-08-n1",
+    "activity": "feeding",
+    "environment": "home",
+    "assistance": "independent",
+    "source_type": "caregiver_report"
+   }
+  ],
+  "label_status": "constructed; pending clinical review",
+  "round": 2,
+  "split": "dev"
+ },
+ {
+  "id": "r2-09",
+  "category": "unlisted_hand_guiding",
+  "difficulty": "hard",
+  "locale": "pt",
+  "notes": [
+   {
+    "id": "r2-09-n1",
+    "date": "2026-10-28",
+    "text": "Davi escovou os dentes na clínica, mas a terapeuta conduziu o movimento da mão."
+   }
+  ],
+  "claim": {
+   "activity": "toothbrushing",
+   "environment": "clinic",
+   "assistance": "independent",
+   "as_of": "2026-10-28"
+  },
+  "expected_verdict": "contradicted",
+  "expected_observations": [
+   {
+    "note_id": "r2-09-n1",
+    "activity": "toothbrushing",
+    "environment": "clinic",
+    "assistance": "physical_partial",
+    "source_type": "direct_observation"
+   }
+  ],
+  "label_status": "constructed; pending clinical review",
+  "round": 2,
+  "split": "dev"
+ },
+ {
+  "id": "r2-10",
+  "category": "observation_after_claim",
+  "difficulty": "hard",
+  "locale": "pt",
+  "notes": [
+   {
+    "id": "r2-10-n1",
+    "date": "2026-10-25",
+    "text": "Davi vestiu a camiseta na clínica com instruções verbais."
+   }
+  ],
+  "claim": {
+   "activity": "dressing_upper",
+   "environment": "clinic",
+   "assistance": "verbal_prompt",
+   "as_of": "2026-10-22"
+  },
+  "expected_verdict": "insufficient_evidence",
+  "expected_observations": [
+   {
+    "note_id": "r2-10-n1",
+    "activity": "dressing_upper",
+    "environment": "clinic",
+    "assistance": "verbal_prompt",
+    "source_type": "direct_observation"
+   }
+  ],
+  "label_status": "constructed; pending clinical review",
+  "round": 2,
+  "split": "dev"
+ },
+ {
+  "id": "r2-11",
+  "category": "progress_over_time",
+  "difficulty": "hard",
+  "locale": "pt",
+  "notes": [
+   {
+    "id": "r2-11-n1",
+    "date": "2026-10-20",
+    "text": "Davi vestiu a camiseta na clínica com assistência física parcial."
+   },
+   {
+    "id": "r2-11-n2",
+    "date": "2026-10-27",
+    "text": "Davi vestiu a camiseta na clínica com instruções verbais."
+   },
+   {
+    "id": "r2-11-n3",
+    "date": "2026-11-03",
+    "text": "Davi vestiu a camiseta na clínica sozinho."
+   }
+  ],
+  "claim": {
+   "activity": "dressing_upper",
+   "environment": "clinic",
+   "assistance": "independent",
+   "as_of": "2026-11-03"
+  },
+  "expected_verdict": "supported",
+  "expected_observations": [
+   {
+    "note_id": "r2-11-n1",
+    "activity": "dressing_upper",
+    "environment": "clinic",
+    "assistance": "physical_partial",
+    "source_type": "direct_observation"
+   },
+   {
+    "note_id": "r2-11-n2",
+    "activity": "dressing_upper",
+    "environment": "clinic",
+    "assistance": "verbal_prompt",
+    "source_type": "direct_observation"
+   },
+   {
+    "note_id": "r2-11-n3",
+    "activity": "dressing_upper",
+    "environment": "clinic",
+    "assistance": "independent",
+    "source_type": "direct_observation"
+   }
+  ],
+  "label_status": "constructed; pending clinical review",
+  "round": 2,
+  "split": "eval"
+ },
+ {
+  "id": "r2-12",
+  "category": "latest_overrides",
+  "difficulty": "hard",
+  "locale": "en",
+  "notes": [
+   {
+    "id": "r2-12-n1",
+    "date": "2026-10-20",
+    "text": "Davi put on the shirt at the clinic on his own."
+   },
+   {
+    "id": "r2-12-n2",
+    "date": "2026-10-27",
+    "text": "Davi put on the shirt at the clinic with verbal prompts."
+   }
+  ],
+  "claim": {
+   "activity": "dressing_upper",
+   "environment": "clinic",
+   "assistance": "independent",
+   "as_of": "2026-10-30"
+  },
+  "expected_verdict": "insufficient_evidence",
+  "expected_observations": [
+   {
+    "note_id": "r2-12-n1",
+    "activity": "dressing_upper",
+    "environment": "clinic",
+    "assistance": "independent",
+    "source_type": "direct_observation"
+   },
+   {
+    "note_id": "r2-12-n2",
+    "activity": "dressing_upper",
+    "environment": "clinic",
+    "assistance": "verbal_prompt",
+    "source_type": "direct_observation"
+   }
+  ],
+  "label_status": "constructed; pending clinical review",
+  "round": 2,
+  "split": "dev"
  }
 ]

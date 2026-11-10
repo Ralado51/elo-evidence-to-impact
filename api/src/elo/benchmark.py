@@ -97,7 +97,7 @@ def run_case(case: dict, mode: str = "rules", client: LLMClient | None = None) -
         for name, a, b in zip(("environment", "assistance", "source_type"), g[2:], w[2:]):
             if a != b:
                 field_errors[name] += 1
-    return {"id": case["id"], "category": case["category"], "difficulty": case["difficulty"], "split": case["split"],
+    return {"id": case["id"], "category": case["category"], "difficulty": case["difficulty"], "split": case["split"], "round": case.get("round", 1),
             "expected": case["expected_verdict"], "predicted": verdict, "tp": tp,
             "fp": sum(got.values()) - tp, "fn": sum(want.values()) - tp,
             "abstentions": rejected, "reasons": dict(reasons), "field_errors": dict(field_errors), "review_items": review, "flags": flags, "blocked": blocked, "failed": failed}
@@ -128,6 +128,11 @@ def summarize(rows: list[dict]) -> dict:
     for diff in ("easy", "hard"):
         sub = [r for r in rows if r["difficulty"] == diff]
         by_difficulty[diff] = {"cases": len(sub), "verdict_accuracy": _ratio(sum(r["expected"] == r["predicted"] for r in sub), len(sub))}
+    by_round = {}
+    for rd in sorted({r["round"] for r in rows}):
+        sub = [r for r in rows if r["round"] == rd and r["difficulty"] == "hard"]
+        by_round[f"round_{rd}_hard"] = {"cases": len(sub), "verdict_accuracy": _ratio(sum(r["expected"] == r["predicted"] for r in sub), len(sub)),
+                                        "unsafe_supported": sum(r["predicted"] == "supported" and r["expected"] != "supported" for r in sub)}
     by_cat: dict[str, list[dict]] = defaultdict(list)
     for r in rows:
         by_cat[r["category"]].append(r)
@@ -141,7 +146,7 @@ def summarize(rows: list[dict]) -> dict:
         "field_errors": dict(sum((Counter(r["field_errors"]) for r in rows), Counter())),
         "review_items": sum(r["review_items"] for r in rows), "flags": sum(r["flags"] for r in rows),
         "model_failures": sum(r["failed"] for r in rows),
-        "by_difficulty": by_difficulty,
+        "by_difficulty": by_difficulty, "by_round": by_round,
         "by_category": {k: _ratio(sum(r["expected"] == r["predicted"] for r in v), len(v)) for k, v in sorted(by_cat.items())},
         "confusion_matrix": matrix,
     }
