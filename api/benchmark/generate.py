@@ -232,11 +232,25 @@ for i, (cat, loc, text, cl, verdict, exp) in enumerate(R5):
     add(cid, cat, "hard", loc, [(d(i), text)], claim(cl[0], cl[1], cl[2], d(i)), verdict,
         [obs(f"{cid}-n1", a, e, l, s) for a, e, l, s in exp])
 
+# ---- round 6: SEALED, written after the "when in doubt, it is a report" change. Not run during tuning. ----
+R6 = [
+    ("unlisted_noun_listed_verb", "pt", "Davi usou a colher sozinho em casa, comentou a vizinha.", ("feeding", "home", "independent"), "needs_review", [("feeding", "home", "independent", "caregiver_report")]),
+    ("unlisted_noun_listed_verb", "pt", "Davi escovou os dentes sozinho em casa, afirma o motorista da van.", ("toothbrushing", "home", "independent"), "needs_review", [("toothbrushing", "home", "independent", "caregiver_report")]),
+    ("unlisted_noun_listed_verb", "en", "The neighbor mentioned that Davi put on the shirt on his own at home.", ("dressing_upper", "home", "independent"), "needs_review", [("dressing_upper", "home", "independent", "caregiver_report")]),
+    ("another_professional", "pt", "A fisioterapeuta disse que Davi vestiu a camiseta na clínica com dicas gestuais.", ("dressing_upper", "clinic", "gesture_prompt"), "needs_review", [("dressing_upper", "clinic", "gesture_prompt", "professional_report")]),
+    ("child_speech_is_not_an_event", "pt", "Davi disse que queria ajuda para vestir a camiseta na clínica.", ("dressing_upper", "clinic", "verbal_prompt"), "insufficient_evidence", []),
+    ("unlisted_verb_designed_to_fail", "pt", "Ficamos sabendo pela babá que Davi escovou os dentes sozinho em casa.", ("toothbrushing", "home", "independent"), "needs_review", [("toothbrushing", "home", "independent", "caregiver_report")]),
+]
+for i, (cat, loc, text, cl, verdict, exp) in enumerate(R6):
+    cid = f"r6-{i+1:02d}"
+    add(cid, cat, "hard", loc, [(d(i), text)], claim(cl[0], cl[1], cl[2], d(i)), verdict,
+        [obs(f"{cid}-n1", a, e, l, s) for a, e, l, s in exp])
+
 for c in cases:
     c["split"] = "eval" if int(hashlib.sha1(c["id"].encode()).hexdigest(), 16) % 3 == 0 else "dev"
 
 for c in cases:
-    if c["id"].startswith(("r4-", "r5-")):
+    if c["id"].startswith(("r4-", "r5-", "r6-")):
         c["split"] = "eval"
 for c in cases:
     if c["id"].startswith("r2-"):
@@ -247,6 +261,8 @@ for c in cases:
         c["round"] = 4
     elif c["id"].startswith("r5-"):
         c["round"] = 5
+    elif c["id"].startswith("r6-"):
+        c["round"] = 6
 out = Path(__file__).parent / "cases.json"
 out.write_text(json.dumps(cases, ensure_ascii=False, indent=1), encoding="utf-8")
 print(len(cases), "cases;", sum(c["split"] == "eval" for c in cases), "eval")

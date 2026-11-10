@@ -232,3 +232,14 @@ def test_trailing_and_leading_attribution_by_verb():
 def test_therapist_speech_is_not_a_report():
     s, note, _ = prep("A terapeuta disse a Pedro para vestir a camiseta e ele vestiu na clínica sozinho.")
     assert extract_rules(s, note, CTX, PACK).observations[0].source_type is SourceType.DIRECT_OBSERVATION
+
+
+def test_when_in_doubt_an_attribution_is_a_report_but_speech_to_the_patient_is_not():
+    for text in ("Pedro usou a colher sozinho em casa, comentou a vizinha.",
+                 "The neighbor mentioned that Pedro put on the shirt on his own at home."):
+        s, note, _ = prep(text)
+        assert extract_rules(s, note, CTX, PACK).observations[0].source_type is SourceType.CAREGIVER_REPORT, text
+    s, note, _ = prep("A fisioterapeuta disse que Pedro vestiu a camiseta na clínica com dicas gestuais.")
+    assert extract_rules(s, note, CTX, PACK).observations[0].source_type is SourceType.PROFESSIONAL_REPORT
+    s, note, _ = prep("A terapeuta disse a Pedro para vestir a camiseta e ele vestiu na clínica sozinho.")
+    assert extract_rules(s, note, CTX, PACK).observations[0].source_type is SourceType.DIRECT_OBSERVATION

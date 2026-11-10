@@ -126,6 +126,16 @@ def _source_of(folded: str, pack: Pack) -> SourceType:
         )
         if m:
             return SourceType.PROFESSIONAL_REPORT if m.group(1) in teachers else SourceType.CAREGIVER_REPORT
+    # When in doubt, it is a report: an attribution verb with a speaker we cannot place never
+    # becomes direct observation. The only exception is speech to or by the patient.
+    if verbs:
+        for v in re.finditer(rf"(?<![^\W_])(?:{verbs})(?![^\W_])", folded):
+            before = folded[: v.start()].rstrip()
+            after = folded[v.end() :]
+            to_patient = re.match(r"\s*(?:a|ao|para|to)?\s*paciente\b", after)
+            by_patient = re.search(r"paciente\s+[a-z]?\s*$", before)
+            if not (to_patient or by_patient):
+                return SourceType.CAREGIVER_REPORT
     return SourceType.DIRECT_OBSERVATION
 
 
