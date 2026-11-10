@@ -2532,5 +2532,197 @@
   "label_status": "constructed; pending clinical review",
   "split": "eval",
   "round": 4
+ },
+ {
+  "id": "r5-01",
+  "category": "trailing_attribution",
+  "difficulty": "hard",
+  "locale": "pt",
+  "notes": [
+   {
+    "id": "r5-01-n1",
+    "date": "2026-10-20",
+    "text": "Davi vestiu a calça sozinho na escola, conta a professora."
+   }
+  ],
+  "claim": {
+   "activity": "dressing_lower",
+   "environment": "school",
+   "assistance": "independent",
+   "as_of": "2026-10-20"
+  },
+  "expected_verdict": "needs_review",
+  "expected_observations": [
+   {
+    "note_id": "r5-01-n1",
+    "activity": "dressing_lower",
+    "environment": "school",
+    "assistance": "independent",
+    "source_type": "professional_report"
+   }
+  ],
+  "label_status": "constructed; pending clinical review",
+  "split": "eval",
+  "round": 5
+ },
+ {
+  "id": "r5-02",
+  "category": "trailing_attribution",
+  "difficulty": "hard",
+  "locale": "en",
+  "notes": [
+   {
+    "id": "r5-02-n1",
+    "date": "2026-10-21",
+    "text": "The mother says Davi brushed his teeth on his own at home."
+   }
+  ],
+  "claim": {
+   "activity": "toothbrushing",
+   "environment": "home",
+   "assistance": "independent",
+   "as_of": "2026-10-21"
+  },
+  "expected_verdict": "needs_review",
+  "expected_observations": [
+   {
+    "note_id": "r5-02-n1",
+    "activity": "toothbrushing",
+    "environment": "home",
+    "assistance": "independent",
+    "source_type": "caregiver_report"
+   }
+  ],
+  "label_status": "constructed; pending clinical review",
+  "split": "eval",
+  "round": 5
+ },
+ {
+  "id": "r5-03",
+  "category": "unlisted_attribution",
+  "difficulty": "hard",
+  "locale": "pt",
+  "notes": [
+   {
+    "id": "r5-03-n1",
+    "date": "2026-10-22",
+    "text": "Pelo que a vó contou, Davi usou a colher sozinho em casa."
+   }
+  ],
+  "claim": {
+   "activity": "feeding",
+   "environment": "home",
+   "assistance": "independent",
+   "as_of": "2026-10-22"
+  },
+  "expected_verdict": "needs_review",
+  "expected_observations": [
+   {
+    "note_id": "r5-03-n1",
+    "activity": "feeding",
+    "environment": "home",
+    "assistance": "independent",
+    "source_type": "caregiver_report"
+   }
+  ],
+  "label_status": "constructed; pending clinical review",
+  "split": "eval",
+  "round": 5
+ },
+ {
+  "id": "r5-04",
+  "category": "trailing_attribution",
+  "difficulty": "hard",
+  "locale": "pt",
+  "notes": [
+   {
+    "id": "r5-04-n1",
+    "date": "2026-10-23",
+    "text": "Davi usou a colher na escola com instruções verbais, informa a professora."
+   }
+  ],
+  "claim": {
+   "activity": "feeding",
+   "environment": "school",
+   "assistance": "verbal_prompt",
+   "as_of": "2026-10-23"
+  },
+  "expected_verdict": "needs_review",
+  "expected_observations": [
+   {
+    "note_id": "r5-04-n1",
+    "activity": "feeding",
+    "environment": "school",
+    "assistance": "verbal_prompt",
+    "source_type": "professional_report"
+   }
+  ],
+  "label_status": "constructed; pending clinical review",
+  "split": "eval",
+  "round": 5
+ },
+ {
+  "id": "r5-05",
+  "category": "therapist_speech_is_not_a_report",
+  "difficulty": "hard",
+  "locale": "pt",
+  "notes": [
+   {
+    "id": "r5-05-n1",
+    "date": "2026-10-24",
+    "text": "A terapeuta disse a Davi para vestir a camiseta e ele vestiu na clínica sozinho."
+   }
+  ],
+  "claim": {
+   "activity": "dressing_upper",
+   "environment": "clinic",
+   "assistance": "independent",
+   "as_of": "2026-10-24"
+  },
+  "expected_verdict": "supported",
+  "expected_observations": [
+   {
+    "note_id": "r5-05-n1",
+    "activity": "dressing_upper",
+    "environment": "clinic",
+    "assistance": "independent",
+    "source_type": "direct_observation"
+   }
+  ],
+  "label_status": "constructed; pending clinical review",
+  "split": "eval",
+  "round": 5
+ },
+ {
+  "id": "r5-06",
+  "category": "unlisted_attribution",
+  "difficulty": "hard",
+  "locale": "pt",
+  "notes": [
+   {
+    "id": "r5-06-n1",
+    "date": "2026-10-25",
+    "text": "Davi vestiu a camiseta em casa, de acordo com os vizinhos, sozinho."
+   }
+  ],
+  "claim": {
+   "activity": "dressing_upper",
+   "environment": "home",
+   "assistance": "independent",
+   "as_of": "2026-10-25"
+  },
+  "expected_verdict": "needs_review",
+  "expected_observations": [
+   {
+    "note_id": "r5-06-n1",
+    "activity": "dressing_upper",
+    "environment": "home",
+    "assistance": "independent",
+    "source_type": "caregiver_report"
+   }
+  ],
+  "label_status": "constructed; pending clinical review",
+  "split": "eval",
+  "round": 5
  }
 ]

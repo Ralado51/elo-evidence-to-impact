@@ -218,11 +218,25 @@ for i, (cat, loc, text, cl, verdict, exp) in enumerate(R4):
     add(cid, cat, "hard", loc, [(d(i), text)], claim(cl[0], cl[1], cl[2], d(i)), verdict,
         [obs(f"{cid}-n1", a, e, l, s) for a, e, l, s in exp])
 
+# ---- round 5: SEALED, written after the trailing-attribution fix. Two cases use phrasing the fix does NOT cover. ----
+R5 = [
+    ("trailing_attribution", "pt", "Davi vestiu a calça sozinho na escola, conta a professora.", ("dressing_lower", "school", "independent"), "needs_review", [("dressing_lower", "school", "independent", "professional_report")]),
+    ("trailing_attribution", "en", "The mother says Davi brushed his teeth on his own at home.", ("toothbrushing", "home", "independent"), "needs_review", [("toothbrushing", "home", "independent", "caregiver_report")]),
+    ("unlisted_attribution", "pt", "Pelo que a vó contou, Davi usou a colher sozinho em casa.", ("feeding", "home", "independent"), "needs_review", [("feeding", "home", "independent", "caregiver_report")]),
+    ("trailing_attribution", "pt", "Davi usou a colher na escola com instruções verbais, informa a professora.", ("feeding", "school", "verbal_prompt"), "needs_review", [("feeding", "school", "verbal_prompt", "professional_report")]),
+    ("therapist_speech_is_not_a_report", "pt", "A terapeuta disse a Davi para vestir a camiseta e ele vestiu na clínica sozinho.", ("dressing_upper", "clinic", "independent"), "supported", [("dressing_upper", "clinic", "independent", "direct_observation")]),
+    ("unlisted_attribution", "pt", "Davi vestiu a camiseta em casa, de acordo com os vizinhos, sozinho.", ("dressing_upper", "home", "independent"), "needs_review", [("dressing_upper", "home", "independent", "caregiver_report")]),
+]
+for i, (cat, loc, text, cl, verdict, exp) in enumerate(R5):
+    cid = f"r5-{i+1:02d}"
+    add(cid, cat, "hard", loc, [(d(i), text)], claim(cl[0], cl[1], cl[2], d(i)), verdict,
+        [obs(f"{cid}-n1", a, e, l, s) for a, e, l, s in exp])
+
 for c in cases:
     c["split"] = "eval" if int(hashlib.sha1(c["id"].encode()).hexdigest(), 16) % 3 == 0 else "dev"
 
 for c in cases:
-    if c["id"].startswith("r4-"):
+    if c["id"].startswith(("r4-", "r5-")):
         c["split"] = "eval"
 for c in cases:
     if c["id"].startswith("r2-"):
@@ -231,6 +245,8 @@ for c in cases:
         c["round"] = 3
     elif c["id"].startswith("r4-"):
         c["round"] = 4
+    elif c["id"].startswith("r5-"):
+        c["round"] = 5
 out = Path(__file__).parent / "cases.json"
 out.write_text(json.dumps(cases, ensure_ascii=False, indent=1), encoding="utf-8")
 print(len(cases), "cases;", sum(c["split"] == "eval" for c in cases), "eval")

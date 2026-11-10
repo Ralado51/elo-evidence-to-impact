@@ -45,3 +45,11 @@ Dev result (59 cases): model alone 94.9% accuracy, 0 unsafe-supported, precision
 - Consensus lost three legitimate cases (unlisted synonyms the rules cannot read); they go to review, which is the designed behavior.
 - Reporting fix after the run: the `round` tag of the six `r4-*` cases was missing, so the run's `by_round` counted them under round 1. Case text, labels and split are unchanged (verified by diff); in that output the 8 "round 1" cases are 2 round-1 cases plus the 6 sealed ones.
 - Nothing in the extraction code, pack or prompt was changed after this run.
+
+## Post-eval fix and sealed round 5
+
+- Fix after the eval (not measured on the original eval): attribution by verb before or after a known family/teacher noun ("diz a mãe", "conta a professora", "says the mother"). A therapist speaking to the patient ("a terapeuta disse a Davi") is not a report. New pack fields: `attribution_verbs`, `caregiver_nouns`.
+- Round 5 (`r5-*`, 6 cases, forced into `eval`): written after the fix. Two use phrasing the fix does not cover on purpose ("Pelo que a vó contou", "de acordo com os vizinhos").
+- Disclosure: when I generated the cases I ran the **rules-only** mode once on round 5 to check the file was well formed. Result: 5 of 6 right; `r5-03` ("Pelo que a vó contou") is read as direct observation, as designed. `r5-06` passed because the generic frame "de acordo com" already covers it, so it is less adversarial than I intended. Nothing was changed after seeing this. The model and consensus runs on round 5 are still unseen.
+- Run only round 5 with `python scripts/run_benchmark.py --mode consensus --model qwen2.5:3b --split eval --only-round 5`. Rounds 1 to 4 keep their one-time result above.
+- Default mode for the product: consensus (pre-registered). The model-alone numbers are reported next to it.

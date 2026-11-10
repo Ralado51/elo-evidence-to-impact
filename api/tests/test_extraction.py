@@ -216,3 +216,19 @@ def test_other_subject_and_generic_report_frames_and_wishes():
     assert extract_rules(s, note, CTX, PACK).observations[0].source_type is SourceType.PROFESSIONAL_REPORT
     s, note, _ = prep("A mãe de Pedro relatou que Pedro vestiu a camiseta sozinho em casa.")
     assert extract_rules(s, note, CTX, PACK).observations  # the patient is also a subject: not blocked
+
+
+def test_trailing_and_leading_attribution_by_verb():
+    cases = [("Pedro vestiu a calça sozinho na escola, conta a professora.", SourceType.PROFESSIONAL_REPORT),
+             ("The mother says Pedro brushed his teeth on his own at home.", SourceType.CAREGIVER_REPORT),
+             ("Pedro usou a colher na escola com instruções verbais, informa a professora.", SourceType.PROFESSIONAL_REPORT),
+             ("Pedro costuma vestir a camiseta sozinho em casa, diz a mãe.", SourceType.CAREGIVER_REPORT)]
+    for text, expected in cases:
+        s, note, _ = prep(text)
+        obs = extract_rules(s, note, CTX, PACK).observations
+        assert obs and obs[0].source_type is expected, text
+
+
+def test_therapist_speech_is_not_a_report():
+    s, note, _ = prep("A terapeuta disse a Pedro para vestir a camiseta e ele vestiu na clínica sozinho.")
+    assert extract_rules(s, note, CTX, PACK).observations[0].source_type is SourceType.DIRECT_OBSERVATION

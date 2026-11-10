@@ -28,6 +28,8 @@ class Pack(BaseModel):
     uncertainty_markers: list[str] = []
     teacher_words: list[str] = []
     reporting_frames: list[str] = []
+    attribution_verbs: list[str] = []
+    caregiver_nouns: list[str] = []
     environment_cues: dict[Environment, list[str]]
     report_cues: dict[SourceType, list[str]]
 
