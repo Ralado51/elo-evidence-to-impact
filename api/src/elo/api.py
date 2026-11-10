@@ -14,10 +14,11 @@ from collections import defaultdict, deque
 from datetime import date
 
 from fastapi import APIRouter, FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field
 
 from .attendance import STATUSES, adherence
+from .devolutiva import build_devolutiva
 from .contract import Assistance, Claim, Environment, Note, Verdict
 from .extraction import ExtractionContext, ExtractionError, MODES, extract_note
 from .gaps import evidence_map
@@ -99,6 +100,15 @@ class AttendanceIn(BaseModel):
     day: date
     status: str
     actor: str = Field(min_length=1, max_length=60)
+
+
+def _locale(value: str) -> str:
+    v = value.lower()
+    if v in ("pt", "pt-br"):
+        return "pt"
+    if v == "en":
+        return "en"
+    raise HTTPException(422, "unsupported locale")
 
 
 def _dump(model) -> dict:
@@ -316,9 +326,7 @@ def create_app(data_dir: str | None = None, client=None, mode: str | None = None
 
     @api.get("/goals/{goal_id}/check")
     def goal_check(goal_id: str, as_of: date | None = None, locale: str = "pt-BR"):
-        if locale not in ("pt-BR", "en"):
-            raise HTTPException(422, "unsupported locale")
-        return check_view(goal_id, as_of or date.today(), locale)
+        return check_view(goal_id, as_of or date.today(), _locale(locale))
 
     @api.post("/goals/{goal_id}/assessment", status_code=201)
     def assess(goal_id: str, body: AssessmentIn):
@@ -351,10 +359,42 @@ def create_app(data_dir: str | None = None, client=None, mode: str | None = None
     @api.get("/cases/{case_id}/summary")
     def summary(case_id: str, locale: str = "pt-BR"):
         case = case_or_404(case_id)
-        if locale not in ("pt-BR", "en"):
-            raise HTTPException(422, "unsupported locale")
+        locale = _locale(locale)
         s = build_family_summary(svc.approved_claims(case_id), pack, locale, case["label"])
         return {"text": s.render(), "lines": [{"text": l.text, "claim_id": l.claim_id} for l in s.lines], "gaps": s.gaps}
+
+    @api.post("/demo/seed", status_code=201)
+    def seed_demo():
+        """Load the invented demo case. Runs the same pipeline as real input."""
+        from . import demo
+
+        if any(c["id"] == demo.DEMO_CASE["id"] for c in svc.list_cases()):
+            raise HTTPException(409, "the demo case already exists")
+        with lock:
+            svc.create_case(demo.DEMO_CASE["id"], demo.DEMO_CASE["label"])
+            try:
+                registry.add(**{**demo.DEMO_PERSON, "aliases": tuple(demo.DEMO_PERSON["aliases"])})
+            except ValueError:
+                pass
+        for day, text in demo.DEMO_NOTES:
+            add_note("demo", NoteIn(text=text, session_date=date.fromisoformat(day), observed_by="Terapeuta"))
+        with lock:
+            for act, env, assist, measure in demo.DEMO_GOALS:
+                svc.save_goal(Goal(id=f"g-demo-{act}", session_id="demo", activity=act, environment=env, assistance=assist,
+                                   measure=measure, start_date=date(2026, 9, 1), review_date=date(2026, 12, 1)))
+            for day, st in demo.DEMO_ATTENDANCE:
+                svc.set_attendance("demo", day, st, "demo")
+        propose_from_observations("demo")
+        return {"case_id": "demo"}
+
+    @api.get("/cases/{case_id}/devolutiva.docx")
+    def devolutiva(case_id: str, locale: str = "pt-BR", as_of: date | None = None):
+        case = case_or_404(case_id)
+        loc = _locale(locale)
+        data = build_devolutiva(case["label"], svc.goals(case_id), svc.observations(case_id), svc.approved_claims(case_id),
+                                svc.attendance(case_id), pack, loc, as_of or date.today())
+        return Response(data, media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                        headers={"Content-Disposition": f'attachment; filename="devolutiva-{case_id}-{loc}.docx"'})
 
     app.include_router(api)
     app.state.svc, app.state.registry, app.state.pack, app.state.gate = svc, registry, pack, gate

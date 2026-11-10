@@ -124,3 +124,48 @@ def test_persistence_across_restart(tmp_path):
     c.post("/api/patients", json={"role": "patient", "full_name": "Davi Moreira", "pseudonym": "Paciente A"})
     c2 = TestClient(create_app(d, client=None))
     assert c2.get("/api/cases").json()[0]["id"] == "c1" and c2.get("/api/patients").json()[0]["pseudonym"] == "Paciente A"
+
+
+def test_portuguese_locales_work():
+    c = TestClient(create_app(":memory:", client=None))
+    c.post("/api/cases", json={"id": "c1", "label": "A"})
+    assert c.get("/api/cases/c1/summary?locale=pt-BR").status_code == 200
+    gid = c.post("/api/cases/c1/goals", json={"activity": "feeding", "environment": "home", "assistance": "verbal_prompt",
+                                              "measure": "m", "start_date": "2026-09-01", "review_date": "2026-12-01"}).json()["id"]
+    r = c.get(f"/api/goals/{gid}/check?locale=pt-BR&as_of=2026-10-01")
+    assert r.status_code == 200 and "Meta" in r.json()["text"]
+
+
+def test_devolutiva_docx_has_evidence_and_leaves_judgment_blank():
+    import io
+    from docx import Document
+
+    c = TestClient(create_app(":memory:", client=None))
+    c.post("/api/cases", json={"id": "c1", "label": "Paciente A"})
+    c.post("/api/patients", json={"role": "patient", "full_name": "Davi Moreira", "pseudonym": "Paciente A", "aliases": ["Davi"]})
+    c.post("/api/cases/c1/notes", json={"text": "Davi vestiu a camiseta na clínica com dicas gestuais.", "session_date": "2026-09-01"})
+    c.post("/api/cases/c1/goals", json={"activity": "dressing_upper", "environment": "home", "assistance": "verbal_prompt",
+                                        "measure": "observado em casa", "start_date": "2026-09-01", "review_date": "2026-12-01"})
+    c.post("/api/cases/c1/attendance", json={"day": "2026-09-01", "status": "attended", "actor": "R"})
+    for loc, word in (("pt-BR", "Devolutiva"), ("en", "Feedback report")):
+        r = c.get(f"/api/cases/c1/devolutiva.docx?locale={loc}&as_of=2026-10-01")
+        assert r.status_code == 200 and "wordprocessingml" in r.headers["content-type"]
+        d = Document(io.BytesIO(r.content))
+        text = "\n".join(p.text for p in d.paragraphs) + "\n".join(c.text for t in d.tables for row in t.rows for c in row.cells)
+        assert word in text and "Moreira" not in text and "Davi" not in text and "Paciente A" in text
+        assert "GAS" in text and "____" in text
+        assert "achieved" not in text.lower() and "alcançad" not in text.lower()
+
+
+def test_demo_seed_runs_the_real_pipeline():
+    c = TestClient(create_app(":memory:", client=None))
+    assert c.post("/api/demo/seed").status_code == 201
+    assert c.post("/api/demo/seed").status_code == 409
+    claims = c.get("/api/cases/demo/claims").json()
+    assert len(claims) == 8
+    verdicts = {x["claim"]["text"]: x["verdict"]["verdict"] for x in claims}
+    reports = [v for t, v in verdicts.items() if "relatou" in t]
+    assert reports and all(v != "supported" for v in reports)
+    assert len(c.get("/api/cases/demo/goals").json()) == 5
+    assert c.get("/api/cases/demo/attendance").json()["adherence"]["rate"] == 0.857
+    assert "Demonstração" not in c.get("/api/cases/demo/observations").text
