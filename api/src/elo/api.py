@@ -6,6 +6,7 @@ lists the KINDS of data found, never the data. The patient list returns pseudony
 
 from __future__ import annotations
 
+import hmac
 import os
 import threading
 import time
@@ -132,6 +133,18 @@ def create_app(data_dir: str | None = None, client=None, mode: str | None = None
 
     app = FastAPI(title="Elo Evidence-to-Impact", docs_url="/api/docs", openapi_url="/api/openapi.json")
 
+    token = os.environ.get("ELO_ACCESS_TOKEN", "")
+
+    @app.middleware("http")
+    async def guard(request: Request, call_next):
+        """Optional shared access token for a public deployment. Health and meta stay open."""
+        path = request.url.path
+        if token and path.startswith("/api") and path not in ("/api/health", "/api/meta"):
+            given = request.headers.get("x-access-token", "")
+            if not hmac.compare_digest(given.encode(), token.encode()):
+                return JSONResponse({"detail": "access token required"}, status_code=401)
+        return await call_next(request)
+
     @app.middleware("http")
     async def limit(request: Request, call_next):
         who = request.client.host if request.client else "?"
@@ -165,6 +178,7 @@ def create_app(data_dir: str | None = None, client=None, mode: str | None = None
             "version": "0.1.0",
             "extraction_mode": mode or os.environ.get("EXTRACTION_MODE", "llm"),
             "model_configured": llm is not None,
+            "token_required": bool(token),
             "modes": list(MODES),
             "locales": ["pt-BR", "en"],
             "notice": SYNTHETIC_NOTICE,
@@ -397,6 +411,11 @@ def create_app(data_dir: str | None = None, client=None, mode: str | None = None
                         headers={"Content-Disposition": f'attachment; filename="devolutiva-{case_id}-{loc}.docx"'})
 
     app.include_router(api)
+    web_dir = os.environ.get("ELO_WEB_DIR", "")
+    if web_dir and os.path.isdir(web_dir):  # optional: serve the static app from the API process (dev / single container)
+        from fastapi.staticfiles import StaticFiles
+
+        app.mount("/app", StaticFiles(directory=web_dir, html=True), name="web")
     app.state.svc, app.state.registry, app.state.pack, app.state.gate = svc, registry, pack, gate
     app.state.llm, app.state.mode = llm, mode
     return app
