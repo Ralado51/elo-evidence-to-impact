@@ -2372,5 +2372,159 @@
   "label_status": "constructed; pending clinical review",
   "round": 3,
   "split": "dev"
+ },
+ {
+  "id": "r4-01",
+  "category": "reported_negative",
+  "difficulty": "hard",
+  "locale": "en",
+  "notes": [
+   {
+    "id": "r4-01-n1",
+    "date": "2026-10-20",
+    "text": "The teacher said Davi could not button the shirt at school."
+   }
+  ],
+  "claim": {
+   "activity": "dressing_upper",
+   "environment": "school",
+   "assistance": "independent",
+   "as_of": "2026-10-20"
+  },
+  "expected_verdict": "insufficient_evidence",
+  "expected_observations": [],
+  "label_status": "constructed; pending clinical review",
+  "split": "eval"
+ },
+ {
+  "id": "r4-02",
+  "category": "habitual_report",
+  "difficulty": "hard",
+  "locale": "pt",
+  "notes": [
+   {
+    "id": "r4-02-n1",
+    "date": "2026-10-21",
+    "text": "Davi costuma vestir a camiseta sozinho em casa, diz a mãe."
+   }
+  ],
+  "claim": {
+   "activity": "dressing_upper",
+   "environment": "home",
+   "assistance": "independent",
+   "as_of": "2026-10-21"
+  },
+  "expected_verdict": "needs_review",
+  "expected_observations": [
+   {
+    "note_id": "r4-02-n1",
+    "activity": "dressing_upper",
+    "environment": "home",
+    "assistance": "independent",
+    "source_type": "caregiver_report"
+   }
+  ],
+  "label_status": "constructed; pending clinical review",
+  "split": "eval"
+ },
+ {
+  "id": "r4-03",
+  "category": "uncertain_statement",
+  "difficulty": "hard",
+  "locale": "pt",
+  "notes": [
+   {
+    "id": "r4-03-n1",
+    "date": "2026-10-22",
+    "text": "Não ficou claro se Davi escovou os dentes sozinho em casa."
+   }
+  ],
+  "claim": {
+   "activity": "toothbrushing",
+   "environment": "home",
+   "assistance": "independent",
+   "as_of": "2026-10-22"
+  },
+  "expected_verdict": "insufficient_evidence",
+  "expected_observations": [],
+  "label_status": "constructed; pending clinical review",
+  "split": "eval"
+ },
+ {
+  "id": "r4-04",
+  "category": "other_person",
+  "difficulty": "hard",
+  "locale": "en",
+  "notes": [
+   {
+    "id": "r4-04-n1",
+    "date": "2026-10-23",
+    "text": "His sister put on the pants on her own at home."
+   }
+  ],
+  "claim": {
+   "activity": "dressing_lower",
+   "environment": "home",
+   "assistance": "independent",
+   "as_of": "2026-10-23"
+  },
+  "expected_verdict": "insufficient_evidence",
+  "expected_observations": [],
+  "label_status": "constructed; pending clinical review",
+  "split": "eval"
+ },
+ {
+  "id": "r4-05",
+  "category": "future_plan",
+  "difficulty": "hard",
+  "locale": "pt",
+  "notes": [
+   {
+    "id": "r4-05-n1",
+    "date": "2026-10-24",
+    "text": "Na próxima semana vamos treinar a colher na escola sem ajuda."
+   }
+  ],
+  "claim": {
+   "activity": "feeding",
+   "environment": "school",
+   "assistance": "independent",
+   "as_of": "2026-10-24"
+  },
+  "expected_verdict": "insufficient_evidence",
+  "expected_observations": [],
+  "label_status": "constructed; pending clinical review",
+  "split": "eval"
+ },
+ {
+  "id": "r4-06",
+  "category": "unlisted_synonym",
+  "difficulty": "hard",
+  "locale": "en",
+  "notes": [
+   {
+    "id": "r4-06-n1",
+    "date": "2026-10-25",
+    "text": "Davi put on the shirt at the clinic with only spoken reminders."
+   }
+  ],
+  "claim": {
+   "activity": "dressing_upper",
+   "environment": "clinic",
+   "assistance": "verbal_prompt",
+   "as_of": "2026-10-25"
+  },
+  "expected_verdict": "supported",
+  "expected_observations": [
+   {
+    "note_id": "r4-06-n1",
+    "activity": "dressing_upper",
+    "environment": "clinic",
+    "assistance": "verbal_prompt",
+    "source_type": "direct_observation"
+   }
+  ],
+  "label_status": "constructed; pending clinical review",
+  "split": "eval"
  }
 ]

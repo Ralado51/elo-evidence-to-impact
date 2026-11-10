@@ -26,6 +26,8 @@ class Pack(BaseModel):
     non_event_markers: list[str] = []
     non_event_sentence_starts: list[str] = []
     uncertainty_markers: list[str] = []
+    teacher_words: list[str] = []
+    reporting_frames: list[str] = []
     environment_cues: dict[Environment, list[str]]
     report_cues: dict[SourceType, list[str]]
 

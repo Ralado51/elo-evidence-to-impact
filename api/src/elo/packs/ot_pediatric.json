@@ -270,7 +270,31 @@
     "objetivo:",
     "will ",
     "poderá",
-    "would "
+    "would ",
+    "espera que",
+    "esperar que",
+    "espero que",
+    "esperamos que",
+    "quer que",
+    "deseja que",
+    "precisa",
+    "precisam",
+    "needs to",
+    "wants him",
+    "wants her",
+    "hopes",
+    "expects",
+    "should",
+    "deveria",
+    "consiga",
+    "possa",
+    "recusou",
+    "recusa",
+    "recusando",
+    "refused",
+    "refuses",
+    "plan:",
+    "plano:"
   ],
   "non_event_sentence_starts": [
     "se ",
@@ -298,5 +322,17 @@
     "didn't manage",
     "unable",
     "failed to"
+  ],
+  "teacher_words": [
+    "professora",
+    "professor",
+    "teacher",
+    "escola"
+  ],
+  "reporting_frames": [
+    "segundo",
+    "de acordo com",
+    "conforme",
+    "according to"
   ]
 }
