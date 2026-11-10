@@ -24,3 +24,9 @@ After the second model run, round-2 failures (almost achieved, report phrases su
 ## Round 4 (sealed)
 
 `r4-*` cases are forced into `eval`, written after all fixes, and were never run during tuning. After the third model run, round 3 is also **seen** (the rules were extended for its failure classes: wishes, needs, a relative as subject, generic reporting frames, refusal, plans). The only unbiased number left is `eval`, to be run once at the end.
+
+## Eval freeze
+
+Extraction, pack, prompt and benchmark cases are frozen at commit `fa38c38` for the one-time `eval` run. Primary mode (decided before seeing eval): **consensus** with `qwen2.5:3b`; the model-alone mode is also run and reported. Any change to extraction code, pack, prompt or cases after this point makes the `eval` result invalid and requires saying so.
+
+Dev result (59 cases): model alone 94.9% accuracy, 0 unsafe-supported, precision 0.92, recall 0.90. Consensus 84.7%, 0 unsafe-supported, precision 0.98, recall 0.81, 10 items sent to human review.
