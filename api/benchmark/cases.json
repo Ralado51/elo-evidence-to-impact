@@ -1782,8 +1782,8 @@
   "expected_verdict": "insufficient_evidence",
   "expected_observations": [],
   "label_status": "constructed; pending clinical review",
-  "round": 2,
-  "split": "dev"
+  "split": "dev",
+  "round": 2
  },
  {
   "id": "r2-02",
@@ -1806,8 +1806,8 @@
   "expected_verdict": "insufficient_evidence",
   "expected_observations": [],
   "label_status": "constructed; pending clinical review",
-  "round": 2,
-  "split": "dev"
+  "split": "dev",
+  "round": 2
  },
  {
   "id": "r2-03",
@@ -1838,8 +1838,8 @@
    }
   ],
   "label_status": "constructed; pending clinical review",
-  "round": 2,
-  "split": "dev"
+  "split": "dev",
+  "round": 2
  },
  {
   "id": "r2-04",
@@ -1862,8 +1862,8 @@
   "expected_verdict": "insufficient_evidence",
   "expected_observations": [],
   "label_status": "constructed; pending clinical review",
-  "round": 2,
-  "split": "dev"
+  "split": "dev",
+  "round": 2
  },
  {
   "id": "r2-05",
@@ -1894,8 +1894,8 @@
    }
   ],
   "label_status": "constructed; pending clinical review",
-  "round": 2,
-  "split": "eval"
+  "split": "eval",
+  "round": 2
  },
  {
   "id": "r2-06",
@@ -1926,8 +1926,8 @@
    }
   ],
   "label_status": "constructed; pending clinical review",
-  "round": 2,
-  "split": "eval"
+  "split": "eval",
+  "round": 2
  },
  {
   "id": "r2-07",
@@ -1958,8 +1958,8 @@
    }
   ],
   "label_status": "constructed; pending clinical review",
-  "round": 2,
-  "split": "eval"
+  "split": "eval",
+  "round": 2
  },
  {
   "id": "r2-08",
@@ -1990,8 +1990,8 @@
    }
   ],
   "label_status": "constructed; pending clinical review",
-  "round": 2,
-  "split": "dev"
+  "split": "dev",
+  "round": 2
  },
  {
   "id": "r2-09",
@@ -2022,8 +2022,8 @@
    }
   ],
   "label_status": "constructed; pending clinical review",
-  "round": 2,
-  "split": "dev"
+  "split": "dev",
+  "round": 2
  },
  {
   "id": "r2-10",
@@ -2054,8 +2054,8 @@
    }
   ],
   "label_status": "constructed; pending clinical review",
-  "round": 2,
-  "split": "dev"
+  "split": "dev",
+  "round": 2
  },
  {
   "id": "r2-11",
@@ -2110,8 +2110,8 @@
    }
   ],
   "label_status": "constructed; pending clinical review",
-  "round": 2,
-  "split": "eval"
+  "split": "eval",
+  "round": 2
  },
  {
   "id": "r2-12",
@@ -2154,8 +2154,8 @@
    }
   ],
   "label_status": "constructed; pending clinical review",
-  "round": 2,
-  "split": "dev"
+  "split": "dev",
+  "round": 2
  },
  {
   "id": "r3-01",
@@ -2178,8 +2178,8 @@
   "expected_verdict": "insufficient_evidence",
   "expected_observations": [],
   "label_status": "constructed; pending clinical review",
-  "round": 3,
-  "split": "dev"
+  "split": "dev",
+  "round": 3
  },
  {
   "id": "r3-02",
@@ -2202,8 +2202,8 @@
   "expected_verdict": "insufficient_evidence",
   "expected_observations": [],
   "label_status": "constructed; pending clinical review",
-  "round": 3,
-  "split": "eval"
+  "split": "eval",
+  "round": 3
  },
  {
   "id": "r3-03",
@@ -2226,8 +2226,8 @@
   "expected_verdict": "insufficient_evidence",
   "expected_observations": [],
   "label_status": "constructed; pending clinical review",
-  "round": 3,
-  "split": "dev"
+  "split": "dev",
+  "round": 3
  },
  {
   "id": "r3-04",
@@ -2250,8 +2250,8 @@
   "expected_verdict": "insufficient_evidence",
   "expected_observations": [],
   "label_status": "constructed; pending clinical review",
-  "round": 3,
-  "split": "dev"
+  "split": "dev",
+  "round": 3
  },
  {
   "id": "r3-05",
@@ -2282,8 +2282,8 @@
    }
   ],
   "label_status": "constructed; pending clinical review",
-  "round": 3,
-  "split": "dev"
+  "split": "dev",
+  "round": 3
  },
  {
   "id": "r3-06",
@@ -2314,8 +2314,8 @@
    }
   ],
   "label_status": "constructed; pending clinical review",
-  "round": 3,
-  "split": "dev"
+  "split": "dev",
+  "round": 3
  },
  {
   "id": "r3-07",
@@ -2338,8 +2338,8 @@
   "expected_verdict": "insufficient_evidence",
   "expected_observations": [],
   "label_status": "constructed; pending clinical review",
-  "round": 3,
-  "split": "dev"
+  "split": "dev",
+  "round": 3
  },
  {
   "id": "r3-08",
@@ -2370,8 +2370,8 @@
    }
   ],
   "label_status": "constructed; pending clinical review",
-  "round": 3,
-  "split": "dev"
+  "split": "dev",
+  "round": 3
  },
  {
   "id": "r4-01",
@@ -2394,7 +2394,8 @@
   "expected_verdict": "insufficient_evidence",
   "expected_observations": [],
   "label_status": "constructed; pending clinical review",
-  "split": "eval"
+  "split": "eval",
+  "round": 4
  },
  {
   "id": "r4-02",
@@ -2425,7 +2426,8 @@
    }
   ],
   "label_status": "constructed; pending clinical review",
-  "split": "eval"
+  "split": "eval",
+  "round": 4
  },
  {
   "id": "r4-03",
@@ -2448,7 +2450,8 @@
   "expected_verdict": "insufficient_evidence",
   "expected_observations": [],
   "label_status": "constructed; pending clinical review",
-  "split": "eval"
+  "split": "eval",
+  "round": 4
  },
  {
   "id": "r4-04",
@@ -2471,7 +2474,8 @@
   "expected_verdict": "insufficient_evidence",
   "expected_observations": [],
   "label_status": "constructed; pending clinical review",
-  "split": "eval"
+  "split": "eval",
+  "round": 4
  },
  {
   "id": "r4-05",
@@ -2494,7 +2498,8 @@
   "expected_verdict": "insufficient_evidence",
   "expected_observations": [],
   "label_status": "constructed; pending clinical review",
-  "split": "eval"
+  "split": "eval",
+  "round": 4
  },
  {
   "id": "r4-06",
@@ -2525,6 +2530,7 @@
    }
   ],
   "label_status": "constructed; pending clinical review",
-  "split": "eval"
+  "split": "eval",
+  "round": 4
  }
 ]

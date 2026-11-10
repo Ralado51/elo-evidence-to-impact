@@ -203,13 +203,6 @@ for i, (cat, loc, text, cl, verdict, exp) in enumerate(R3):
     add(cid, cat, "hard", loc, [(d(i), text)], claim(cl[0], cl[1], cl[2], d(i)), verdict,
         [obs(f"{cid}-n1", a, e, l, s) for a, e, l, s in exp])
 
-for c in cases:
-    if c["id"].startswith("r2-"):
-        c["round"] = 2
-    elif c["id"].startswith("r3-"):
-        c["round"] = 3
-    elif c["id"].startswith("r4-"):
-        c["round"] = 4
 
 # ---- round 4: SEALED. Written after every fix above, forced into `eval`, never run during tuning. ----
 R4 = [
@@ -231,6 +224,13 @@ for c in cases:
 for c in cases:
     if c["id"].startswith("r4-"):
         c["split"] = "eval"
+for c in cases:
+    if c["id"].startswith("r2-"):
+        c["round"] = 2
+    elif c["id"].startswith("r3-"):
+        c["round"] = 3
+    elif c["id"].startswith("r4-"):
+        c["round"] = 4
 out = Path(__file__).parent / "cases.json"
 out.write_text(json.dumps(cases, ensure_ascii=False, indent=1), encoding="utf-8")
 print(len(cases), "cases;", sum(c["split"] == "eval" for c in cases), "eval")
