@@ -25,6 +25,7 @@ SCHEMA = """
 CREATE TABLE IF NOT EXISTS notes (id TEXT, version INTEGER, session_id TEXT, data TEXT, PRIMARY KEY (id, version));
 CREATE TABLE IF NOT EXISTS observations (id TEXT PRIMARY KEY, session_id TEXT, data TEXT);
 CREATE TABLE IF NOT EXISTS claims (id TEXT PRIMARY KEY, session_id TEXT, state TEXT, data TEXT, verdict TEXT);
+CREATE TABLE IF NOT EXISTS goals (id TEXT PRIMARY KEY, session_id TEXT, data TEXT);
 CREATE TABLE IF NOT EXISTS audit (
   seq INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT NOT NULL, claim_id TEXT NOT NULL, action TEXT NOT NULL,
   actor TEXT NOT NULL, reason TEXT, before TEXT, after TEXT, verdict TEXT);
@@ -84,6 +85,31 @@ class ReviewService:
             q, args = q + " WHERE claim_id=?", (claim_id,)
         cols = ["seq", "at", "claim_id", "action", "actor", "reason", "before", "after", "verdict"]
         return [dict(zip(cols, r)) for r in self.db.execute(q + " ORDER BY seq", args).fetchall()]
+
+    # --- goals -----------------------------------------------------------------------
+    def save_goal(self, goal) -> None:
+        self.db.execute("INSERT OR REPLACE INTO goals VALUES (?,?,?)", (goal.id, goal.session_id, goal.model_dump_json()))
+        self.db.commit()
+
+    def get_goal(self, goal_id: str):
+        from .goals import Goal
+
+        row = self.db.execute("SELECT data FROM goals WHERE id=?", (goal_id,)).fetchone()
+        if row is None:
+            raise ReviewError("unknown goal")
+        return Goal.model_validate_json(row[0])
+
+    def record_goal_assessment(self, goal_id: str, actor: str, gas_rating: int, comment: str, check_verdict: str) -> None:
+        """The therapist's conclusion on a goal. The system never computes the rating."""
+        if not actor or not actor.strip():
+            raise ReviewError("a named reviewer is required")
+        if gas_rating not in (-2, -1, 0, 1, 2):
+            raise ReviewError("the GAS rating must be an integer from -2 to +2")
+        if not comment or not comment.strip():
+            raise ReviewError("a comment is required")
+        self.get_goal(goal_id)
+        self._log(goal_id, "goal_assessed", actor, comment, None, json.dumps({"gas_rating": gas_rating}), check_verdict)
+        self.db.commit()
 
     # --- flow ------------------------------------------------------------------------
     def propose(self, claim: Claim, actor: str = "system") -> VerdictResult:

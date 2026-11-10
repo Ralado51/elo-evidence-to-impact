@@ -44,3 +44,11 @@ block UPDATE/DELETE). Downstream outputs (family summary) read `approved_claims(
 Controlled pt/en templates over approved claims only. Lines are built from structured fields
 (never the claim's free text); gaps say neutrally where nothing is recorded yet; a fixed note
 states it is not a diagnosis or a progress assessment.
+
+## Goals and assisted check (`goals.py`)
+
+A goal states occupation, setting, target level of assistance, measure, baseline and review date.
+`check_goal` lines up the evidence (direct vs reported, per setting and date, with the exact
+passage), the verifier's verdict, gaps, staleness and the review date. It never rates progress,
+computes GAS, predicts or recommends; the therapist records the conclusion and the GAS rating
+(`ReviewService.record_goal_assessment`, audited, named reviewer required).
