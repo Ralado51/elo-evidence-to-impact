@@ -61,3 +61,11 @@ Round 5 (consensus and model alone, identical): accuracy 33%, 1 unsafe `supporte
 Last extraction change, decided from that result: **when in doubt, a sentence with an attribution verb is a report**, unless the speech is to or by the patient. It replaces further phrase lists. Another professional (physio, speech therapist, psychologist) counts as a professional report. Round 6 (`r6-*`, 6 cases, forced into `eval`) was written after the change and **was not run, not even in rules mode**, before the model run. One case (`r6-06`, "Ficamos sabendo pela babá...") has no listed verb and is expected to fail: it documents the remaining limit.
 
 Extraction code, pack and prompt are **frozen from here on**. Run: `python scripts/run_benchmark.py --mode consensus --model qwen2.5:3b --split eval --only-round 6` (and `--mode llm`).
+
+## Round 6 result (frozen code `265506c`, qwen2.5:3b, 6 sealed cases)
+
+Consensus and model alone were identical: accuracy 66.7%, 1 unsafe `supported`, 0 false `contradicted`. The unsafe case is `r6-06` ("Ficamos sabendo pela babá que...", no listed attribution verb), written to fail. Of the three "unlisted noun, listed verb" cases, two were read as reports and one was lost to a non-verbatim model quote (a safe failure). Another professional as a report and child speech were handled correctly.
+
+### Honest limit, after four clean runs (eval, rounds 5 and 6)
+
+Every unsafe `supported` was a family report read as direct observation when the attribution phrase was outside the verb and frame lists. Consensus never showed a safety gain over the model alone and cost accuracy and coverage. The product therefore requires human review of every claim, with the quote and its source type in view; these numbers describe the automatic layer only.
