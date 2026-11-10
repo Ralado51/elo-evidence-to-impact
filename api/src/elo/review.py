@@ -46,7 +46,7 @@ def _now() -> str:
 
 class ReviewService:
     def __init__(self, path: str = ":memory:") -> None:
-        self.db = sqlite3.connect(path)
+        self.db = sqlite3.connect(path, check_same_thread=False)
         self.db.executescript(SCHEMA)
 
     # --- storage ---------------------------------------------------------------------
@@ -196,6 +196,20 @@ class ReviewService:
         self._log(claim_id, "edited", actor, reason, claim.model_dump_json(), edited.model_dump_json(), result.verdict.value)
         self.db.commit()
         return edited, result
+
+    def claims(self, session_id: str) -> list[tuple[Claim, VerdictResult]]:
+        rows = self.db.execute("SELECT data, verdict FROM claims WHERE session_id=? ORDER BY rowid", (session_id,)).fetchall()
+        return [(Claim.model_validate_json(r[0]), VerdictResult.model_validate_json(r[1])) for r in rows]
+
+    def goals(self, session_id: str) -> list:
+        from .goals import Goal
+
+        rows = self.db.execute("SELECT data FROM goals WHERE session_id=? ORDER BY rowid", (session_id,)).fetchall()
+        return [Goal.model_validate_json(r[0]) for r in rows]
+
+    def notes(self, session_id: str) -> list[Note]:
+        rows = self.db.execute("SELECT data FROM notes WHERE session_id=? ORDER BY rowid", (session_id,)).fetchall()
+        return [Note.model_validate_json(r[0]) for r in rows]
 
     def approved_claims(self, session_id: str) -> list[Claim]:
         rows = self.db.execute(
