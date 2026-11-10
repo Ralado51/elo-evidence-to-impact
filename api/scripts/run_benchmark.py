@@ -18,5 +18,10 @@ a = ap.parse_args()
 client = None
 if a.mode != "rules":
     client = OpenAICompatibleClient(os.environ["LLM_BASE_URL"], os.environ.get("LLM_API_KEY", "ollama"), a.model, timeout=180)
-rows = [run_case(c, a.mode, client) for c in load_cases(a.split)]
+import sys
+cases = load_cases(a.split)
+rows = []
+for i, c in enumerate(cases, 1):
+    rows.append(run_case(c, a.mode, client))
+    print(f"[{i}/{len(cases)}] {c['id']}", file=sys.stderr, flush=True)
 print(json.dumps({"mode": a.mode, "model": a.model if client else None, "split": a.split, **summarize(rows)}, indent=1))
