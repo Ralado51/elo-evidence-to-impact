@@ -1,13 +1,14 @@
 "use strict";
 // Elo Evidence-to-Impact — static app. No framework; every string from the server is set as text, never as HTML.
 const API = "/api";
-const S = { lang: "pt", meta: null, cases: [], caseId: null, tab: "notes", actor: "", token: "" };
+const S = { lang: "pt", meta: null, cases: [], caseId: null, tab: "notes", actor: "", token: "", hand: null,
+  home: { reps: 10, session: "mon", events: [], reports: [], extra: [], result: null, n: 0 } };
 try { S.token = sessionStorage.getItem("elo_token") || ""; S.actor = sessionStorage.getItem("elo_actor") || ""; } catch (e) {}
 
 const T = {
   pt: {
     case: "Caso", newCase: "Novo caso", loadDemo: "Carregar caso de demonstração", noCase: "Crie um caso ou carregue a demonstração para começar.",
-    tabs: { notes: "Evoluções", review: "Revisão", goals: "Metas", map: "Mapa de evidências", attendance: "Presença", summary: "Resumo e devolutiva" },
+    tabs: { notes: "Evoluções", review: "Revisão", goals: "Metas", map: "Mapa de evidências", attendance: "Presença", summary: "Resumo e devolutiva", home: "Em casa" },
     caseId: "Código (sem espaços)", caseLabel: "Rótulo (use pseudônimo)", save: "Salvar", cancel: "Cancelar", send: "Enviar", reason: "Motivo",
     people: "Pessoas registradas (ficam só neste servidor)", peopleHelp: "O nome real é trocado pelo pseudônimo antes de qualquer texto sair para o modelo. Texto com dado pessoal não registrado é bloqueado.",
     fullName: "Nome completo", pseudo: "Pseudônimo", aliases: "Apelidos (vírgula)", role: "Papel", roles: { patient: "criança", caregiver: "responsável", professional: "profissional", other: "outro" },
@@ -35,10 +36,24 @@ const T = {
     asst: { independent: "sozinho", verbal_prompt: "instruções verbais", gesture_prompt: "dicas gestuais", physical_partial: "ajuda física parcial", physical_total: "ajuda física total" },
     token: "Código de acesso", error: "Erro", ok: "Feito.", demoLoaded: "Caso de demonstração carregado.", asOf: "Posição em", claimText: "Texto", editClaim: "Editar afirmação",
     loading: "Carregando…", sanitizedShown: "Texto que o modelo recebeu",
+    homeTitle: "Exercício em casa: entre as sessões", homeHelp: "A câmera é lida neste aparelho. Nada de imagem é gravado nem enviado; só o número de repetições. Dados sintéticos: não use dados de paciente real.",
+    homePlan: "Plano prescrito (exemplo)", homeReps: "Repetições por sessão", homeSession: "Sessão", sessNames: { mon: "segunda", wed: "quarta", fri: "sexta" },
+    h: { canvasLabel: "Esqueleto da mão (sem imagem da câmera)", hint: "Toque em Iniciar. Deixe a mão visível, com boa luz e o celular apoiado.", start: "Iniciar câmera", stop: "Parar", calibrate: "Calibrar (10 s)", reset: "Zerar",
+      repsLabel: "repetições", loading: "Carregando o modelo de mãos (uma vez)…", opening: "Abrindo a câmera…", stopped: "Câmera desligada.", failed: "Não foi possível iniciar: ", calFail: "Calibração sem movimento suficiente. Abra e feche a mão bem devagar.",
+      openness: "abertura", state: "estado", ignored: "ciclos ignorados", calibrating: "CALIBRANDO: abra e feche a mão devagar", states: { waiting: "aguardando mão aberta", open: "aberta", closed: "fechada" } },
+    homeSave: "Salvar contagem desta sessão", homeTyped: "ou digite uma contagem sintética (demonstração, sem câmera)", homeSavedMsg: "Contagem salva (sem imagem):", homeNothing: "Nada contado ainda.",
+    homeReport: "Relato do paciente (um toque)", ans: { done: "Fiz", hard: "Fiz, foi difícil", not_finished: "Não terminei" }, homeReportSaved: "Relato salvo.",
+    homeWeek: "Semana", observed: "observada", notObserved: "não observada", target: "meta", conflict: "sensor e relato divergem", atypical: "atípicas", noReport: "sem relato",
+    homeCheck: "Verificar as afirmações do rascunho", homeTry: "Testar uma afirmação que o verificador deve barrar", homeAdd: "Adicionar",
+    tries: { independent: "“Fez sozinho” só com o sensor", not_done: "“Não fez a sessão” sem dado", progress: "“Houve evolução funcional”", wrong_count: "Contagem de repetições errada" },
+    homeDraftNote: "Rascunho montado por regras (o rascunho do modelo local vem depois). O verificador é código e não usa modelo.", homeDeliverable: "pode ir para a terapeuta", homeBlocked: "bloqueada",
+    homeNoEvents: "Salve ao menos uma sessão antes de verificar.", homeReason: "Motivo",
+    claimReps: "Sessão {s}: {n} repetições contadas pelo sensor.", claimSessions: "{n} de {m} sessões observadas pelo sensor.", claimReport: "Sessão {s}: o paciente relata que fez o exercício (relato, não observação).",
+    claimConflict: "Sessão {s}: sensor e relato do paciente divergem.", claimIndep: "O paciente fez o exercício sozinho em casa.", claimNotDone: "O paciente não fez a sessão {s}.", claimProgress: "Houve evolução funcional.", claimWrong: "Sessão {s}: {n} repetições contadas pelo sensor.",
   },
   en: {
     case: "Case", newCase: "New case", loadDemo: "Load demo case", noCase: "Create a case or load the demo to start.",
-    tabs: { notes: "Session notes", review: "Review", goals: "Goals", map: "Evidence map", attendance: "Attendance", summary: "Summary & report" },
+    tabs: { notes: "Session notes", review: "Review", goals: "Goals", map: "Evidence map", attendance: "Attendance", summary: "Summary & report", home: "At home" },
     caseId: "Code (no spaces)", caseLabel: "Label (use a pseudonym)", save: "Save", cancel: "Cancel", send: "Send", reason: "Reason",
     people: "Registered people (kept on this server only)", peopleHelp: "Real names are replaced by the pseudonym before any text leaves for the model. Text with unregistered personal data is blocked.",
     fullName: "Full name", pseudo: "Pseudonym", aliases: "Nicknames (comma)", role: "Role", roles: { patient: "child", caregiver: "caregiver", professional: "professional", other: "other" },
@@ -66,6 +81,20 @@ const T = {
     asst: { independent: "independent", verbal_prompt: "verbal prompt", gesture_prompt: "gesture prompt", physical_partial: "partial physical help", physical_total: "total physical help" },
     token: "Access code", error: "Error", ok: "Done.", demoLoaded: "Demo case loaded.", asOf: "As of", claimText: "Text", editClaim: "Edit claim",
     loading: "Loading…", sanitizedShown: "Text the model received",
+    homeTitle: "Home exercise: between sessions", homeHelp: "The camera is read on this device. No image is recorded or sent; only the repetition count. Synthetic data: do not use real patient data.",
+    homePlan: "Prescribed plan (example)", homeReps: "Repetitions per session", homeSession: "Session", sessNames: { mon: "Monday", wed: "Wednesday", fri: "Friday" },
+    h: { canvasLabel: "Hand skeleton (no camera image)", hint: "Tap Start camera. Keep your hand visible, with good light and the phone propped up.", start: "Start camera", stop: "Stop", calibrate: "Calibrate (10 s)", reset: "Reset",
+      repsLabel: "repetitions", loading: "Loading the hand model (once)…", opening: "Opening the camera…", stopped: "Camera off.", failed: "Could not start: ", calFail: "Calibration had too little movement. Open and close the hand slowly.",
+      openness: "openness", state: "state", ignored: "ignored cycles", calibrating: "CALIBRATING: open and close the hand slowly", states: { waiting: "waiting for an open hand", open: "open", closed: "closed" } },
+    homeSave: "Save this session's count", homeTyped: "or type a synthetic count (demo, no camera)", homeSavedMsg: "Count saved (no image):", homeNothing: "Nothing counted yet.",
+    homeReport: "Patient report (one tap)", ans: { done: "I did it", hard: "I did it, it was hard", not_finished: "I did not finish" }, homeReportSaved: "Report saved.",
+    homeWeek: "Week", observed: "observed", notObserved: "not observed", target: "target", conflict: "sensor and report disagree", atypical: "atypical", noReport: "no report",
+    homeCheck: "Check the draft claims", homeTry: "Try a claim the verifier should block", homeAdd: "Add",
+    tries: { independent: "“Did it independently” from the sensor only", not_done: "“Did not do the session” with no data", progress: "“There was functional progress”", wrong_count: "Wrong repetition count" },
+    homeDraftNote: "Draft built by rules (the local model's draft comes later). The verifier is code and uses no model.", homeDeliverable: "can go to the therapist", homeBlocked: "blocked",
+    homeNoEvents: "Save at least one session before checking.", homeReason: "Reason",
+    claimReps: "Session {s}: {n} repetitions counted by the sensor.", claimSessions: "{n} of {m} sessions observed by the sensor.", claimReport: "Session {s}: the patient reports doing the exercise (a report, not an observation).",
+    claimConflict: "Session {s}: the sensor and the patient's report disagree.", claimIndep: "The patient did the exercise independently at home.", claimNotDone: "The patient did not do session {s}.", claimProgress: "There was functional progress.", claimWrong: "Session {s}: {n} repetitions counted by the sensor.",
   },
 };
 const t = () => T[S.lang];
@@ -232,6 +261,85 @@ const views = {
     root.append(h("div", { class: "scroll" }, h("table", {}, h("tbody", {}, data.records.map((r) => h("tr", {}, h("td", {}, r.day), h("td", {}, t().st[r.status] || r.status)))))));
   },
 
+  async home(root) {
+    const H = S.home, tx = t(), sessions = ["mon", "wed", "fri"], day = new Date().toISOString().slice(0, 10);
+    const plan = () => ({ exercise: "open_close_hand", reps_per_session: H.reps, sessions });
+    const fill = (str, o) => str.replace(/\{(\w+)\}/g, (_, k) => o[k]);
+    root.append(h("h2", {}, tx.homeTitle), h("p", { class: "muted" }, tx.homeHelp));
+
+    const reps = h("input", { type: "number", min: 1, max: 100, value: H.reps, "aria-label": tx.homeReps, oninput: (e) => { H.reps = Math.max(1, Number(e.target.value) || 1); } });
+    const sess = h("select", { "aria-label": tx.homeSession, onchange: (e) => { H.session = e.target.value; } }, sessions.map((x) => h("option", { value: x, selected: x === H.session }, tx.sessNames[x])));
+    root.append(h("div", { class: "card" }, h("b", {}, tx.homePlan), h("div", { class: "row" }, h("label", { class: "field" }, tx.homeReps, reps), h("label", { class: "field" }, tx.homeSession, sess))));
+
+    const camBox = h("div", { class: "hand" });
+    root.append(h("div", { class: "card" }, camBox));
+    S.hand = window.EloHand.mount(camBox, tx.h);
+
+    const out = h("div"), typed = h("input", { type: "number", min: 0, max: 200, "aria-label": tx.homeTyped, placeholder: "0" });
+    const evId = () => "e" + (++H.n), rpId = () => "r" + (++H.n);
+    const saveEvent = (n, atyp, source) => {
+      H.events = H.events.filter((e) => e.session !== H.session);  // one count per session: the latest replaces the earlier one
+      H.events.push({ id: evId(), session: H.session, source, day, reps: n, atypical: atyp }); H.result = null;
+      out.replaceChildren(h("div", { class: "ok" }, `${tx.homeSavedMsg} ${tx.sessNames[H.session]}, ${n} ${tx.h.repsLabel}${atyp ? ` (${atyp} ${tx.atypical})` : ""}.`)); drawWeek();
+    };
+    root.append(h("div", { class: "card" },
+      h("div", { class: "row" }, h("button", { class: "y", onclick: () => { const r = S.hand.result(); if (!r.reps) { toast(tx.homeNothing); return; } saveEvent(r.reps, r.atypical, "camera"); S.hand.clear(); } }, tx.homeSave),
+        h("label", { class: "field" }, tx.homeTyped, typed), h("button", { class: "ghost", onclick: () => { if (typed.value === "") return; saveEvent(Math.max(0, Math.round(Number(typed.value))), 0, "phone"); } }, tx.save)),
+      h("h3", {}, tx.homeReport),
+      h("div", { class: "row" }, ["done", "hard", "not_finished"].map((a) => h("button", { class: "ghost", onclick: () => {
+        H.reports = H.reports.filter((r) => r.session !== H.session); H.reports.push({ id: rpId(), session: H.session, day, answer: a }); H.result = null;
+        out.replaceChildren(h("div", { class: "ok" }, `${tx.homeReportSaved} ${tx.sessNames[H.session]}: ${tx.ans[a]}.`)); drawWeek(); } }, tx.ans[a])))), out);
+
+    const weekBox = h("div"), resBox = h("div");
+    const conflictOf = (s) => { const e = H.events.find((x) => x.session === s), r = H.reports.find((x) => x.session === s); return !!(e && r && ((e.reps >= H.reps) !== (r.answer !== "not_finished"))); };
+    function drawWeek() {
+      const rows = sessions.map((s) => { const e = H.events.find((x) => x.session === s), r = H.reports.find((x) => x.session === s);
+        return h("tr", {}, h("td", {}, tx.sessNames[s]), h("td", {}, e ? pill("direct", `${tx.observed}: ${e.reps}/${H.reps}${e.atypical ? ` · ${e.atypical} ${tx.atypical}` : ""}`) : pill("none", tx.notObserved)),
+          h("td", {}, r ? tx.ans[r.answer] : h("span", { class: "muted" }, tx.noReport)), h("td", {}, conflictOf(s) ? pill("needs_review", tx.conflict) : "")); });
+      weekBox.replaceChildren(h("h3", {}, tx.homeWeek), h("div", { class: "scroll" }, h("table", {}, h("tbody", {}, rows))));
+    }
+    drawWeek();
+
+    const draft = () => {
+      const cl = [], ev = H.events, doneSessions = new Set(ev.map((e) => e.session));
+      for (const e of ev) {
+        cl.push({ id: "c-reps-" + e.session, text: fill(tx.claimReps, { s: tx.sessNames[e.session], n: e.reps }), kind: "reps", level: 2, value: e.reps, session: e.session, evidence: [e.id], flags_conflict: conflictOf(e.session) });
+        const r = H.reports.find((x) => x.session === e.session);
+        if (r && r.answer !== "not_finished") cl.push({ id: "c-rep-" + e.session, text: fill(tx.claimReport, { s: tx.sessNames[e.session] }), kind: "independent", level: 3, session: e.session, evidence: [r.id] });
+        if (conflictOf(e.session)) cl.push({ id: "c-conf-" + e.session, text: fill(tx.claimConflict, { s: tx.sessNames[e.session] }), kind: "conflict", level: 3, session: e.session, evidence: r ? [e.id, r.id] : [e.id], flags_conflict: true });
+      }
+      cl.push({ id: "c-sessions", text: fill(tx.claimSessions, { n: doneSessions.size, m: sessions.length }), kind: "sessions_done", level: 2, value: doneSessions.size, evidence: ev.map((e) => e.id), flags_conflict: sessions.some(conflictOf) });
+      return cl.concat(H.extra);
+    };
+    const tryKind = h("select", { "aria-label": tx.homeTry }, Object.entries(tx.tries).map(([k, l]) => h("option", { value: k }, l)));
+    const addTry = () => {
+      const k = tryKind.value, e = H.events.find((x) => x.session === H.session), n = ++H.n, s = tx.sessNames[H.session];
+      const ids = H.events.map((x) => x.id);
+      const x = { independent: { kind: "independent", level: 3, text: tx.claimIndep, evidence: e ? [e.id] : ids },
+        not_done: { kind: "not_done", level: 2, text: fill(tx.claimNotDone, { s }), session: H.session, evidence: [] },
+        progress: { kind: "progress", level: 4, text: tx.claimProgress, evidence: ids },
+        wrong_count: { kind: "reps", level: 2, text: fill(tx.claimWrong, { s, n: (e ? e.reps : 0) + 3 }), value: (e ? e.reps : 0) + 3, session: H.session, evidence: e ? [e.id] : [] } }[k];
+      H.extra.push({ id: "x" + n, ...x }); check();
+    };
+    async function check() {
+      if (!H.events.length) { resBox.replaceChildren(h("div", { class: "warn" }, tx.homeNoEvents)); return; }
+      try {
+        const r = await api("/home/verify", { method: "POST", body: { plan: plan(), events: H.events, reports: H.reports, claims: draft() } });
+        H.result = r; showResult();
+      } catch (e) { resBox.replaceChildren(h("div", { class: "err" }, `${tx.error}: ${e.message}`)); }
+    }
+    function showResult() {
+      const claims = draft(), by = Object.fromEntries(claims.map((c) => [c.id, c]));
+      resBox.replaceChildren(h("p", { class: "muted" }, tx.homeDraftNote), ...H.result.results.map((r) => h("div", { class: "card" },
+        h("div", { class: "row" }, pill(r.verdict, tx.v[r.verdict]), pill(r.deliverable ? "supported" : "rejected", r.deliverable ? tx.homeDeliverable : tx.homeBlocked)),
+        h("p", {}, h("q", {}, by[r.claim_id] ? by[r.claim_id].text : r.claim_id)),
+        r.reasons.length ? h("p", { class: "muted" }, `${tx.homeReason}: ${r.reasons.map((x) => x[S.lang].replace(/(sessão|session) (mon|wed|fri)\b/g, (_, w, id) => `${w} ${tx.sessNames[id]}`)).join(" ")}`) : null)));
+    }
+    root.append(weekBox, h("div", { class: "row" }, h("button", { onclick: check }, tx.homeCheck)),
+      h("div", { class: "row" }, h("label", { class: "field" }, tx.homeTry, tryKind), h("button", { class: "ghost", onclick: addTry }, tx.homeAdd)), resBox);
+    if (H.result) showResult();
+  },
+
   async summary(root) {
     const s = await api(`/cases/${S.caseId}/summary?locale=${loc()}`);
     root.append(h("h2", {}, t().sumTitle), h("pre", { class: "txt" }, s.text));
@@ -256,6 +364,7 @@ function showExtraction(out, r) {
 
 // ---------------------------------------------------------------- shell
 async function render() {
+  if (S.hand) { S.hand.stop(); S.hand = null; }
   const view = $("view"); view.replaceChildren();
   $("banner").textContent = S.meta.notice[loc()] || S.meta.notice["pt-BR"];
   document.documentElement.lang = loc();
@@ -263,7 +372,7 @@ async function render() {
   const tabs = $("tabs"); tabs.replaceChildren(...Object.entries(t().tabs).map(([k, label]) => h("button", { role: "tab", "aria-selected": String(S.tab === k), onclick: () => { S.tab = k; render(); } }, label)));
   const sel = $("caseSel"); sel.replaceChildren(...S.cases.map((c) => h("option", { value: c.id, selected: c.id === S.caseId }, c.label)));
   document.querySelectorAll(".lang button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.lang === S.lang)));
-  if (!S.caseId) { view.append(h("p", {}, t().noCase)); return; }
+  if (!S.caseId && S.tab !== "home") { view.append(h("p", {}, t().noCase)); return; }
   view.append(h("p", { class: "muted" }, t().loading));
   const root = h("div");
   try { await views[S.tab](root); view.replaceChildren(root); } catch (e) { view.replaceChildren(h("div", { class: "err" }, `${t().error}: ${e.message}`)); }
