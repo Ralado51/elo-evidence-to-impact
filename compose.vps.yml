@@ -21,6 +21,7 @@ services:
     pull_policy: build
     networks:
       - proxy
+      - ollama_internal
     labels:
       - traefik.docker.network=proxy
 
@@ -33,3 +34,6 @@ networks:
   proxy:
     external: true
     name: proxy
+  ollama_internal:
+    external: true
+    name: ollama_ollama_internal
