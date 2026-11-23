@@ -1,0 +1,31 @@
+# Override for the VPS (Portainer Git stack: add this file under "Additional paths").
+# Attaches every service to the existing Traefik network "proxy" and reuses the
+# existing data volume. No secrets here: variables go in the stack's environment.
+services:
+  landing:
+    networks:
+      - proxy
+    labels:
+      - traefik.docker.network=proxy
+
+  web:
+    networks:
+      - proxy
+    labels:
+      - traefik.docker.network=proxy
+
+  api:
+    networks:
+      - proxy
+    labels:
+      - traefik.docker.network=proxy
+
+volumes:
+  evidence_data:
+    external: true
+    name: evidence_evidence_data
+
+networks:
+  proxy:
+    external: true
+    name: proxy
