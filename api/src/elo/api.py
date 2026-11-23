@@ -24,6 +24,7 @@ from .contract import Assistance, Claim, Environment, Note, Verdict
 from .extraction import ExtractionContext, ExtractionError, MODES, extract_note
 from .gaps import evidence_map
 from .goals import Goal, check_goal, render_check
+from .home_sessions import HomeClaim, HomePlan, PatientReport, SensorEvent, check as check_home, week_view
 from .llm import OpenAICompatibleClient
 from .packs import load_pack
 from .privacy import PrivacyBlocked, PrivacyGate
@@ -114,6 +115,15 @@ def _locale(value: str) -> str:
 
 def _dump(model) -> dict:
     return model.model_dump(mode="json")
+
+
+class HomeVerifyIn(BaseModel):
+    """Stateless check of a drafted home-session report against its events (synthetic data only)."""
+
+    plan: HomePlan
+    events: list[SensorEvent] = Field(default_factory=list, max_length=500)
+    reports: list[PatientReport] = Field(default_factory=list, max_length=500)
+    claims: list[HomeClaim] = Field(default_factory=list, max_length=200)
 
 
 def create_app(data_dir: str | None = None, client=None, mode: str | None = None) -> FastAPI:
@@ -409,6 +419,15 @@ def create_app(data_dir: str | None = None, client=None, mode: str | None = None
                                 svc.attendance(case_id), pack, loc, as_of or date.today())
         return Response(data, media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                         headers={"Content-Disposition": f'attachment; filename="devolutiva-{case_id}-{loc}.docx"'})
+
+    @api.post("/home/verify")
+    def home_verify(body: HomeVerifyIn):
+        """Deterministic check of each claim; only `supported` claims may reach the therapist's draft."""
+        results = [check_home(c, body.plan, body.events, body.reports) for c in body.claims]
+        return {
+            "week": week_view(body.plan, body.events, body.reports),
+            "results": [{**r.model_dump(mode="json"), "deliverable": r.deliverable} for r in results],
+        }
 
     app.include_router(api)
     web_dir = os.environ.get("ELO_WEB_DIR", "")
