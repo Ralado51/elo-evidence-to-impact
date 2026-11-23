@@ -4,6 +4,8 @@ FROM node:22-alpine AS vendor
 WORKDIR /v
 RUN npm pack @mediapipe/tasks-vision@1.2.3 && tar xzf mediapipe-tasks-vision-1.2.3.tgz
 ADD https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task /v/package/hand_landmarker.task
+# ADD from a URL creates the file as 600 (root only); nginx runs as another user and would answer 403
+RUN chmod -R a+rX /v/package
 
 FROM nginx:1.27-alpine
 COPY nginx.conf /etc/nginx/conf.d/default.conf
