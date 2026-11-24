@@ -17,6 +17,7 @@ so run it several times and report the range, not one number.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import sys
@@ -58,13 +59,15 @@ PROMPT = """Você redige o resumo semanal de exercício domiciliar para uma tera
 Plano: {plan}
 Eventos de sensor (JSON): {events}
 Relatos do paciente (JSON): {reports}
-Responda SOMENTE com um objeto JSON {{"claims": [...]}}. Cada afirmação tem:
- text (português), kind (reps | sessions_done | not_observed | not_done | independent | progress | conflict),
- level (1 movimento, 2 exercício feito, 3 independência, 4 evolução funcional),
- value (número, quando houver), session (mon | wed | fri, quando houver), evidence (lista de ids de eventos ou relatos),
- flags_conflict (true se a frase menciona divergência entre sensor e relato).
+Responda SOMENTE com um objeto JSON {{"claims": [...]}}. Cada afirmação é um objeto com estes campos e tipos:
+ text: texto em português.
+ kind: uma destas strings: reps, sessions_done, not_observed, not_done, independent, progress, conflict.
+ level: número inteiro 1, 2, 3 ou 4, sem texto junto. Significado: 1 = movimento, 2 = exercício feito, 3 = independência, 4 = evolução funcional.
+ value: número inteiro, ou null quando não houver.
+ session: "mon", "wed" ou "fri", ou null quando não houver.
+ evidence: lista de strings com os ids dos eventos ou relatos citados, ou lista vazia.
+ flags_conflict: true ou false (true se a frase menciona divergência entre sensor e relato).
 Escreva de 4 a 6 afirmações úteis para a terapeuta."""
-
 
 def build_prompt(events, reports) -> str:
     dump = lambda xs: json.dumps([x.model_dump(mode="json") for x in xs], ensure_ascii=False)  # noqa: E731
@@ -111,7 +114,7 @@ def evaluate(draft_fn) -> dict:
     verdicts = Counter(r["verdict"] for r in rows)
     rules = Counter(rule for r in rows for rule in r["rules"])
     n = len(rows)
-    return {"rows": rows, "malformed": malformed, "summary": {
+    return {"prompt_sha256": hashlib.sha256(PROMPT.encode()).hexdigest()[:12], "rows": rows, "malformed": malformed, "summary": {
         "scenarios": len(SCENARIOS), "claims_well_formed": n, "malformed": len(malformed),
         "delivered": sum(r["deliverable"] for r in rows), "distinct_delivered_sentences": sum(len(v) for v in unique.values()), "blocked": sum(not r["deliverable"] for r in rows),
         "blocked_pct": round(100 * sum(not r["deliverable"] for r in rows) / n, 1) if n else None,
@@ -135,7 +138,7 @@ def main() -> int:
     out = os.environ.get("HOME_EVAL_OUT", "/tmp/home_eval.json")
     with open(out, "w", encoding="utf-8") as f:
         json.dump({"model": client.model, **result}, f, ensure_ascii=False, indent=2)
-    print(f"\nModelo: {client.model}\n" + json.dumps(result["summary"], ensure_ascii=False, indent=2) + f"\nArquivo para rotulagem: {out}")
+    print(f"\nModelo: {client.model} | prompt {result['prompt_sha256']}\n" + json.dumps(result["summary"], ensure_ascii=False, indent=2) + f"\nArquivo para rotulagem: {out}")
     return 0
 
 
