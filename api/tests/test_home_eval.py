@@ -45,3 +45,10 @@ def test_scenarios_and_prompt_have_the_ids_a_model_must_cite():
     events, reports = he.SCENARIOS["two_conflicts"]
     p = he.build_prompt(events, reports)
     assert '"e1"' in p and '"r1"' in p and "mon" in p
+
+
+def test_prompt_asks_for_plain_types_and_the_run_records_which_prompt_it_used():
+    # the first 3B run failed 55/56 items because it copied the level legend ("2 exercício feito") into the field
+    assert "número inteiro 1, 2, 3 ou 4, sem texto junto" in he.PROMPT
+    out = he.evaluate(fake([]))
+    assert len(out["prompt_sha256"]) == 12
