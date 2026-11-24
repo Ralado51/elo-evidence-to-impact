@@ -108,6 +108,9 @@ RULES: dict[str, tuple[Verdict, str, str]] = {
     "reps_need_sensor": (Verdict.INSUFFICIENT_EVIDENCE,
                          "Contagem de repetições precisa de evento de sensor.",
                          "A repetition count needs a sensor event."),
+    "value_missing": (Verdict.INSUFFICIENT_EVIDENCE,
+                      "A afirmação não informa o número.",
+                      "The claim does not state the number."),
     "reps_mismatch": (Verdict.CONTRADICTED,
                       "Afirma {value} repetições; os eventos citados somam {total}.",
                       "Claims {value} repetitions; the cited events add up to {total}."),
@@ -136,7 +139,9 @@ _SEVERITY = [Verdict.CONTRADICTED, Verdict.INSUFFICIENT_EVIDENCE, Verdict.NEEDS_
 
 def _reason(rule: str, **kw) -> dict:
     verdict, pt, en = RULES[rule]
-    return {"rule": rule, "verdict": verdict.value, "pt": pt.format(**kw), "en": en.format(**kw)}
+    kw_pt = {**kw, **({"session": _name(kw["session"], 0)} if kw.get("session") else {})}  # "quarta", not "wed"
+    kw_en = {**kw, **({"session": _name(kw["session"], 1)} if kw.get("session") else {})}
+    return {"rule": rule, "verdict": verdict.value, "pt": pt.format(**kw_pt), "en": en.format(**kw_en)}
 
 
 def session_conflict(session: str, plan: HomePlan, events: list[SensorEvent], reports: list[PatientReport]) -> bool:
@@ -172,11 +177,15 @@ def check(claim: HomeClaim, plan: HomePlan, events: list[SensorEvent], reports: 
         total = sum(e.reps for e in sensors)
         if not sensors:
             reasons.append(_reason("reps_need_sensor"))
+        elif claim.value is None:
+            reasons.append(_reason("value_missing"))
         elif claim.value != total:
             reasons.append(_reason("reps_mismatch", value=claim.value, total=total))
     elif claim.kind == "sessions_done":
         n = len({e.session for e in sensors})
-        if claim.value != n:
+        if claim.value is None:
+            reasons.append(_reason("value_missing"))
+        elif claim.value != n:
             reasons.append(_reason("sessions_mismatch", value=claim.value, n=n))
     elif claim.kind == "not_done":
         reasons.append(_reason("absence_is_not_no"))
@@ -268,3 +277,41 @@ def render(claim: HomeClaim, plan: HomePlan, events: list[SensorEvent], reports:
         return {"pt": f"Sessão {_name(s, 0)}: sensor e relato do paciente divergem.",
                 "en": f"Session {_name(s, 1)}: the sensor and the patient's report disagree."}
     return None  # not_done and progress are never delivered as a system sentence
+
+
+# ---------------------------------------------------------------- facts the therapist always gets
+# A verifier stops what a model writes wrongly; it cannot force what the model leaves out. These lines
+# come from the events and reports directly, so a divergence or a missing session is never omitted.
+_ANS = {"done": ("fez", "did it"), "hard": ("fez, foi difícil", "did it, it was hard"), "not_finished": ("não terminou", "did not finish")}
+
+
+def facts(plan: HomePlan, events: list[SensorEvent], reports: list[PatientReport]) -> list[dict]:
+    out = []
+    for row in week_view(plan, events, reports):
+        s = row["session"]
+        if row["observed"]:
+            atyp = row["atypical"]
+            out.append({"kind": "sensor", "session": s,
+                        "pt": f"{_name(s, 0).capitalize()}: {row['reps']} de {row['target']} repetições contadas pelo sensor" + (f" ({atyp} atípicas)." if atyp else "."),
+                        "en": f"{_name(s, 1)}: {row['reps']} of {row['target']} repetitions counted by the sensor" + (f" ({atyp} atypical)." if atyp else ".")})
+        else:
+            out.append({"kind": "not_observed", "session": s, "pt": f"{_name(s, 0).capitalize()}: não observada pelo sensor.",
+                        "en": f"{_name(s, 1)}: not observed by the sensor."})
+        if row["report"]:
+            a = _ANS[row["report"]]
+            out.append({"kind": "report", "session": s, "pt": f"{_name(s, 0).capitalize()}: o paciente relata que {a[0]} (relato, não observação).",
+                        "en": f"{_name(s, 1)}: the patient reports they {a[1]} (a report, not an observation)."})
+        if row["conflict"]:
+            out.append({"kind": "conflict", "session": s, "pt": f"{_name(s, 0).capitalize()}: sensor e relato do paciente divergem.",
+                        "en": f"{_name(s, 1)}: the sensor and the patient's report disagree."})
+    return out
+
+
+def report_lines(plan: HomePlan, events: list[SensorEvent], reports: list[PatientReport], extra: list[dict | None]) -> list[dict]:
+    """Facts first, then the sentences of verified model claims, without repeats."""
+    lines, seen = [], set()
+    for item in facts(plan, events, reports) + [e for e in extra if e]:
+        if item["pt"] in seen:
+            continue
+        seen.add(item["pt"]); lines.append({"pt": item["pt"], "en": item["en"]})
+    return lines

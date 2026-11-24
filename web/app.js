@@ -47,6 +47,7 @@ const T = {
     homeCheck: "Verificar as afirmações do rascunho", homeTry: "Testar uma afirmação que o verificador deve barrar", homeAdd: "Adicionar",
     tries: { independent: "“Fez sozinho” só com o sensor", not_done: "“Não fez a sessão” sem dado", progress: "“Houve evolução funcional”", wrong_count: "Contagem de repetições errada" },
     homeDraftNote: "Rascunho montado por regras (o rascunho do modelo local vem depois). O verificador é código e não usa modelo.", homeDeliverable: "pode ir para a terapeuta", homeBlocked: "bloqueada",
+    homeReportTitle: "O que a terapeuta lê", homeReportNote: "Os fatos vêm direto dos dados e nunca são omitidos; as afirmações verificadas entram depois, sem repetição. Nenhuma frase é do modelo.", homeClaimsTitle: "Verificação das afirmações do rascunho",
     homeNoEvents: "Salve ao menos uma sessão antes de verificar.", homeReason: "Motivo",
     claimReps: "Sessão {s}: {n} repetições contadas pelo sensor.", claimSessions: "{n} de {m} sessões observadas pelo sensor.", claimReport: "Sessão {s}: o paciente relata que fez o exercício (relato, não observação).",
     claimConflict: "Sessão {s}: sensor e relato do paciente divergem.", claimIndep: "O paciente fez o exercício sozinho em casa.", claimNotDone: "O paciente não fez a sessão {s}.", claimProgress: "Houve evolução funcional.", claimWrong: "Sessão {s}: {n} repetições contadas pelo sensor.",
@@ -92,6 +93,7 @@ const T = {
     homeCheck: "Check the draft claims", homeTry: "Try a claim the verifier should block", homeAdd: "Add",
     tries: { independent: "“Did it independently” from the sensor only", not_done: "“Did not do the session” with no data", progress: "“There was functional progress”", wrong_count: "Wrong repetition count" },
     homeDraftNote: "Draft built by rules (the local model's draft comes later). The verifier is code and uses no model.", homeDeliverable: "can go to the therapist", homeBlocked: "blocked",
+    homeReportTitle: "What the therapist reads", homeReportNote: "Facts come straight from the data and are never omitted; verified claims follow, without repeats. No sentence is the model's.", homeClaimsTitle: "Check of the draft claims",
     homeNoEvents: "Save at least one session before checking.", homeReason: "Reason",
     claimReps: "Session {s}: {n} repetitions counted by the sensor.", claimSessions: "{n} of {m} sessions observed by the sensor.", claimReport: "Session {s}: the patient reports doing the exercise (a report, not an observation).",
     claimConflict: "Session {s}: the sensor and the patient's report disagree.", claimIndep: "The patient did the exercise independently at home.", claimNotDone: "The patient did not do session {s}.", claimProgress: "There was functional progress.", claimWrong: "Session {s}: {n} repetitions counted by the sensor.",
@@ -330,10 +332,10 @@ const views = {
     }
     function showResult() {
       const claims = draft(), by = Object.fromEntries(claims.map((c) => [c.id, c]));
-      resBox.replaceChildren(h("p", { class: "muted" }, tx.homeDraftNote), ...H.result.results.map((r) => h("div", { class: "card" },
+      resBox.replaceChildren(h("h3", {}, tx.homeReportTitle), h("div", { class: "card" }, h("ul", {}, H.result.report.map((l) => h("li", {}, l[S.lang])))), h("p", { class: "muted" }, tx.homeReportNote), h("h3", {}, tx.homeClaimsTitle), h("p", { class: "muted" }, tx.homeDraftNote), ...H.result.results.map((r) => h("div", { class: "card" },
         h("div", { class: "row" }, pill(r.verdict, tx.v[r.verdict]), pill(r.deliverable ? "supported" : "rejected", r.deliverable ? tx.homeDeliverable : tx.homeBlocked)),
         h("p", {}, h("q", {}, r.deliverable && r.deliverable_text ? r.deliverable_text[S.lang] : (by[r.claim_id] ? by[r.claim_id].text : r.claim_id))),
-        r.reasons.length ? h("p", { class: "muted" }, `${tx.homeReason}: ${r.reasons.map((x) => x[S.lang].replace(/(sessão|session) (mon|wed|fri)\b/g, (_, w, id) => `${w} ${tx.sessNames[id]}`)).join(" ")}`) : null)));
+        r.reasons.length ? h("p", { class: "muted" }, `${tx.homeReason}: ${r.reasons.map((x) => x[S.lang]).join(" ")}`) : null)));
     }
     root.append(weekBox, h("div", { class: "row" }, h("button", { onclick: check }, tx.homeCheck)),
       h("div", { class: "row" }, h("label", { class: "field" }, tx.homeTry, tryKind), h("button", { class: "ghost", onclick: addTry }, tx.homeAdd)), resBox);
