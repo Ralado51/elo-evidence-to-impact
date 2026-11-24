@@ -217,3 +217,54 @@ def week_view(plan: HomePlan, events: list[SensorEvent], reports: list[PatientRe
             "atypical": sum(e.atypical for e in sens),
         })
     return rows
+
+
+# ---------------------------------------------------------------- the sentence the therapist reads
+# The model's own wording is never delivered: a model can tick a harmless field and still write
+# "significant improvement". The deliverable sentence is built here, from the fields that were verified.
+_SESSION_NAMES = {"mon": ("segunda", "Monday"), "tue": ("terça", "Tuesday"), "wed": ("quarta", "Wednesday"),
+                  "thu": ("quinta", "Thursday"), "fri": ("sexta", "Friday"), "sat": ("sábado", "Saturday"), "sun": ("domingo", "Sunday")}
+
+
+def _name(session: str, lang: int) -> str:
+    return _SESSION_NAMES.get(session, (session, session))[lang]
+
+
+def _join(names: list[str], lang: int) -> str:
+    if len(names) <= 1:
+        return "".join(names)
+    return ", ".join(names[:-1]) + (" e " if lang == 0 else " and ") + names[-1]
+
+
+def render(claim: HomeClaim, plan: HomePlan, events: list[SensorEvent], reports: list[PatientReport]) -> dict | None:
+    """Fixed sentence for a claim that passed ``check``; None for kinds that are never delivered as a sentence.
+
+    Call it only for ``supported`` claims. Nothing here reads ``claim.text``.
+    """
+    by_id: dict[str, SensorEvent | PatientReport] = {e.id: e for e in events} | {r.id: r for r in reports}
+    cited = [by_id[i] for i in claim.evidence if i in by_id]
+    sens = [c for c in cited if isinstance(c, SensorEvent)]
+    reps_ = [c for c in cited if isinstance(c, PatientReport)]
+    sessions = sorted({c.session for c in cited}) if cited else ([claim.session] if claim.session else [])
+    names = lambda lang: _join([_name(s, lang) for s in sessions], lang)  # noqa: E731
+    k = claim.kind
+    if k == "reps":
+        return {"pt": f"{names(0).capitalize()}: {claim.value} repetições contadas pelo sensor.",
+                "en": f"{names(1)}: {claim.value} repetitions counted by the sensor."}
+    if k == "sessions_done":
+        n = len({e.session for e in sens})
+        return {"pt": f"{n} de {len(plan.sessions)} sessões previstas observadas pelo sensor.",
+                "en": f"{n} of {len(plan.sessions)} planned sessions observed by the sensor."}
+    if k == "not_observed":
+        s = claim.session or ""
+        return {"pt": f"Sessão {_name(s, 0)} não observada (sem dado do sensor nem relato).",
+                "en": f"Session {_name(s, 1)} not observed (no sensor data and no report)."}
+    if k == "independent" and reps_:
+        rs = sorted({r.session for r in reps_})
+        return {"pt": f"{_join([_name(s, 0) for s in rs], 0).capitalize()}: o paciente relata ter feito o exercício (relato, não observação).",
+                "en": f"{_join([_name(s, 1) for s in rs], 1)}: the patient reports having done the exercise (a report, not an observation)."}
+    if k == "conflict":
+        s = claim.session or ""
+        return {"pt": f"Sessão {_name(s, 0)}: sensor e relato do paciente divergem.",
+                "en": f"Session {_name(s, 1)}: the sensor and the patient's report disagree."}
+    return None  # not_done and progress are never delivered as a system sentence
