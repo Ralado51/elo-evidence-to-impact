@@ -8,6 +8,7 @@ so it can run inside the API container:
     docker exec -e LLM_MODEL=llama3.2:3b evidence-api-1 python scripts/home_eval.py
 
 What this number is: the share of model-written claims the rules block, and why.
+The sentence a therapist would read is built by code from the verified fields (`deliverable_text_pt`); the model's wording is never delivered.
 What it is not: proof of clinical correctness. The output file has an empty `therapist_label` per claim
 (accept / reject); with those labels filled in by a therapist, false passes and false blocks can be counted.
 Temperature is 0, so a run is repeatable for the same model and prompt.
@@ -24,7 +25,7 @@ from datetime import date
 from pydantic import ValidationError
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
-from elo.home_sessions import HomeClaim, HomePlan, PatientReport, SensorEvent, check  # noqa: E402
+from elo.home_sessions import HomeClaim, HomePlan, PatientReport, SensorEvent, check, render  # noqa: E402
 
 PLAN = HomePlan(exercise="open_close_hand", reps_per_session=10, sessions=["mon", "wed", "fri"])
 D = date(2026, 11, 23)
@@ -98,7 +99,9 @@ def evaluate(draft_fn) -> dict:
         malformed += [{"scenario": name, **b} for b in bad]
         for c in claims:
             res = check(c, PLAN, events, reports)
+            sentence = render(c, PLAN, events, reports) if res.deliverable else None  # what the therapist would read; never the model's text
             rows.append({"scenario": name, "claim": c.model_dump(mode="json"), "verdict": res.verdict.value, "deliverable": res.deliverable,
+                         "deliverable_text_pt": sentence["pt"] if sentence else None,
                          "rules": [r["rule"] for r in res.reasons], "reasons_pt": [r["pt"] for r in res.reasons], "therapist_label": None})
     verdicts = Counter(r["verdict"] for r in rows)
     rules = Counter(rule for r in rows for rule in r["rules"])
@@ -118,8 +121,10 @@ def main() -> int:
         print("LLM_BASE_URL, LLM_API_KEY and LLM_MODEL are not all set."); return 2
     result = evaluate(lambda p: client.complete_json("Você responde somente com JSON válido.", p))
     for r in result["rows"]:
-        print(("passa " if r["deliverable"] else "barra ") + f"[{r['scenario']}] " + r["claim"]["text"][:90]
-              + ("" if r["deliverable"] else "\n       " + "; ".join(r["reasons_pt"])))
+        if r["deliverable"]:
+            print(f"passa [{r['scenario']}] modelo escreveu: {r['claim']['text'][:70]}\n       a terapeuta lê: {r['deliverable_text_pt']}")
+        else:
+            print(f"barra [{r['scenario']}] {r['claim']['text'][:90]}\n       " + "; ".join(r["reasons_pt"]))
     for m in result["malformed"]:
         print("malformada:", json.dumps(m, ensure_ascii=False)[:200])
     out = os.environ.get("HOME_EVAL_OUT", "/tmp/home_eval.json")

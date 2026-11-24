@@ -332,7 +332,7 @@ const views = {
       const claims = draft(), by = Object.fromEntries(claims.map((c) => [c.id, c]));
       resBox.replaceChildren(h("p", { class: "muted" }, tx.homeDraftNote), ...H.result.results.map((r) => h("div", { class: "card" },
         h("div", { class: "row" }, pill(r.verdict, tx.v[r.verdict]), pill(r.deliverable ? "supported" : "rejected", r.deliverable ? tx.homeDeliverable : tx.homeBlocked)),
-        h("p", {}, h("q", {}, by[r.claim_id] ? by[r.claim_id].text : r.claim_id)),
+        h("p", {}, h("q", {}, r.deliverable && r.deliverable_text ? r.deliverable_text[S.lang] : (by[r.claim_id] ? by[r.claim_id].text : r.claim_id))),
         r.reasons.length ? h("p", { class: "muted" }, `${tx.homeReason}: ${r.reasons.map((x) => x[S.lang].replace(/(sessão|session) (mon|wed|fri)\b/g, (_, w, id) => `${w} ${tx.sessNames[id]}`)).join(" ")}`) : null)));
     }
     root.append(weekBox, h("div", { class: "row" }, h("button", { onclick: check }, tx.homeCheck)),

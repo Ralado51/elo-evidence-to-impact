@@ -24,7 +24,7 @@ from .contract import Assistance, Claim, Environment, Note, Verdict
 from .extraction import ExtractionContext, ExtractionError, MODES, extract_note
 from .gaps import evidence_map
 from .goals import Goal, check_goal, render_check
-from .home_sessions import HomeClaim, HomePlan, PatientReport, SensorEvent, check as check_home, week_view
+from .home_sessions import HomeClaim, HomePlan, PatientReport, SensorEvent, check as check_home, render as render_home, week_view
 from .llm import OpenAICompatibleClient
 from .packs import load_pack
 from .privacy import PrivacyBlocked, PrivacyGate
@@ -422,11 +422,18 @@ def create_app(data_dir: str | None = None, client=None, mode: str | None = None
 
     @api.post("/home/verify")
     def home_verify(body: HomeVerifyIn):
-        """Deterministic check of each claim; only `supported` claims may reach the therapist's draft."""
+        """Deterministic check of each claim; only `supported` claims may reach the therapist's draft.
+
+        `deliverable_text` is the sentence the therapist reads. It is built by code from the verified
+        fields (the model's own wording is never delivered) and is None for a claim that did not pass.
+        """
         results = [check_home(c, body.plan, body.events, body.reports) for c in body.claims]
+        by_claim = {c.id: c for c in body.claims}
         return {
             "week": week_view(body.plan, body.events, body.reports),
-            "results": [{**r.model_dump(mode="json"), "deliverable": r.deliverable} for r in results],
+            "results": [{**r.model_dump(mode="json"), "deliverable": r.deliverable,
+                         "deliverable_text": render_home(by_claim[r.claim_id], body.plan, body.events, body.reports) if r.deliverable else None}
+                        for r in results],
         }
 
     app.include_router(api)
