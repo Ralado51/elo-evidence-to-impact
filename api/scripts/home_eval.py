@@ -11,7 +11,8 @@ What this number is: the share of model-written claims the rules block, and why.
 The sentence a therapist would read is built by code from the verified fields (`deliverable_text_pt`); the model's wording is never delivered.
 What it is not: proof of clinical correctness. The output file has an empty `therapist_label` per claim
 (accept / reject); with those labels filled in by a therapist, false passes and false blocks can be counted.
-Temperature is 0, so a run is repeatable for the same model and prompt.
+Temperature is 0, but a local model is not bit-for-bit deterministic: two runs can differ a little (seen on the VPS),
+so run it several times and report the range, not one number.
 """
 
 from __future__ import annotations
@@ -25,7 +26,7 @@ from datetime import date
 from pydantic import ValidationError
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
-from elo.home_sessions import HomeClaim, HomePlan, PatientReport, SensorEvent, check, render  # noqa: E402
+from elo.home_sessions import HomeClaim, HomePlan, PatientReport, SensorEvent, check, render, report_lines  # noqa: E402
 
 PLAN = HomePlan(exercise="open_close_hand", reps_per_session=10, sessions=["mon", "wed", "fri"])
 D = date(2026, 11, 23)
@@ -103,12 +104,16 @@ def evaluate(draft_fn) -> dict:
             rows.append({"scenario": name, "claim": c.model_dump(mode="json"), "verdict": res.verdict.value, "deliverable": res.deliverable,
                          "deliverable_text_pt": sentence["pt"] if sentence else None,
                          "rules": [r["rule"] for r in res.reasons], "reasons_pt": [r["pt"] for r in res.reasons], "therapist_label": None})
+    unique = {}
+    for r in rows:  # distinct sentences the model's passing claims would add (what the therapist would not see twice)
+        if r["deliverable_text_pt"]:
+            unique[r["scenario"]] = unique.get(r["scenario"], set()) | {r["deliverable_text_pt"]}
     verdicts = Counter(r["verdict"] for r in rows)
     rules = Counter(rule for r in rows for rule in r["rules"])
     n = len(rows)
     return {"rows": rows, "malformed": malformed, "summary": {
         "scenarios": len(SCENARIOS), "claims_well_formed": n, "malformed": len(malformed),
-        "delivered": sum(r["deliverable"] for r in rows), "blocked": sum(not r["deliverable"] for r in rows),
+        "delivered": sum(r["deliverable"] for r in rows), "distinct_delivered_sentences": sum(len(v) for v in unique.values()), "blocked": sum(not r["deliverable"] for r in rows),
         "blocked_pct": round(100 * sum(not r["deliverable"] for r in rows) / n, 1) if n else None,
         "by_verdict": dict(verdicts), "by_rule": dict(rules)}}
 
