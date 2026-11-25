@@ -198,19 +198,17 @@ class EventLedger:
                 if type_meta is not None and type_meta["authored"] != "client":
                     codes.add("FORBIDDEN")
 
-                # 3. Actor = principal & scope belongs to principal
-                actor_ok = (
-                    actor is not None
-                    and actor.get("role") == "participant"
-                    and actor.get("id") == principal.id
-                )
-                scope_ok = (
-                    scope is not None
-                    and scope.get("participant_id") == principal.id
-                    and scope.get("org_id") == principal.org_id
-                )
-                if not (actor_ok and scope_ok):
-                    codes.add("SCOPE_VIOLATION")
+                # 3. Actor = principal & scope belongs to principal (D-S0-04-2(a): only check present inputs)
+                if actor is not None:
+                    if isinstance(actor.get("role"), str) and actor["role"] != "participant":
+                        codes.add("SCOPE_VIOLATION")
+                    if isinstance(actor.get("id"), str) and actor["id"] != principal.id:
+                        codes.add("SCOPE_VIOLATION")
+                if scope is not None:
+                    if isinstance(scope.get("participant_id"), str) and scope["participant_id"] != principal.id:
+                        codes.add("SCOPE_VIOLATION")
+                    if isinstance(scope.get("org_id"), str) and scope["org_id"] != principal.org_id:
+                        codes.add("SCOPE_VIOLATION")
 
             # 4. Legacy v2 stream read-only check
             if stream_id is not None and self._stream_schema_version(stream_id) == 2:
@@ -234,12 +232,13 @@ class EventLedger:
                 ).fetchone()
 
             if existing_row is not None:
-                existing_id, existing_hash = existing_row
-                if existing_id == ev_id and existing_hash == ev_hash:
-                    if not poisoned:
-                        codes.add("DUPLICATE")
-                else:
-                    codes.add("HASH_CONFLICT")
+                if ev_hash is not None and ev_id:
+                    existing_id, existing_hash = existing_row
+                    if existing_id == ev_id and existing_hash == ev_hash:
+                        if not poisoned:
+                            codes.add("DUPLICATE")
+                    else:
+                        codes.add("HASH_CONFLICT")
             elif stream_id is not None and seq is not None and not poisoned:
                 if seq > 1:
                     prev_row = self.db.execute(
@@ -247,42 +246,50 @@ class EventLedger:
                         (stream_id, seq - 1),
                     ).fetchone()
                     if prev_row is not None:
-                        if prev_hash != prev_row[0]:
+                        if is_dict and "prev_hash" in ev and prev_hash != prev_row[0]:
                             codes.add("CHAIN_BROKEN")
                     else:
                         codes.add("SEQ_GAP")
-                next_row = self.db.execute(
-                    "SELECT prev_hash FROM v3_events WHERE stream_id = ? AND seq = ?",
-                    (stream_id, seq + 1),
-                ).fetchone()
-                if next_row is not None and next_row[0] != ev_hash:
-                    codes.add("CHAIN_BROKEN")
+                if ev_hash is not None:
+                    next_row = self.db.execute(
+                        "SELECT prev_hash FROM v3_events WHERE stream_id = ? AND seq = ?",
+                        (stream_id, seq + 1),
+                    ).fetchone()
+                    if next_row is not None and next_row[0] != ev_hash:
+                        codes.add("CHAIN_BROKEN")
 
             # 6. Consent check via S0-03 require_consent (stored consent stream + earlier stored items in batch)
             if is_dict and scope is not None and isinstance(scope.get("participant_id"), str):
                 active_scopes = consent_state(self.get_consent_events(scope["participant_id"]))
                 codes.update(require_consent(active_scopes, ev))
 
-            # 7. Prescription presence and session-stream rules (handedness, execution_mode consistency)
+            # 7. Prescription presence and session-stream rules (D-S0-04-2(a): only when inputs are present)
             if type_meta is not None and type_meta["stream"] == "session" and scope is not None:
                 rx_id = scope.get("prescription_id")
                 rx_rev = scope.get("prescription_revision")
-                rx_event = None
-                if isinstance(rx_id, str) and isinstance(rx_rev, int) and not isinstance(rx_rev, bool):
+                sc_org = scope.get("org_id")
+                sc_pid = scope.get("participant_id")
+                if (
+                    isinstance(rx_id, str)
+                    and isinstance(rx_rev, int)
+                    and not isinstance(rx_rev, bool)
+                    and isinstance(sc_org, str)
+                    and isinstance(sc_pid, str)
+                ):
                     rx_event = self.get_prescription(
                         rx_id,
                         rx_rev,
-                        org_id=scope.get("org_id") if isinstance(scope.get("org_id"), str) else None,
-                        participant_id=scope.get("participant_id") if isinstance(scope.get("participant_id"), str) else None,
+                        org_id=sc_org,
+                        participant_id=sc_pid,
                     )
-                if rx_event is None:
-                    codes.add("PRESCRIPTION_NOT_FOUND")
-                elif stream_id is not None:
-                    try:
-                        stored_session = self.get_stream_events(stream_id)
-                        codes.update(check_session_stream([*stored_session, ev], rx_event["payload"]))
-                    except Exception:
-                        pass
+                    if rx_event is None:
+                        codes.add("PRESCRIPTION_NOT_FOUND")
+                    elif stream_id is not None:
+                        try:
+                            stored_session = self.get_stream_events(stream_id)
+                            codes.update(check_session_stream([*stored_session, ev], rx_event["payload"]))
+                        except Exception:
+                            pass
 
             # Map internal ONEOF -> RULE_VIOLATION on HTTP surface per D-S0-03-4
             if map_http_codes and "ONEOF" in codes:

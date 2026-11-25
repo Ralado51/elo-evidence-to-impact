@@ -757,3 +757,89 @@ def test_codes_http_statuses_and_warning_items_only_in_200(monkeypatch):
     r_gap = client.post("/api/v3/events:batch", headers=hdrs, json={"events": [c3_gap]})
     assert r_gap.status_code == 200
     assert r_gap.json()["results"][0] == {"event_id": c3_gap["event_id"], "status": "stored", "codes": ["SEQ_GAP"]}
+
+
+# --- D-S0-04-2(a) / VERDICT-1 F1: missing inputs contribute no downstream check code -----
+
+
+@pytest.mark.parametrize(
+    "variant,drop_path",
+    [
+        ("missing_actor", ("actor",)),
+        ("missing_actor_id", ("actor", "id")),
+        ("missing_actor_role", ("actor", "role")),
+        ("missing_scope", ("scope",)),
+        ("missing_scope_participant_id", ("scope", "participant_id")),
+        ("missing_scope_org_id", ("scope", "org_id")),
+    ],
+)
+def test_missing_actor_or_scope_inputs_do_not_add_scope_violation(monkeypatch, variant, drop_path):
+    app, client, ctx = _make_seeded_app(monkeypatch)
+    ev = _make_consent_event(org_id=ctx["org_a"], participant_id=ctx["p1_id"], seq=1, prev_hash=None)
+    target = ev
+    for k in drop_path[:-1]:
+        target = target[k]
+    del target[drop_path[-1]]
+    ev["hash"] = compute_event_hash(ev)
+
+    r = client.post("/api/v3/events:batch", headers={"Authorization": f"Bearer {ctx['p1_tok']}"}, json={"events": [ev]})
+    assert r.status_code == 200
+    item = r.json()["results"][0]
+    assert item == {"event_id": ev["event_id"], "status": "rejected", "codes": ["MISSING_FIELD"]}, f"{variant}: {item}"
+    assert app.state.v3_store.get_all_events() == []
+
+
+def test_missing_inputs_other_checks_and_partial_present_wrong_values(monkeypatch):
+    app, client, ctx = _make_seeded_app(monkeypatch)
+    hdrs = {"Authorization": f"Bearer {ctx['p1_tok']}"}
+
+    # 1. Missing actor, BUT present wrong scope.participant_id -> still reports BOTH MISSING_FIELD and SCOPE_VIOLATION
+    ev_partial = _make_consent_event(
+        org_id=ctx["org_a"],
+        participant_id=ctx["p1_id"],
+        seq=1,
+        prev_hash=None,
+        scope_participant_id=new_id("p"),
+    )
+    del ev_partial["actor"]
+    ev_partial["hash"] = compute_event_hash(ev_partial)
+    r_part = client.post("/api/v3/events:batch", headers=hdrs, json={"events": [ev_partial]})
+    assert r_part.status_code == 200
+    assert r_part.json()["results"][0]["codes"] == ["MISSING_FIELD", "SCOPE_VIOLATION"]
+
+    # 2. Session event missing scope.prescription_id or scope.prescription_revision -> no false PRESCRIPTION_NOT_FOUND
+    for drop_key in ("prescription_id", "prescription_revision"):
+        s_ev = _make_session_start(org_id=ctx["org_a"], participant_id=ctx["p1_id"], session_id=new_id("s"), execution_mode="report_only")
+        del s_ev["scope"][drop_key]
+        s_ev["hash"] = compute_event_hash(s_ev)
+        r_s = client.post("/api/v3/events:batch", headers=hdrs, json={"events": [s_ev]})
+        assert r_s.status_code == 200
+        item = r_s.json()["results"][0]
+        assert item["status"] == "rejected"
+        assert "PRESCRIPTION_NOT_FOUND" not in item["codes"], f"drop {drop_key}: {item}"
+        assert "SCOPE_INVALID" in item["codes"]
+
+    # 3. Missing type -> only MISSING_FIELD (no FORBIDDEN)
+    ev_no_type = _make_consent_event(org_id=ctx["org_a"], participant_id=ctx["p1_id"], seq=1, prev_hash=None)
+    del ev_no_type["type"]
+    ev_no_type["hash"] = compute_event_hash(ev_no_type)
+    r_nt = client.post("/api/v3/events:batch", headers=hdrs, json={"events": [ev_no_type]})
+    assert r_nt.status_code == 200
+    assert r_nt.json()["results"][0]["codes"] == ["MISSING_FIELD"]
+
+    # 4. Missing prev_hash on seq=2 when seq=1 IS stored -> no false CHAIN_BROKEN
+    c1 = _make_consent_event(org_id=ctx["org_a"], participant_id=ctx["p1_id"], seq=1, prev_hash=None)
+    assert client.post("/api/v3/events:batch", headers=hdrs, json={"events": [c1]}).json()["results"][0]["status"] == "stored"
+    c2_no_prev = _make_consent_event(org_id=ctx["org_a"], participant_id=ctx["p1_id"], seq=2, prev_hash=c1["hash"], kind="consent.revoked")
+    del c2_no_prev["prev_hash"]
+    c2_no_prev["hash"] = compute_event_hash(c2_no_prev)
+    r_np = client.post("/api/v3/events:batch", headers=hdrs, json={"events": [c2_no_prev]})
+    assert r_np.status_code == 200
+    assert r_np.json()["results"][0]["codes"] == ["MISSING_FIELD"]
+
+    # 5. Missing hash on duplicate seq=1 -> no false HASH_CONFLICT
+    c1_no_hash = copy.deepcopy(c1)
+    del c1_no_hash["hash"]
+    r_nh = client.post("/api/v3/events:batch", headers=hdrs, json={"events": [c1_no_hash]})
+    assert r_nh.status_code == 200
+    assert r_nh.json()["results"][0]["codes"] == ["MISSING_FIELD"]
