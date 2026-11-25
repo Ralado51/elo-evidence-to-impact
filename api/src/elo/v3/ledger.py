@@ -20,6 +20,11 @@ from elo.canonical import canonicalize, check_event_integrity
 from elo.v3.authz import Principal
 from elo.v3.entities import load_event_catalog
 from elo.v3.errors import V3Error, map_validation_code, to_http_error
+from elo.v3.session_rules import (
+    SESSION_RULE_ERROR_CODES,
+    SESSION_RULE_WARNING_CODES,
+    evaluate_session_stream,
+)
 from elo.v3.validation import check_session_stream, consent_state, require_consent, validate_event
 
 LEDGER_SCHEMA = """
@@ -55,7 +60,7 @@ CREATE TABLE IF NOT EXISTS v3_prescription_streams (
 );
 """
 
-_WARNING_INFO_CODES = frozenset({"SEQ_GAP", "DUPLICATE"})
+_WARNING_INFO_CODES = frozenset({"SEQ_GAP", "DUPLICATE", "CLOCK_REGRESSION"})
 
 
 class EventLedger:
@@ -416,12 +421,13 @@ class EventLedger:
                 active_scopes = consent_state(self.get_consent_events(scope["participant_id"]))
                 codes.update(require_consent(active_scopes, ev))
 
-            # 7. Prescription presence and session-stream rules (D-S0-04-2(a): only when inputs are present)
+            # 7. Prescription presence and session-stream rules (D-S0-04-2(a), S1b-01)
             if type_meta is not None and type_meta["stream"] == "session" and scope is not None:
                 rx_id = scope.get("prescription_id")
                 rx_rev = scope.get("prescription_revision")
                 sc_org = scope.get("org_id")
                 sc_pid = scope.get("participant_id")
+                rx_event = None
                 if (
                     isinstance(rx_id, str)
                     and isinstance(rx_rev, int)
@@ -443,6 +449,27 @@ class EventLedger:
                             codes.update(check_session_stream([*stored_session, ev], rx_event["payload"]))
                         except Exception:
                             pass
+
+                # Apply stateful session-phase and stream-ordering rules (S1b-01, PO-F26)
+                # Skip on already-stored duplicate/conflict rows; require minimal event structure.
+                if (
+                    existing_row is None
+                    and stream_id is not None
+                    and seq is not None
+                    and ev_hash is not None
+                    and isinstance(ev.get("source"), dict)
+                    and isinstance(ev.get("payload"), dict)
+                    and isinstance(ev.get("occurred_at"), str)
+                ):
+                    stored_session = self.get_stream_events(stream_id)
+                    rx_payload = rx_event["payload"] if rx_event is not None else None
+                    report = evaluate_session_stream([*stored_session, ev], rx_payload)
+                    for code in report.per_event_errors.get(seq, ()):
+                        if code in SESSION_RULE_ERROR_CODES:
+                            codes.add(code)
+                    for code in report.per_event_warnings.get(seq, ()):
+                        if code in SESSION_RULE_WARNING_CODES:
+                            codes.add(code)
 
             # Map internal ONEOF -> RULE_VIOLATION on HTTP surface per D-S0-03-4
             if map_http_codes and "ONEOF" in codes:
