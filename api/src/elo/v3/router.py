@@ -1,14 +1,17 @@
-"""CL06.3 v3 FastAPI router exposing the S0-02 and S0-04 endpoints under /api/v3.
+"""CL06.3 v3 FastAPI router exposing the S0-02, S0-04, and S1a-01 endpoints under /api/v3.
 
 Endpoints (api-contract.v3.json):
-  1. GET  /api/v3/health                          (id: health, roles: anonymous)
-  2. POST /api/v3/auth/therapist                  (id: auth.therapist, roles: anonymous)
-  3. POST /api/v3/invites                         (id: invites.create, roles: therapist)
-  4. POST /api/v3/auth/invite                     (id: auth.invite, roles: anonymous)
-  5. POST /api/v3/participants                    (id: participants.create, roles: therapist)
-  6. POST /api/v3/care-links/{entity_id}:revoke   (id: care_links.revoke, roles: therapist)
-  7. POST /api/v3/events:batch                    (id: events.batch, roles: participant)
-  8. GET  /api/v3/entities/{entity_id}/versions   (id: entities.versions, roles: therapist)
+  1.  GET  /api/v3/health                                          (id: health, roles: anonymous)
+  2.  POST /api/v3/auth/therapist                                  (id: auth.therapist, roles: anonymous)
+  3.  POST /api/v3/invites                                         (id: invites.create, roles: therapist)
+  4.  POST /api/v3/auth/invite                                     (id: auth.invite, roles: anonymous)
+  5.  POST /api/v3/participants                                    (id: participants.create, roles: therapist)
+  6.  POST /api/v3/care-links/{entity_id}:revoke                   (id: care_links.revoke, roles: therapist)
+  7.  POST /api/v3/events:batch                                    (id: events.batch, roles: participant)
+  8.  GET  /api/v3/entities/{entity_id}/versions                   (id: entities.versions, roles: therapist)
+  9.  POST /api/v3/participants/{participant_id}/assessments       (id: assessments.create, roles: therapist)
+  10. POST /api/v3/assessments/{entity_id}/versions                (id: assessments.revise, roles: therapist)
+  11. GET  /api/v3/participants/{participant_id}/assessments       (id: assessments.list, roles: therapist)
 """
 
 from __future__ import annotations
@@ -24,6 +27,7 @@ from fastapi.responses import JSONResponse
 
 from .auth import AuthService
 from .authz import AuthzScope, authorize
+from .clinical import ClinicalEntityService, extract_entity_payload
 from .entities import build_entity, new_id, utc_now_ms
 from .errors import V3Error
 from .store import V3Store
@@ -35,14 +39,22 @@ BATCH_MAX_EVENTS = 500
 BODY_MAX_BYTES = 2097152  # 2 MiB (api-contract.v3.json limits.body_max_bytes)
 
 
+def _reject_non_finite(token: str) -> Any:
+    raise V3Error("NON_FINITE", f"Non-finite JSON constant not allowed: {token!r}.")
+
+
 async def _read_json_object(request: Request, *, allow_empty: bool = False) -> dict[str, Any]:
     raw = await request.body()
+    if len(raw) > BODY_MAX_BYTES:
+        raise V3Error("BATCH_TOO_LARGE", f"Request body exceeds {BODY_MAX_BYTES} bytes.")
     if not raw.strip():
         if allow_empty:
             return {}
         raise V3Error("TYPE", "Request body must be a JSON object.")
     try:
-        parsed = json.loads(raw.decode("utf-8"))
+        parsed = json.loads(raw.decode("utf-8"), parse_constant=_reject_non_finite)
+    except V3Error:
+        raise
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise V3Error("TYPE", "Malformed JSON request body.") from exc
     if not isinstance(parsed, dict):
@@ -78,6 +90,7 @@ def create_v3_router(
 
     store = V3Store(db_path, data_origin=resolved_origin, real_data_gate_open=resolved_gate)
     auth = AuthService(store)
+    clinical = ClinicalEntityService(store)
     router = APIRouter(prefix="/api/v3")
 
     # 1. health
@@ -351,5 +364,32 @@ def create_v3_router(
                 raise V3Error("NOT_FOUND", "Entity not found.")
 
         return JSONResponse(versions, status_code=200)
+
+    # 9. assessments.create (S1a-01)
+    @router.post("/participants/{participant_id}/assessments", status_code=201)
+    async def assessments_create(participant_id: str, request: Request):
+        principal = auth.require_principal(request)
+        clinical.authorize_create("functional_assessment", participant_id, principal)
+        body = await _read_json_object(request)
+        payload = extract_entity_payload(body)
+        ent = clinical.create("functional_assessment", participant_id, payload, principal)
+        return JSONResponse(ent, status_code=201)
+
+    # 10. assessments.revise (S1a-01, D-S1a-01-1)
+    @router.post("/assessments/{entity_id}/versions", status_code=201)
+    async def assessments_revise(entity_id: str, request: Request):
+        principal = auth.require_principal(request)
+        clinical.authorize_revise(entity_id, principal, expected_entity_type="functional_assessment")
+        body = await _read_json_object(request)
+        payload = extract_entity_payload(body)
+        ent = clinical.revise(entity_id, payload, principal, expected_entity_type="functional_assessment")
+        return JSONResponse(ent, status_code=201)
+
+    # 11. assessments.list (S1a-01)
+    @router.get("/participants/{participant_id}/assessments")
+    def assessments_list(participant_id: str, request: Request):
+        principal = auth.require_principal(request)
+        items = clinical.list("functional_assessment", participant_id, principal)
+        return JSONResponse(items, status_code=200)
 
     return router, store, auth

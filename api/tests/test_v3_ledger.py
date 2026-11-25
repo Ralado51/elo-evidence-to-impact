@@ -43,6 +43,9 @@ S0_04_ROUTE_IDS = {
     "care_links.revoke",
     "events.batch",
     "entities.versions",
+    "assessments.create",
+    "assessments.revise",
+    "assessments.list",
 }
 
 

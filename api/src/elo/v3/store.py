@@ -7,6 +7,7 @@ import hmac
 import json
 import secrets
 import sqlite3
+import threading
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -15,7 +16,7 @@ from .entities import (
     build_entity,
     utc_now_ms,
 )
-from .errors import to_http_error
+from .errors import V3Error, to_http_error
 from .ledger import EventLedger
 from .validation import check_real_data_gate, validate_entity, validate_entity_chain
 
@@ -109,11 +110,14 @@ class V3Store:
         data_origin: str = "synthetic_fixture",
         real_data_gate_open: bool = False,
     ) -> None:
+        self._tx_lock = threading.RLock()
         self.db = sqlite3.connect(path, check_same_thread=False)
-        self.db.executescript(V3_SCHEMA)
+        with self._tx_lock:
+            self.db.execute("PRAGMA busy_timeout = 5000")
+            self.db.executescript(V3_SCHEMA)
         self.data_origin = data_origin
         self.real_data_gate_open = real_data_gate_open
-        self.ledger = EventLedger(self.db, real_data_gate_open=real_data_gate_open)
+        self.ledger = EventLedger(self.db, real_data_gate_open=real_data_gate_open, lock=self._tx_lock)
 
     # --- CL06.3 append-only event ledger delegation ---
     def append(
@@ -149,36 +153,42 @@ class V3Store:
     ) -> dict[str, Any]:
         kdf, salt_hex, hash_hex = hash_password_scrypt(password)
         now = utc_now_ms()
-        self.db.execute(
-            """INSERT OR REPLACE INTO v3_therapist_credentials
-               (therapist_id, username, org_id, display_label, kdf, salt_hex, hash_hex, created_at)
-               VALUES (?,?,?,?,?,?,?,?)""",
-            (therapist_id, username, org_id, display_label, kdf, salt_hex, hash_hex, now),
-        )
-        # Also ensure therapist entity v1 exists when data_origin is permitted
-        existing = self.get_entity_versions(therapist_id)
-        if not existing:
-            ent = build_entity(
-                entity_type="therapist",
-                entity_id=therapist_id,
-                version=1,
-                prev_hash=None,
-                org_id=org_id,
-                author_role="therapist",
-                author_id=therapist_id,
-                data_origin="synthetic_fixture" if check_real_data_gate(self.data_origin, gate_open=self.real_data_gate_open) else self.data_origin,
-                payload={"display_label": display_label},
-                created_at=now,
-            )
-            self._validate_and_insert_entity(ent, existing=[])
-        self.db.commit()
+        with self._tx_lock:
+            try:
+                self.db.execute(
+                    """INSERT OR REPLACE INTO v3_therapist_credentials
+                       (therapist_id, username, org_id, display_label, kdf, salt_hex, hash_hex, created_at)
+                       VALUES (?,?,?,?,?,?,?,?)""",
+                    (therapist_id, username, org_id, display_label, kdf, salt_hex, hash_hex, now),
+                )
+                # Also ensure therapist entity v1 exists when data_origin is permitted
+                existing = self.get_entity_versions(therapist_id)
+                if not existing:
+                    ent = build_entity(
+                        entity_type="therapist",
+                        entity_id=therapist_id,
+                        version=1,
+                        prev_hash=None,
+                        org_id=org_id,
+                        author_role="therapist",
+                        author_id=therapist_id,
+                        data_origin="synthetic_fixture" if check_real_data_gate(self.data_origin, gate_open=self.real_data_gate_open) else self.data_origin,
+                        payload={"display_label": display_label},
+                        created_at=now,
+                    )
+                    self._validate_and_insert_entity(ent, existing=[])
+                self.db.commit()
+            except Exception:
+                self.db.rollback()
+                raise
         return {"therapist_id": therapist_id, "username": username, "org_id": org_id}
 
     def authenticate_therapist(self, username: str, password: str) -> Principal | None:
-        row = self.db.execute(
-            "SELECT therapist_id, org_id, kdf, salt_hex, hash_hex FROM v3_therapist_credentials WHERE username=?",
-            (username,),
-        ).fetchone()
+        with self._tx_lock:
+            row = self.db.execute(
+                "SELECT therapist_id, org_id, kdf, salt_hex, hash_hex FROM v3_therapist_credentials WHERE username=?",
+                (username,),
+            ).fetchone()
         if row is None:
             return None
         therapist_id, org_id, kdf, salt_hex, hash_hex = row
@@ -194,22 +204,28 @@ class V3Store:
         created_at = now.strftime("%Y-%m-%dT%H:%M:%S.") + f"{now.microsecond // 1000:03d}Z"
         exp = now + timedelta(seconds=ttl_seconds)
         expires_at = exp.strftime("%Y-%m-%dT%H:%M:%S.") + f"{exp.microsecond // 1000:03d}Z"
-        self.db.execute(
-            """INSERT INTO v3_tokens (token_hash, role, principal_id, org_id, expires_at, revoked, created_at)
-               VALUES (?,?,?,?,?,0,?)""",
-            (token_hash, principal.role, principal.id, principal.org_id, expires_at, created_at),
-        )
-        self.db.commit()
+        with self._tx_lock:
+            try:
+                self.db.execute(
+                    """INSERT INTO v3_tokens (token_hash, role, principal_id, org_id, expires_at, revoked, created_at)
+                       VALUES (?,?,?,?,?,0,?)""",
+                    (token_hash, principal.role, principal.id, principal.org_id, expires_at, created_at),
+                )
+                self.db.commit()
+            except Exception:
+                self.db.rollback()
+                raise
         return raw_token, expires_at
 
     def lookup_token(self, raw_token: str) -> Principal | None:
         if not raw_token:
             return None
         token_hash = sha256_token(raw_token)
-        row = self.db.execute(
-            "SELECT role, principal_id, org_id, expires_at, revoked FROM v3_tokens WHERE token_hash=?",
-            (token_hash,),
-        ).fetchone()
+        with self._tx_lock:
+            row = self.db.execute(
+                "SELECT role, principal_id, org_id, expires_at, revoked FROM v3_tokens WHERE token_hash=?",
+                (token_hash,),
+            ).fetchone()
         if row is None:
             return None
         role, principal_id, org_id, expires_at, revoked = row
@@ -227,12 +243,17 @@ class V3Store:
         created_at = now.strftime("%Y-%m-%dT%H:%M:%S.") + f"{now.microsecond // 1000:03d}Z"
         exp = now + timedelta(seconds=ttl_seconds)
         expires_at = exp.strftime("%Y-%m-%dT%H:%M:%S.") + f"{exp.microsecond // 1000:03d}Z"
-        self.db.execute(
-            """INSERT INTO v3_invites (invite_hash, participant_id, org_id, created_by, expires_at, used_at, revoked, created_at)
-               VALUES (?,?,?,?,?,NULL,0,?)""",
-            (invite_hash, participant_id, org_id, created_by, expires_at, created_at),
-        )
-        self.db.commit()
+        with self._tx_lock:
+            try:
+                self.db.execute(
+                    """INSERT INTO v3_invites (invite_hash, participant_id, org_id, created_by, expires_at, used_at, revoked, created_at)
+                       VALUES (?,?,?,?,?,NULL,0,?)""",
+                    (invite_hash, participant_id, org_id, created_by, expires_at, created_at),
+                )
+                self.db.commit()
+            except Exception:
+                self.db.rollback()
+                raise
         return raw_invite, expires_at
 
     def consume_invite(self, raw_invite: str) -> Principal | None:
@@ -240,27 +261,37 @@ class V3Store:
             return None
         invite_hash = sha256_token(raw_invite)
         now = utc_now_ms()
-        cur = self.db.execute(
-            """UPDATE v3_invites
-               SET used_at = ?
-               WHERE invite_hash = ? AND used_at IS NULL AND revoked = 0 AND expires_at > ?""",
-            (now, invite_hash, now),
-        )
-        if cur.rowcount != 1:
-            self.db.rollback()
-            return None
-        row = self.db.execute(
-            "SELECT participant_id, org_id FROM v3_invites WHERE invite_hash=?",
-            (invite_hash,),
-        ).fetchone()
-        self.db.commit()
+        with self._tx_lock:
+            try:
+                cur = self.db.execute(
+                    """UPDATE v3_invites
+                       SET used_at = ?
+                       WHERE invite_hash = ? AND used_at IS NULL AND revoked = 0 AND expires_at > ?""",
+                    (now, invite_hash, now),
+                )
+                if cur.rowcount != 1:
+                    self.db.rollback()
+                    return None
+                row = self.db.execute(
+                    "SELECT participant_id, org_id FROM v3_invites WHERE invite_hash=?",
+                    (invite_hash,),
+                ).fetchone()
+                self.db.commit()
+            except Exception:
+                self.db.rollback()
+                raise
         if row is None:
             return None
         return Principal(role="participant", id=row[0], org_id=row[1])
 
     def revoke_invite_by_hash(self, invite_hash: str) -> None:
-        self.db.execute("UPDATE v3_invites SET revoked = 1 WHERE invite_hash = ?", (invite_hash,))
-        self.db.commit()
+        with self._tx_lock:
+            try:
+                self.db.execute("UPDATE v3_invites SET revoked = 1 WHERE invite_hash = ?", (invite_hash,))
+                self.db.commit()
+            except Exception:
+                self.db.rollback()
+                raise
 
     # --- CL06.3 versioned entities ---
     def _validate_and_insert_entity(self, ent: dict[str, Any], *, existing: list[dict[str, Any]]) -> None:
@@ -288,57 +319,109 @@ class V3Store:
         )
 
     def save_entities_atomic(self, items: list[tuple[dict[str, Any], list[dict[str, Any]]]]) -> None:
-        try:
-            for ent, existing in items:
+        with self._tx_lock:
+            try:
+                for ent, existing in items:
+                    self._validate_and_insert_entity(ent, existing=existing)
+                self.db.commit()
+            except sqlite3.IntegrityError as exc:
+                self.db.rollback()
+                raise V3Error(
+                    "ENTITY_VERSION_CONFLICT",
+                    f"Entity version conflict: {exc}",
+                ) from exc
+            except Exception:
+                self.db.rollback()
+                raise
+
+    def insert_entity_version(self, ent: dict[str, Any], *, existing: list[dict[str, Any]]) -> None:
+        """Validate and insert one entity version inside one transaction (D-S1a-01-1).
+
+        Relies on the ``PRIMARY KEY (entity_id, version)`` uniqueness constraint on
+        ``v3_entities``; a concurrent losing writer hitting a duplicate ``(entity_id, version)``
+        rolls back and receives ``409 ENTITY_VERSION_CONFLICT``.
+        """
+        with self._tx_lock:
+            try:
+                if not self.db.in_transaction:
+                    self.db.execute("BEGIN IMMEDIATE")
                 self._validate_and_insert_entity(ent, existing=existing)
-            self.db.commit()
-        except Exception:
-            self.db.rollback()
-            raise
+                self.db.commit()
+            except sqlite3.IntegrityError as exc:
+                self.db.rollback()
+                raise V3Error(
+                    "ENTITY_VERSION_CONFLICT",
+                    f"Concurrent or conflicting version {ent['version']} for entity {ent['entity_id']}.",
+                ) from exc
+            except Exception:
+                self.db.rollback()
+                raise
+
+    def list_latest_entities(self, entity_type: str, participant_id: str) -> list[dict[str, Any]]:
+        """Return the latest version of each entity of ``entity_type`` for ``participant_id``,
+        ordered by ``created_at`` ascending then ``entity_id`` ascending.
+        """
+        with self._tx_lock:
+            rows = self.db.execute(
+                """SELECT e.data FROM v3_entities e
+                   INNER JOIN (
+                       SELECT entity_id, MAX(version) AS max_v
+                       FROM v3_entities
+                       WHERE entity_type = ? AND participant_id = ?
+                       GROUP BY entity_id
+                   ) latest ON e.entity_id = latest.entity_id AND e.version = latest.max_v""",
+                (entity_type, participant_id),
+            ).fetchall()
+        entities = [json.loads(r[0]) for r in rows]
+        entities.sort(key=lambda ent: (ent["created_at"], ent["entity_id"]))
+        return entities
 
     def get_entity_versions(self, entity_id: str) -> list[dict[str, Any]]:
-        rows = self.db.execute(
-            "SELECT data FROM v3_entities WHERE entity_id=? ORDER BY version ASC",
-            (entity_id,),
-        ).fetchall()
+        with self._tx_lock:
+            rows = self.db.execute(
+                "SELECT data FROM v3_entities WHERE entity_id=? ORDER BY version ASC",
+                (entity_id,),
+            ).fetchall()
         return [json.loads(r[0]) for r in rows]
 
     def get_latest_entity(self, entity_id: str, entity_type: str | None = None) -> dict[str, Any] | None:
-        if entity_type is not None:
-            row = self.db.execute(
-                "SELECT data FROM v3_entities WHERE entity_id=? AND entity_type=? ORDER BY version DESC LIMIT 1",
-                (entity_id, entity_type),
-            ).fetchone()
-        else:
-            row = self.db.execute(
-                "SELECT data FROM v3_entities WHERE entity_id=? ORDER BY version DESC LIMIT 1",
-                (entity_id,),
-            ).fetchone()
+        with self._tx_lock:
+            if entity_type is not None:
+                row = self.db.execute(
+                    "SELECT data FROM v3_entities WHERE entity_id=? AND entity_type=? ORDER BY version DESC LIMIT 1",
+                    (entity_id, entity_type),
+                ).fetchone()
+            else:
+                row = self.db.execute(
+                    "SELECT data FROM v3_entities WHERE entity_id=? ORDER BY version DESC LIMIT 1",
+                    (entity_id,),
+                ).fetchone()
         return json.loads(row[0]) if row else None
 
     def latest_care_links(self, participant_id: str | None = None) -> list[CareLinkView]:
         """Return the latest version of every care_link (optionally filtered by participant_id)."""
-        if participant_id is not None:
-            rows = self.db.execute(
-                """SELECT e.data FROM v3_entities e
-                   INNER JOIN (
-                       SELECT entity_id, MAX(version) AS max_v
-                       FROM v3_entities
-                       WHERE entity_type = 'care_link' AND participant_id = ?
-                       GROUP BY entity_id
-                   ) latest ON e.entity_id = latest.entity_id AND e.version = latest.max_v""",
-                (participant_id,),
-            ).fetchall()
-        else:
-            rows = self.db.execute(
-                """SELECT e.data FROM v3_entities e
-                   INNER JOIN (
-                       SELECT entity_id, MAX(version) AS max_v
-                       FROM v3_entities
-                       WHERE entity_type = 'care_link'
-                       GROUP BY entity_id
-                   ) latest ON e.entity_id = latest.entity_id AND e.version = latest.max_v"""
-            ).fetchall()
+        with self._tx_lock:
+            if participant_id is not None:
+                rows = self.db.execute(
+                    """SELECT e.data FROM v3_entities e
+                       INNER JOIN (
+                           SELECT entity_id, MAX(version) AS max_v
+                           FROM v3_entities
+                           WHERE entity_type = 'care_link' AND participant_id = ?
+                           GROUP BY entity_id
+                       ) latest ON e.entity_id = latest.entity_id AND e.version = latest.max_v""",
+                    (participant_id,),
+                ).fetchall()
+            else:
+                rows = self.db.execute(
+                    """SELECT e.data FROM v3_entities e
+                       INNER JOIN (
+                           SELECT entity_id, MAX(version) AS max_v
+                           FROM v3_entities
+                           WHERE entity_type = 'care_link'
+                           GROUP BY entity_id
+                       ) latest ON e.entity_id = latest.entity_id AND e.version = latest.max_v"""
+                ).fetchall()
         views: list[CareLinkView] = []
         for (raw,) in rows:
             ent = json.loads(raw)
@@ -357,8 +440,9 @@ class V3Store:
         return views
 
     def care_links_for_participant(self, participant_id: str) -> list[dict[str, Any]]:
-        rows = self.db.execute(
-            "SELECT data FROM v3_entities WHERE entity_type='care_link' AND participant_id=? ORDER BY entity_id, version",
-            (participant_id,),
-        ).fetchall()
+        with self._tx_lock:
+            rows = self.db.execute(
+                "SELECT data FROM v3_entities WHERE entity_type='care_link' AND participant_id=? ORDER BY entity_id, version",
+                (participant_id,),
+            ).fetchall()
         return [json.loads(r[0]) for r in rows]
