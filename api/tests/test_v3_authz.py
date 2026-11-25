@@ -40,6 +40,8 @@ S0_02_ROUTE_IDS = {
     "auth.invite",
     "participants.create",
     "care_links.revoke",
+    "events.batch",
+    "entities.versions",
 }
 
 

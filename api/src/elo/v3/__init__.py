@@ -3,6 +3,7 @@
 from .auth import AuthService
 from .authz import ALLOWED_ROLES, POLICY_MATRIX, AuthzScope, CareLinkView, Decision, Principal, authorize
 from .errors import EMITTABLE_ERROR_CODES, V3Error, error_response, map_validation_code, to_http_error
+from .ledger import EventLedger
 from .router import create_v3_router
 from .store import V3Store
 from .validation import (
@@ -25,6 +26,7 @@ __all__ = [
     "CareLinkView",
     "Decision",
     "EMITTABLE_ERROR_CODES",
+    "EventLedger",
     "POLICY_MATRIX",
     "Principal",
     "REAL_DATA_GATE_ENV",

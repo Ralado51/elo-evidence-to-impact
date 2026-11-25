@@ -2,7 +2,7 @@
 
 Records provenance, SHA-256 hashes, licenses, and attribution for code and contract artifacts ported or copied into `elo-evidence-to-impact` under PO-F10 and PO-F15.
 
-No code from `elo-functional-intelligence` (historical repository) or from the local laboratory (`experiments/elo-integrated-demo`) is ported in `S0-01`, `S0-02`, or `S0-03`.
+No code from `elo-functional-intelligence` (historical repository) or from the local laboratory (`experiments/elo-integrated-demo`) is ported in `S0-01`, `S0-02`, `S0-03`, or `S0-04`.
 
 | Target Path | Origin Status | Source Path | Source SHA-256 | License | Attribution | Task / Authorization |
 |---|---|---|---|---|---|---|
@@ -21,3 +21,5 @@ No code from `elo-functional-intelligence` (historical repository) or from the l
 | `api/tests/test_v3_authz.py` | New file (not ported) | n/a | n/a | Apache-2.0 | Airton Justino O. Junior | `S0-02` |
 | `api/src/elo/v3/validation.py` | Ported from CL06.3 reference library (`check_event_semantics`, `check_session_stream`, `STREAM_OF`, `START_SOURCE`) | `contracts/CL06_3/reference/python/elo_ref.py` | `a88f324099523f4cc66f24cf5c9ecdcc5b8f69ec5999418d9a1635955d3439a0` | Apache-2.0 | Airton Justino O. Junior (Elo CL06.3 contract package) | `S0-03` / PO-F10 |
 | `api/tests/test_v3_validation.py` | New file (not ported) | n/a | n/a | Apache-2.0 | Airton Justino O. Junior | `S0-03` |
+| `api/src/elo/v3/ledger.py` | New file (not ported; append-only trigger pattern adapted from `api/src/elo/review.py`) | n/a | n/a | Apache-2.0 | Airton Justino O. Junior | `S0-04` |
+| `api/tests/test_v3_ledger.py` | New file (not ported) | n/a | n/a | Apache-2.0 | Airton Justino O. Junior | `S0-04` |
