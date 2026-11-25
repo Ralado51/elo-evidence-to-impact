@@ -38,6 +38,19 @@ node web/tests/browser/run.mjs
 
 Optional overrides: `--pages <path/to/pages.json>`, `--web-root <path/to/web>`, and `ELO_PLAYWRIGHT_DIR=<path/to/playwright>`.
 
+### Therapist journey harness (`web/tests/browser/therapist_journey.mjs`, S1-03)
+
+- Spawns the live Python `/api/v3` server (`uvicorn --factory elo.api:app_factory`) on loopback `127.0.0.1` with synthetic therapist seeds (`ELO_V3_DATA_ORIGIN=synthetic_fixture`), plus a loopback-only gateway serving `web/v3/**` and proxying `/api/v3/*`.
+- Runs the full 8-step therapist journey on `web/v3/therapist.html` in headless Chromium in two independent passes — **pointer** and **keyboard-only** (zero pointer events) — using synthetic report-only sessions for `"organizar-a-mesa"`.
+- Verifies live API state after every step, strict `/api/v3` contract-only requests (zero `/api/v1` or legacy web files), UI and API review-gate enforcement (`UNREVIEWED_FACT_IN_EVOLUTION`, `CONTENT_HASH_STALE`, `COMPARABILITY_VIOLATION`), visible origin labels and execution modes on every displayed fact/summary/evolution/timeline item, zero forbidden clinical outputs (`cmp-v1`), and role/link authorization denials (unauthenticated redirect to sign-in, participant 403, unlinked therapist 403/404).
+- Run from the repository root:
+
+```bash
+ELO_PYTHON="${ELO_PYTHON:-python3}" node web/tests/browser/therapist_journey.mjs
+```
+
+Optional overrides: `ELO_PYTHON=<path/to/python3>`, `ELO_PLAYWRIGHT_DIR=<path/to/playwright>` (or `PW=<path/to/playwright>`). Exits `0` if and only if every check passes.
+
 ## Build notes
 
 The Dockerfile fetches `@mediapipe/tasks-vision@1.2.3` and the hand model at build time, so the app serves them itself and the CSP stays `'self'`
