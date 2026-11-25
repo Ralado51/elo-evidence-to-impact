@@ -1,4 +1,4 @@
-"""CL06.3 v3 FastAPI router exposing the S0-02, S0-04, S1a-01, S1a-02, S1a-03, and S1a-04 endpoints under /api/v3.
+"""CL06.3 v3 FastAPI router exposing the S0-02, S0-04, S1a-01..04, and S1b-02 endpoints under /api/v3.
 
 Endpoints (api-contract.v3.json):
   1.  GET  /api/v3/health                                          (id: health, roles: anonymous)
@@ -22,6 +22,9 @@ Endpoints (api-contract.v3.json):
   19. POST /api/v3/prescriptions                                   (id: prescriptions.publish, roles: therapist)
   20. GET  /api/v3/participants/{participant_id}/prescription/current (id: prescriptions.current, roles: participant, therapist)
   21. GET  /api/v3/participants/{participant_id}/prescriptions     (id: prescriptions.history, roles: therapist)
+  22. GET  /api/v3/participants/{participant_id}/facts             (id: facts.list, roles: therapist)
+  23. GET  /api/v3/facts/{fact_id}/evidence                        (id: facts.evidence, roles: therapist)
+  24. POST /api/v3/facts/verify                                    (id: facts.verify, roles: therapist)
 """
 
 from __future__ import annotations
@@ -43,6 +46,7 @@ from .errors import V3Error
 from .prescriptions import PrescriptionService
 from .store import V3Store
 from .validation import check_real_data_gate, is_real_data_gate_open
+from .verifier import FactsService
 
 _PARTICIPANT_ID_RE = re.compile(r"^p_[A-Za-z0-9-]{8,64}$")
 _CARE_LINK_ID_RE = re.compile(r"^cl_[A-Za-z0-9-]{8,64}$")
@@ -103,6 +107,7 @@ def create_v3_router(
     auth = AuthService(store)
     clinical = ClinicalEntityService(store)
     prescriptions = PrescriptionService(store)
+    facts = FactsService(store)
     router = APIRouter(prefix="/api/v3")
 
     # 1. health
@@ -490,5 +495,34 @@ def create_v3_router(
         principal = auth.require_principal(request)
         items = prescriptions.history(participant_id, principal)
         return JSONResponse(items, status_code=200)
+
+    # 22. facts.list (S1b-02, D-S1b-02-1)
+    @router.get("/participants/{participant_id}/facts")
+    def facts_list(participant_id: str, request: Request):
+        principal = auth.require_principal(request)
+        date_from = request.query_params.get("from")
+        date_to = request.query_params.get("to")
+        result = facts.list_facts(
+            participant_id,
+            principal,
+            date_from=date_from,
+            date_to=date_to,
+        )
+        return JSONResponse(result, status_code=200)
+
+    # 23. facts.evidence (S1b-02, D-S1b-02-1)
+    @router.get("/facts/{fact_id}/evidence")
+    def facts_evidence(fact_id: str, request: Request):
+        principal = auth.require_principal(request)
+        result = facts.get_evidence(fact_id, principal)
+        return JSONResponse(result, status_code=200)
+
+    # 24. facts.verify (S1b-02, D-S1b-02-1 — never persists)
+    @router.post("/facts/verify")
+    async def facts_verify(request: Request):
+        principal = auth.require_principal(request)
+        body = await _read_json_object(request)
+        result = facts.verify_proposal(body, principal)
+        return JSONResponse(result, status_code=200)
 
     return router, store, auth

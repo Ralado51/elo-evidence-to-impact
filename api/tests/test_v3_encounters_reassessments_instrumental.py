@@ -54,6 +54,9 @@ S1A_03_ROUTE_IDS = {
     "prescriptions.publish",
     "prescriptions.current",
     "prescriptions.history",
+    "facts.list",
+    "facts.evidence",
+    "facts.verify",
 }
 
 
