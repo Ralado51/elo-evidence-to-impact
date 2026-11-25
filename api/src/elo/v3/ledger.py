@@ -70,6 +70,19 @@ CREATE TRIGGER IF NOT EXISTS v3_summaries_no_update BEFORE UPDATE ON v3_summarie
     BEGIN SELECT RAISE(ABORT, 'v3_summaries is immutable'); END;
 CREATE TRIGGER IF NOT EXISTS v3_summaries_no_delete BEFORE DELETE ON v3_summaries
     BEGIN SELECT RAISE(ABORT, 'v3_summaries is immutable'); END;
+CREATE TABLE IF NOT EXISTS v3_evolutions (
+    evolution_id TEXT PRIMARY KEY,
+    event_id TEXT NOT NULL UNIQUE,
+    org_id TEXT NOT NULL,
+    participant_id TEXT NOT NULL,
+    content_hash TEXT NOT NULL,
+    request_fingerprint TEXT NOT NULL,
+    snapshot TEXT NOT NULL
+);
+CREATE TRIGGER IF NOT EXISTS v3_evolutions_no_update BEFORE UPDATE ON v3_evolutions
+    BEGIN SELECT RAISE(ABORT, 'v3_evolutions is immutable'); END;
+CREATE TRIGGER IF NOT EXISTS v3_evolutions_no_delete BEFORE DELETE ON v3_evolutions
+    BEGIN SELECT RAISE(ABORT, 'v3_evolutions is immutable'); END;
 """
 
 _WARNING_INFO_CODES = frozenset({"SEQ_GAP", "DUPLICATE", "CLOCK_REGRESSION"})
@@ -310,6 +323,138 @@ class EventLedger:
             ev = json.loads(raw)
             if ev.get("payload", {}).get("summary_id") == summary_id:
                 return ev, None
+        return None
+
+    def publish_evolution_event(
+        self,
+        *,
+        stream_id: str,
+        evolution_id: str,
+        org_id: str,
+        participant_id: str,
+        content_hash: str,
+        request_fingerprint: str,
+        snapshot: dict[str, Any],
+        build_event_fn: Any,
+    ) -> tuple[dict[str, Any], bool]:
+        """Atomically publish one immutable ``evolution.published`` event + R7 snapshot (S1-01, R6, R7, R12).
+
+        Returns ``(event, created)``:
+        - If ``evolution_id`` already exists with identical ``(org_id, participant_id, request_fingerprint)``:
+          returns ``(existing_event, False)`` (idempotent 200).
+        - If ``evolution_id`` already exists with different fingerprint/content or owner:
+          raises ``409 CONFLICT_IMMUTABLE``.
+        - Otherwise appends a new ``evolution.published`` event and immutable ``v3_evolutions`` row
+          in the same transaction, returning ``(new_event, True)`` (created 201).
+        """
+        with self._lock:
+            try:
+                if not self.db.in_transaction:
+                    self.db.execute("BEGIN IMMEDIATE")
+
+                existing_row = self.db.execute(
+                    """SELECT ev.event_id, ev.org_id, ev.participant_id, ev.content_hash, ev.request_fingerprint, e.data
+                       FROM v3_evolutions ev
+                       JOIN v3_events e ON e.event_id = ev.event_id
+                       WHERE ev.evolution_id = ?""",
+                    (evolution_id,),
+                ).fetchone()
+                if existing_row is not None:
+                    _, ex_org, ex_pid, _, ex_fp, ex_data = existing_row
+                    if ex_org == org_id and ex_pid == participant_id and ex_fp == request_fingerprint:
+                        self.db.commit()
+                        return json.loads(ex_data), False
+                    self.db.rollback()
+                    raise V3Error(
+                        "CONFLICT_IMMUTABLE",
+                        f"Evolution {evolution_id!r} is already published with different content.",
+                    )
+
+                prev_row = self.db.execute(
+                    "SELECT seq, hash FROM v3_events WHERE stream_id = ? ORDER BY seq DESC LIMIT 1",
+                    (stream_id,),
+                ).fetchone()
+                next_seq = int(prev_row[0]) + 1 if prev_row is not None else 1
+                prev_hash = str(prev_row[1]) if prev_row is not None else None
+                event = build_event_fn(next_seq, prev_hash)
+
+                errs = validate_event(event, gate_open=self.real_data_gate_open)
+                if errs:
+                    raise to_http_error(errs[0], f"Evolution event validation failed: {', '.join(errs)}", details=errs)
+
+                scope = event["scope"]
+                canonical_json = canonicalize(event)
+                self.db.execute(
+                    """INSERT INTO v3_events
+                       (event_id, stream_id, seq, schema_version, type, org_id, participant_id, hash, prev_hash, data)
+                       VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                    (
+                        event["event_id"],
+                        stream_id,
+                        int(event["seq"]),
+                        int(event["schema_version"]),
+                        event["type"],
+                        scope["org_id"],
+                        scope["participant_id"],
+                        event["hash"],
+                        event["prev_hash"],
+                        canonical_json,
+                    ),
+                )
+                self.db.execute(
+                    """INSERT INTO v3_stream_state (stream_id, schema_version, incomplete)
+                       VALUES (?, ?, 0)
+                       ON CONFLICT(stream_id) DO NOTHING""",
+                    (stream_id, int(event["schema_version"])),
+                )
+                self.db.execute(
+                    """INSERT INTO v3_evolutions
+                       (evolution_id, event_id, org_id, participant_id, content_hash, request_fingerprint, snapshot)
+                       VALUES (?,?,?,?,?,?,?)""",
+                    (
+                        evolution_id,
+                        event["event_id"],
+                        org_id,
+                        participant_id,
+                        content_hash,
+                        request_fingerprint,
+                        json.dumps(snapshot, ensure_ascii=False),
+                    ),
+                )
+                self.db.commit()
+                return event, True
+            except sqlite3.IntegrityError as exc:
+                self.db.rollback()
+                raise V3Error(
+                    "CONFLICT_IMMUTABLE",
+                    f"Evolution {evolution_id!r} cannot be overwritten.",
+                ) from exc
+            except Exception:
+                self.db.rollback()
+                raise
+
+    def get_evolution_record(
+        self,
+        evolution_id: str,
+    ) -> tuple[dict[str, Any], str, dict[str, Any] | None] | None:
+        """Return ``(evolution_event, request_fingerprint, snapshot)`` for ``evolution_id``, or None."""
+        with self._lock:
+            row = self.db.execute(
+                """SELECT e.data, ev.request_fingerprint, ev.snapshot
+                   FROM v3_evolutions ev
+                   JOIN v3_events e ON e.event_id = ev.event_id
+                   WHERE ev.evolution_id = ?""",
+                (evolution_id,),
+            ).fetchone()
+            if row is not None:
+                return json.loads(row[0]), str(row[1]), json.loads(row[2])
+            ev_rows = self.db.execute(
+                "SELECT data FROM v3_events WHERE type = 'evolution.published' ORDER BY rowid ASC"
+            ).fetchall()
+        for (raw,) in ev_rows:
+            ev = json.loads(raw)
+            if ev.get("payload", {}).get("evolution_id") == evolution_id:
+                return ev, "", None
         return None
 
     def has_events_for_participant(self, participant_id: str) -> bool:

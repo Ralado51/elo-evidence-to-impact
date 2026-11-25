@@ -67,6 +67,10 @@ S1B_03_ROUTE_IDS = {
     "reviews.record",
     "summaries.publish",
     "summaries.get",
+    "evolution.series",
+    "evolution.publish",
+    "evolution.get",
+    "timeline.get",
 }
 
 
@@ -419,7 +423,7 @@ def test_routes_match_api_contract_and_error_codes(tmp_path: Path):
     expected_routes = {(by_id[eid]["method"], by_id[eid]["path"]) for eid in S1B_03_ROUTE_IDS}
     actual_routes = _collect_v3_routes(app)
     assert actual_routes == expected_routes
-    assert len(actual_routes) == 27
+    assert len(actual_routes) == 31
 
     assert (by_id["reviews.record"]["method"], by_id["reviews.record"]["path"], by_id["reviews.record"]["roles"]) == (
         "POST",

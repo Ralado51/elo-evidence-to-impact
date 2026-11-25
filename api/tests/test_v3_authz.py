@@ -61,6 +61,10 @@ S0_02_ROUTE_IDS = {
     "reviews.record",
     "summaries.publish",
     "summaries.get",
+    "evolution.series",
+    "evolution.publish",
+    "evolution.get",
+    "timeline.get",
 }
 
 

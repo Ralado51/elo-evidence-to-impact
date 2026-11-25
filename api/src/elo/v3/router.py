@@ -1,4 +1,4 @@
-"""CL06.3 v3 FastAPI router exposing the S0-02, S0-04, S1a-01..04, S1b-02, and S1b-03 endpoints under /api/v3.
+"""CL06.3 v3 FastAPI router exposing the S0-02, S0-04, S1a-01..04, S1b-02, S1b-03, and S1-01 endpoints under /api/v3.
 
 Endpoints (api-contract.v3.json):
   1.  GET  /api/v3/health                                          (id: health, roles: anonymous)
@@ -28,6 +28,10 @@ Endpoints (api-contract.v3.json):
   25. POST /api/v3/reviews                                         (id: reviews.record, roles: therapist)
   26. POST /api/v3/summaries                                       (id: summaries.publish, roles: therapist)
   27. GET  /api/v3/summaries/{summary_id}                          (id: summaries.get, roles: participant, therapist)
+  28. GET  /api/v3/participants/{participant_id}/evolution/series  (id: evolution.series, roles: therapist)
+  29. POST /api/v3/evolution                                       (id: evolution.publish, roles: therapist)
+  30. GET  /api/v3/evolution/{evolution_id}                        (id: evolution.get, roles: participant, therapist)
+  31. GET  /api/v3/participants/{participant_id}/timeline          (id: timeline.get, roles: therapist)
 """
 
 from __future__ import annotations
@@ -46,6 +50,7 @@ from .authz import AuthzScope, authorize
 from .clinical import ClinicalEntityService, extract_entity_payload
 from .entities import build_entity, new_id, utc_now_ms
 from .errors import V3Error
+from .evolution import EvolutionTimelineService
 from .prescriptions import PrescriptionService
 from .reviews import ReviewSummaryService
 from .store import V3Store
@@ -113,6 +118,7 @@ def create_v3_router(
     prescriptions = PrescriptionService(store)
     facts = FactsService(store)
     reviews = ReviewSummaryService(store)
+    evolution = EvolutionTimelineService(store)
     router = APIRouter(prefix="/api/v3")
 
     # 1. health
@@ -553,6 +559,43 @@ def create_v3_router(
     def summaries_get(summary_id: str, request: Request):
         principal = auth.require_principal(request)
         result = reviews.get_summary(summary_id, principal)
+        return JSONResponse(result, status_code=200)
+
+    # 28. evolution.series (S1-01, D-S1-01-2, R5, R9, R13)
+    @router.get("/participants/{participant_id}/evolution/series")
+    def evolution_series(participant_id: str, request: Request):
+        principal = auth.require_principal(request)
+        date_from = request.query_params.get("from")
+        date_to = request.query_params.get("to")
+        result = evolution.list_series(
+            participant_id,
+            principal,
+            date_from=date_from,
+            date_to=date_to,
+        )
+        return JSONResponse(result, status_code=200)
+
+    # 29. evolution.publish (S1-01, D-S1-01-3, R6, R7, R10, R12, R14)
+    @router.post("/evolution", status_code=201)
+    async def evolution_publish(request: Request):
+        principal = auth.require_principal(request)
+        evolution.authorize_publish_role(principal)
+        body = await _read_json_object(request)
+        result, status_code = evolution.publish_evolution(body, principal)
+        return JSONResponse(result, status_code=status_code)
+
+    # 30. evolution.get (S1-01, D-S1-01-5, R7, R8, R9, R13)
+    @router.get("/evolution/{evolution_id}")
+    def evolution_get(evolution_id: str, request: Request):
+        principal = auth.require_principal(request)
+        result = evolution.get_evolution(evolution_id, principal)
+        return JSONResponse(result, status_code=200)
+
+    # 31. timeline.get (S1-01, D-S1-01-6, R3, R4)
+    @router.get("/participants/{participant_id}/timeline")
+    def timeline_get(participant_id: str, request: Request):
+        principal = auth.require_principal(request)
+        result = evolution.get_timeline(participant_id, principal)
         return JSONResponse(result, status_code=200)
 
     return router, store, auth
