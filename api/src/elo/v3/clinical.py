@@ -64,6 +64,8 @@ class ClinicalEntitySpec:
     allow_revise: bool = True
     payload_normalizer: Callable[[dict[str, Any], Principal, str], dict[str, Any]] | None = None
     participant_projector: Callable[[dict[str, Any]], dict[str, Any]] | None = None
+    reference_validator: Callable[[V3Store, str, dict[str, Any]], None] | None = None
+    ref_fields: tuple[str, ...] = ()
 
 
 def _normalize_goal_payload(payload: dict[str, Any], principal: Principal, server_time: str) -> dict[str, Any]:
@@ -92,6 +94,48 @@ def _project_goal_for_participant(entity: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _require_same_participant_assessment(store: V3Store, participant_id: str, ref_id: str, field_name: str) -> None:
+    """Validate that ``ref_id`` names an existing ``functional_assessment`` of ``participant_id`` (D-S1a-03-1)."""
+    target = store.get_latest_entity(ref_id)
+    if target is None:
+        raise V3Error("RULE_VIOLATION", f"{field_name} references unknown functional_assessment {ref_id!r}.")
+    if target.get("entity_type") != "functional_assessment":
+        raise V3Error(
+            "RULE_VIOLATION",
+            f"{field_name} must reference a functional_assessment, got {target.get('entity_type')!r}.",
+        )
+    if target.get("participant_id") != participant_id:
+        raise V3Error(
+            "RULE_VIOLATION",
+            f"{field_name} references a functional_assessment belonging to another participant.",
+        )
+
+
+def _validate_encounter_references(store: V3Store, participant_id: str, payload: dict[str, Any]) -> None:
+    """Enforce D-S1a-03-1 reference rules on encounter payloads."""
+    if payload.get("prescription_ref") is not None:
+        raise V3Error(
+            "RULE_VIOLATION",
+            "encounter.prescription_ref must be null until prescriptions are enabled (S1a-04).",
+        )
+    assessment_ref = payload.get("assessment_ref")
+    if assessment_ref is not None:
+        _require_same_participant_assessment(store, participant_id, assessment_ref, "assessment_ref")
+
+
+def _validate_reassessment_references(store: V3Store, participant_id: str, payload: dict[str, Any]) -> None:
+    """Enforce D-S1a-03-1 reference rules on reassessment payloads."""
+    baseline_ref = payload["baseline_assessment_ref"]
+    current_ref = payload["current_assessment_ref"]
+    _require_same_participant_assessment(store, participant_id, baseline_ref, "baseline_assessment_ref")
+    _require_same_participant_assessment(store, participant_id, current_ref, "current_assessment_ref")
+    if baseline_ref == current_ref:
+        raise V3Error(
+            "RULE_VIOLATION",
+            "reassessment.baseline_assessment_ref and current_assessment_ref must be distinct.",
+        )
+
+
 DEFAULT_CLINICAL_REGISTRY: dict[str, ClinicalEntitySpec] = {
     "functional_assessment": ClinicalEntitySpec(
         entity_type="functional_assessment",
@@ -116,6 +160,43 @@ DEFAULT_CLINICAL_REGISTRY: dict[str, ClinicalEntitySpec] = {
         allow_revise=True,
         payload_normalizer=_normalize_goal_payload,
         participant_projector=_project_goal_for_participant,
+    ),
+    "encounter": ClinicalEntitySpec(
+        entity_type="encounter",
+        id_prefix=ENTITY_PREFIX["encounter"],
+        create_resource="encounter",
+        create_action="create",
+        revise_resource="encounter",
+        revise_action="create",
+        read_resource="encounter",
+        read_action="read",
+        allow_revise=False,
+        reference_validator=_validate_encounter_references,
+        ref_fields=("assessment_ref",),
+    ),
+    "reassessment": ClinicalEntitySpec(
+        entity_type="reassessment",
+        id_prefix=ENTITY_PREFIX["reassessment"],
+        create_resource="reassessment",
+        create_action="create/read",
+        revise_resource="reassessment",
+        revise_action="create/read",
+        read_resource="reassessment",
+        read_action="create/read",
+        allow_revise=False,
+        reference_validator=_validate_reassessment_references,
+        ref_fields=("baseline_assessment_ref", "current_assessment_ref"),
+    ),
+    "instrumental_measurement": ClinicalEntitySpec(
+        entity_type="instrumental_measurement",
+        id_prefix=ENTITY_PREFIX["instrumental_measurement"],
+        create_resource="instrumental_measurement",
+        create_action="create/read",
+        revise_resource="instrumental_measurement",
+        revise_action="create/read",
+        read_resource="instrumental_measurement",
+        read_action="create/read",
+        allow_revise=False,
     ),
 }
 
@@ -365,11 +446,30 @@ class ClinicalEntityService:
 
         ent_errs = validate_entity(ent, gate_open=self.store.real_data_gate_open)
         if ent_errs:
+            if (
+                spec.reference_validator is not None
+                and spec.ref_fields
+                and ent_errs == ["PATTERN"]
+            ):
+                schema = load_entity_schema(entity_type)
+                path_errs = validate(schema, ent)
+                allowed_paths = {f"$.payload.{field}" for field in spec.ref_fields}
+                if path_errs and all(p in allowed_paths and c == "PATTERN" for p, c in path_errs):
+                    offending_fields = {p.removeprefix("$.payload.") for p, _ in path_errs}
+                    if all(
+                        isinstance(ent["payload"].get(field), str)
+                        and self.store.get_latest_entity(ent["payload"][field]) is not None
+                        for field in offending_fields
+                    ):
+                        spec.reference_validator(self.store, participant_id, ent["payload"])
             raise to_http_error(ent_errs[0], f"Entity validation failed: {', '.join(ent_errs)}", details=ent_errs)
 
         chain_errs = validate_entity_chain([*existing, ent])
         if chain_errs:
             raise to_http_error(chain_errs[0], f"Entity chain check failed: {', '.join(chain_errs)}", details=chain_errs)
+
+        if spec.reference_validator is not None:
+            spec.reference_validator(self.store, participant_id, ent["payload"])
 
         return ent
 
