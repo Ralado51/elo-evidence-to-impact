@@ -1012,3 +1012,66 @@ def test_legacy_access_token_coexistence(monkeypatch):
     # /api/v3 uses v3 Bearer auth (not legacy x-access-token) and returns v3 error_body
     assert client.get("/api/v3/health").status_code == 200
     _assert_error_body(client.post("/api/v3/participants", json={"alias": "NoAuth", "side": "left"}), 401, "UNAUTHENTICATED")
+
+
+# --- D-S0-02-3 / F1: unknown entity/participant IDs -> 404 NOT_FOUND ---------------------
+
+
+def test_unknown_ids_return_404_while_preserving_scope_and_role_denials(monkeypatch):
+    app, client, ctx = _make_seeded_app(monkeypatch)
+    t1_token = _login_therapist(client, ctx["t1"])
+    t2_token = _login_therapist(client, ctx["t2"])
+    t3_token = _login_therapist(client, ctx["t3"])
+    participant, care_link_id, _, p_token = _create_participant_and_login(client, t1_token)
+
+    before_invites = app.state.v3_store.db.execute("SELECT COUNT(*) FROM v3_invites").fetchone()[0]
+
+    # 1. invites.create with unknown participant_id -> 404 NOT_FOUND (no invite created)
+    for unknown_pid in ("p_nonexistent0001", new_id("p")):
+        _assert_error_body(
+            client.post("/api/v3/invites", headers={"Authorization": f"Bearer {t1_token}"}, json={"participant_id": unknown_pid}),
+            404,
+            "NOT_FOUND",
+        )
+    after_invites = app.state.v3_store.db.execute("SELECT COUNT(*) FROM v3_invites").fetchone()[0]
+    assert after_invites == before_invites
+
+    # 2. invites.create by participant with unknown participant_id -> still 403 FORBIDDEN
+    _assert_error_body(
+        client.post("/api/v3/invites", headers={"Authorization": f"Bearer {p_token}"}, json={"participant_id": "p_nonexistent0001"}),
+        403,
+        "FORBIDDEN",
+    )
+
+    # 3. invites.create for existing participant: unlinked (same org) and foreign-org -> 403 SCOPE_VIOLATION
+    _assert_error_body(
+        client.post("/api/v3/invites", headers={"Authorization": f"Bearer {t2_token}"}, json={"participant_id": participant["entity_id"]}),
+        403,
+        "SCOPE_VIOLATION",
+    )
+    _assert_error_body(
+        client.post("/api/v3/invites", headers={"Authorization": f"Bearer {t3_token}"}, json={"participant_id": participant["entity_id"]}),
+        403,
+        "SCOPE_VIOLATION",
+    )
+
+    # 4. care_links.revoke with unknown care_link id (or non-care_link entity id) -> 404 NOT_FOUND; participant -> 403 FORBIDDEN
+    for unknown_cl in ("cl_nonexistent0001", new_id("cl"), participant["entity_id"]):
+        _assert_error_body(
+            client.post(f"/api/v3/care-links/{unknown_cl}:revoke", headers={"Authorization": f"Bearer {t1_token}"}, json={}),
+            404,
+            "NOT_FOUND",
+        )
+    _assert_error_body(
+        client.post("/api/v3/care-links/cl_nonexistent0001:revoke", headers={"Authorization": f"Bearer {p_token}"}, json={}),
+        403,
+        "FORBIDDEN",
+    )
+
+    # 5. Revoked link preserves 403 SCOPE_VIOLATION on invites.create
+    assert client.post(f"/api/v3/care-links/{care_link_id}:revoke", headers={"Authorization": f"Bearer {t1_token}"}, json={}).status_code == 200
+    _assert_error_body(
+        client.post("/api/v3/invites", headers={"Authorization": f"Bearer {t1_token}"}, json={"participant_id": participant["entity_id"]}),
+        403,
+        "SCOPE_VIOLATION",
+    )

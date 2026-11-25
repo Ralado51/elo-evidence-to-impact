@@ -108,6 +108,10 @@ def create_v3_router(
         if not isinstance(participant_id, str) or not _PARTICIPANT_ID_RE.fullmatch(participant_id):
             raise V3Error("PATTERN", "participant_id must match ^p_[A-Za-z0-9-]{8,64}$.")
 
+        # Unknown participant id -> 404 NOT_FOUND before linked-scope check (D-S0-02-3)
+        if store.get_latest_entity(participant_id, entity_type="participant") is None:
+            raise V3Error("NOT_FOUND", "Participant not found.")
+
         # Therapist must hold an active care_link to participant_id in the same org
         links = store.latest_care_links(participant_id=participant_id)
         decision = authorize(
