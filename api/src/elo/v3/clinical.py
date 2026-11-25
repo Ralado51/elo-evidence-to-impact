@@ -11,7 +11,7 @@ unique ``(entity_id, version)`` constraint (concurrent losing writer -> 409
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import Any
 
@@ -62,6 +62,34 @@ class ClinicalEntitySpec:
     read_resource: str
     read_action: str
     allow_revise: bool = True
+    payload_normalizer: Callable[[dict[str, Any], Principal, str], dict[str, Any]] | None = None
+    participant_projector: Callable[[dict[str, Any]], dict[str, Any]] | None = None
+
+
+def _normalize_goal_payload(payload: dict[str, Any], principal: Principal, server_time: str) -> dict[str, Any]:
+    """Enforce RN014 / D-S1a-02-1(a): server sets confirmed_by and confirmed_at; client values ignored."""
+    normalized = dict(payload)
+    if normalized.get("status") == "achieved_confirmed" and principal.role == "therapist":
+        normalized["confirmed_by"] = principal.id
+        normalized["confirmed_at"] = server_time
+    else:
+        normalized["confirmed_by"] = None
+        normalized["confirmed_at"] = None
+    return normalized
+
+
+def _project_goal_for_participant(entity: dict[str, Any]) -> dict[str, Any]:
+    """Project a goal entity to the D-S1a-02-1(b) participant simplified view (exact 7 keys)."""
+    payload = entity["payload"]
+    return {
+        "entity_id": entity["entity_id"],
+        "version": entity["version"],
+        "goal_text": payload["goal_text"],
+        "body_segment": payload["body_segment"],
+        "target": payload["target"],
+        "status": payload["status"],
+        "confirmed_at": payload["confirmed_at"],
+    }
 
 
 DEFAULT_CLINICAL_REGISTRY: dict[str, ClinicalEntitySpec] = {
@@ -75,6 +103,19 @@ DEFAULT_CLINICAL_REGISTRY: dict[str, ClinicalEntitySpec] = {
         read_resource="functional_assessment",
         read_action="read",
         allow_revise=True,
+    ),
+    "goal": ClinicalEntitySpec(
+        entity_type="goal",
+        id_prefix=ENTITY_PREFIX["goal"],
+        create_resource="goal",
+        create_action="create/revise/confirm",
+        revise_resource="goal",
+        revise_action="create/revise/confirm",
+        read_resource="goal",
+        read_action="read",
+        allow_revise=True,
+        payload_normalizer=_normalize_goal_payload,
+        participant_projector=_project_goal_for_participant,
     ),
 }
 
@@ -233,6 +274,16 @@ class ClinicalEntityService:
         if not role_decision.allowed and role_decision.code == "FORBIDDEN":
             raise V3Error("FORBIDDEN", role_decision.reason)
 
+        # Participant reading another participant's scope -> 403 SCOPE_VIOLATION without existence leak.
+        if caller.role == "participant" and participant_id != caller.id:
+            self_decision = authorize(
+                caller,
+                spec.read_resource,
+                spec.read_action,
+                AuthzScope(participant_id=participant_id, is_read_by_id=False),
+            )
+            _enforce_decision(self_decision)
+
         participant = self.store.get_latest_entity(participant_id, entity_type="participant")
         if participant is None:
             raise V3Error("NOT_FOUND", "Participant not found.")
@@ -271,6 +322,12 @@ class ClinicalEntityService:
             raise V3Error("TYPE", "Payload must be a JSON object.")
 
         created_at = utc_now_ms()
+        spec = self.get_spec(entity_type)
+        effective_payload = (
+            spec.payload_normalizer(payload, principal, created_at)
+            if spec.payload_normalizer is not None
+            else payload
+        )
         try:
             ent = build_entity(
                 entity_type=entity_type,
@@ -282,7 +339,7 @@ class ClinicalEntityService:
                 author_role=principal.role,
                 author_id=principal.id,
                 data_origin=self.store.data_origin,
-                payload=payload,
+                payload=effective_payload,
                 created_at=created_at,
             )
         except CanonicalizationError as exc:
@@ -297,7 +354,7 @@ class ClinicalEntityService:
                 "created_at": created_at,
                 "author": {"role": principal.role, "id": principal.id},
                 "data_origin": self.store.data_origin,
-                "payload": payload,
+                "payload": effective_payload,
                 "hash": "0" * 64,
             }
             schema = load_entity_schema(entity_type)
@@ -379,4 +436,8 @@ class ClinicalEntityService:
     ) -> list[dict[str, Any]]:
         """Return latest version of each ``entity_type`` for ``participant_id`` ordered by (created_at, entity_id)."""
         spec = self.authorize_list(entity_type, participant_id, principal)
-        return self.store.list_latest_entities(spec.entity_type, participant_id)
+        assert principal is not None
+        items = self.store.list_latest_entities(spec.entity_type, participant_id)
+        if principal.role == "participant" and spec.participant_projector is not None:
+            return [spec.participant_projector(ent) for ent in items]
+        return items

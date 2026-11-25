@@ -45,6 +45,9 @@ S0_02_ROUTE_IDS = {
     "assessments.create",
     "assessments.revise",
     "assessments.list",
+    "goals.create",
+    "goals.revise",
+    "goals.list",
 }
 
 
