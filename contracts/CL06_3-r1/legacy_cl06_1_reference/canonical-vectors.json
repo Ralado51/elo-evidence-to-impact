@@ -1,0 +1,10 @@
+{
+  "description": "HAND-WRITTEN canonicalization vectors (RFC 8785 subset). Hashes are checked in tests with node:crypto (independent of the WebCrypto path used by the contracts).",
+  "vectors": [
+    { "id": "C01-key-order", "value": { "b": 1, "a": [3, 2, 1], "c": { "z": null, "y": true } }, "canonical": "{\"a\":[3,2,1],\"b\":1,\"c\":{\"y\":true,\"z\":null}}" },
+    { "id": "C02-numbers", "value": { "int": 4, "dec": 0.87, "small": 1e-7, "big": 1e21, "neg": -2.5 }, "canonical": "{\"big\":1e+21,\"dec\":0.87,\"int\":4,\"neg\":-2.5,\"small\":1e-7}" },
+    { "id": "C03-unicode", "value": { "texto": "Cansaço é sinalização", "é": 1, "e": 2 }, "canonical": "{\"e\":2,\"texto\":\"Cansaço é sinalização\",\"é\":1}" },
+    { "id": "C04-escapes", "value": { "q": "a\"b\\c\nd" }, "canonical": "{\"q\":\"a\\\"b\\\\c\\nd\"}" },
+    { "id": "C05-event-id-slot", "value": { "stream_id": "session:s_fixture-0001", "seq": 1 }, "canonical": "{\"seq\":1,\"stream_id\":\"session:s_fixture-0001\"}" }
+  ]
+}

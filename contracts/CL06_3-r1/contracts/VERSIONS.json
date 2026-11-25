@@ -1,0 +1,16 @@
+{
+ "contracts_version": "3.0.0",
+ "schema_version": 3,
+ "fact_catalog_version": "2",
+ "event_catalog_version": "3",
+ "comparability_rules_version": "cmp-v1",
+ "limits_version": "limits-v1",
+ "api_version": "v3",
+ "legacy_read_only": {
+  "schema_version": 2,
+  "fact_catalog_version": "1",
+  "contracts_version": "1.0.0",
+  "api": "v1"
+ },
+ "status": "CL06.3 prepared for PO approval; not released to implementation"
+}

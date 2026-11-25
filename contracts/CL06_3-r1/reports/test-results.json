@@ -1,0 +1,41 @@
+{
+ "python": {
+  "tests": 37,
+  "exit_code": 0
+ },
+ "javascript": {
+  "tests": 0,
+  "pass": 0,
+  "fail": 0,
+  "exit_code": 0
+ },
+ "contract_tests_status": "PASS",
+ "adversarial": {
+  "executable_now": 17,
+  "pending_implementation": [
+   "P3-scope",
+   "P7b",
+   "P3b",
+   "P5",
+   "P5b",
+   "P6",
+   "P9",
+   "V3-V1",
+   "V3-V2",
+   "V3-V3",
+   "V3-S1",
+   "V3-S2",
+   "V3-S3",
+   "V3-S4",
+   "V3-S5",
+   "V3-S6",
+   "V3-S7",
+   "V3-S8",
+   "V3-S9",
+   "V3-S10"
+  ],
+  "note": "Pending cases are NOT counted as passed. They are conformance data for a future verifier/service."
+ },
+ "verifier_status": "NOT_IMPLEMENTED",
+ "verifier_approved": false
+}

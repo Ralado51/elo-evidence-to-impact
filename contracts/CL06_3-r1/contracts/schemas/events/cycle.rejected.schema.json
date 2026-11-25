@@ -1,0 +1,262 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "elo:contracts:3.0.0:event.cycle.rejected",
+ "type": "object",
+ "properties": {
+  "event_id": {
+   "type": "string",
+   "pattern": "^[0-9a-f]{64}$"
+  },
+  "schema_version": {
+   "const": 3
+  },
+  "type": {
+   "const": "cycle.rejected"
+  },
+  "stream_id": {
+   "type": "string",
+   "pattern": "^(session|prescription|consent|review|privacy):[A-Za-z0-9_.-]{8,140}$"
+  },
+  "seq": {
+   "type": "integer",
+   "minimum": 1,
+   "maximum": 1000000000
+  },
+  "prev_hash": {
+   "type": [
+    "string",
+    "null"
+   ],
+   "pattern": "^[0-9a-f]{64}$"
+  },
+  "occurred_at": {
+   "type": "string",
+   "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$"
+  },
+  "t_mono_ms": {
+   "type": "number",
+   "minimum": 0,
+   "maximum": 1000000000
+  },
+  "actor": {
+   "type": "object",
+   "properties": {
+    "role": {
+     "type": "string",
+     "enum": [
+      "participant",
+      "therapist",
+      "system"
+     ]
+    },
+    "id": {
+     "type": "string",
+     "pattern": "^(p|t|sys)_[A-Za-z0-9-]{8,64}$"
+    }
+   },
+   "required": [
+    "role",
+    "id"
+   ],
+   "additionalProperties": false
+  },
+  "scope": {
+   "type": "object",
+   "properties": {
+    "org_id": {
+     "type": "string",
+     "pattern": "^o_[A-Za-z0-9-]{8,64}$"
+    },
+    "participant_id": {
+     "type": "string",
+     "pattern": "^p_[A-Za-z0-9-]{8,64}$"
+    },
+    "session_id": {
+     "type": "string",
+     "pattern": "^s_[A-Za-z0-9-]{8,64}$"
+    },
+    "prescription_id": {
+     "type": "string",
+     "pattern": "^rx_[A-Za-z0-9-]{8,64}$"
+    },
+    "prescription_revision": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 1000
+    },
+    "exercise_id": {
+     "const": "organizar-a-mesa"
+    }
+   },
+   "required": [
+    "org_id",
+    "participant_id"
+   ],
+   "additionalProperties": false
+  },
+  "source": {
+   "type": "object",
+   "properties": {
+    "type": {
+     "type": "string",
+     "enum": [
+      "camera",
+      "simulation",
+      "participant_report",
+      "therapist",
+      "system"
+     ]
+    },
+    "algorithm_version": {
+     "type": "string",
+     "pattern": "^[a-z0-9][a-z0-9.-]{1,40}$"
+    },
+    "device_hint": {
+     "type": "string",
+     "enum": [
+      "desktop-chrome",
+      "desktop-edge",
+      "desktop-other",
+      "mobile-chrome",
+      "mobile-safari",
+      "mobile-other"
+     ]
+    }
+   },
+   "required": [
+    "type"
+   ],
+   "additionalProperties": false
+  },
+  "execution_mode": {
+   "type": "string",
+   "enum": [
+    "camera",
+    "simulation",
+    "report_only",
+    "not_applicable"
+   ]
+  },
+  "data_origin": {
+   "type": "string",
+   "enum": [
+    "live",
+    "synthetic_fixture",
+    "experimental_capture",
+    "imported_v1"
+   ]
+  },
+  "origin_ref": {
+   "type": "string",
+   "pattern": "^[0-9a-f]{64}$"
+  },
+  "hash": {
+   "type": "string",
+   "pattern": "^[0-9a-f]{64}$"
+  },
+  "payload": {
+   "type": "object",
+   "properties": {
+    "cycle_index": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 10000
+    },
+    "calibration_id": {
+     "type": "string",
+     "pattern": "^cal_[A-Za-z0-9-]{8,64}$"
+    },
+    "open_peak_n": {
+     "type": "number",
+     "minimum": -5,
+     "maximum": 5
+    },
+    "closed_trough_n": {
+     "type": "number",
+     "minimum": -5,
+     "maximum": 5
+    },
+    "armed_to_close_ms": {
+     "type": "number",
+     "minimum": 0,
+     "maximum": 600000
+    },
+    "frames": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 100000
+    },
+    "usable_frames": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 100000
+    },
+    "handedness": {
+     "type": [
+      "object",
+      "null"
+     ],
+     "properties": {
+      "label": {
+       "type": "string",
+       "enum": [
+        "left",
+        "right"
+       ]
+      },
+      "score": {
+       "type": "number",
+       "minimum": 0,
+       "maximum": 1
+      }
+     },
+     "required": [
+      "label",
+      "score"
+     ],
+     "additionalProperties": false
+    },
+    "reason": {
+     "type": "string",
+     "enum": [
+      "low_quality",
+      "inactive",
+      "over_target",
+      "calibration_mismatch",
+      "low_frame_rate",
+      "handedness_incompatible"
+     ]
+    }
+   },
+   "required": [
+    "cycle_index",
+    "calibration_id",
+    "open_peak_n",
+    "closed_trough_n",
+    "armed_to_close_ms",
+    "frames",
+    "usable_frames",
+    "handedness",
+    "reason"
+   ],
+   "additionalProperties": false
+  }
+ },
+ "required": [
+  "event_id",
+  "schema_version",
+  "type",
+  "stream_id",
+  "seq",
+  "prev_hash",
+  "occurred_at",
+  "actor",
+  "scope",
+  "source",
+  "execution_mode",
+  "data_origin",
+  "hash",
+  "payload"
+ ],
+ "additionalProperties": false
+}

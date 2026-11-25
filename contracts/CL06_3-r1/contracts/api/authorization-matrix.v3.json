@@ -1,0 +1,199 @@
+{
+ "matrix_version": "3",
+ "legend": {
+  "own": "principal.id == scope.participant_id",
+  "linked": "active care_link (therapist_id, participant_id) in same org",
+  "deny": "FORBIDDEN or SCOPE_VIOLATION (403); invisible resources: NOT_FOUND (404)"
+ },
+ "rows": [
+  {
+   "resource": "participant (entity)",
+   "action": "create",
+   "participant": "deny",
+   "therapist": "allow",
+   "condition": "creates care_link v1"
+  },
+  {
+   "resource": "participant (entity)",
+   "action": "read",
+   "participant": "own",
+   "therapist": "linked",
+   "condition": "active care_link, same org"
+  },
+  {
+   "resource": "care_link",
+   "action": "create/revoke",
+   "participant": "deny",
+   "therapist": "allow",
+   "condition": "therapist is a party"
+  },
+  {
+   "resource": "care_link",
+   "action": "read",
+   "participant": "own",
+   "therapist": "linked",
+   "condition": ""
+  },
+  {
+   "resource": "functional_assessment",
+   "action": "create/revise",
+   "participant": "deny",
+   "therapist": "linked",
+   "condition": "RN001 two roles; therapist only"
+  },
+  {
+   "resource": "functional_assessment",
+   "action": "read",
+   "participant": "deny",
+   "therapist": "linked",
+   "condition": "participant sees simplified evolution only"
+  },
+  {
+   "resource": "goal",
+   "action": "create/revise/confirm",
+   "participant": "deny",
+   "therapist": "linked",
+   "condition": "RN014: only the therapist confirms achievement"
+  },
+  {
+   "resource": "goal",
+   "action": "read",
+   "participant": "own",
+   "therapist": "linked",
+   "condition": "participant: simplified"
+  },
+  {
+   "resource": "encounter",
+   "action": "create",
+   "participant": "deny",
+   "therapist": "linked",
+   "condition": ""
+  },
+  {
+   "resource": "encounter",
+   "action": "read",
+   "participant": "deny",
+   "therapist": "linked",
+   "condition": ""
+  },
+  {
+   "resource": "reassessment",
+   "action": "create/read",
+   "participant": "deny",
+   "therapist": "linked",
+   "condition": ""
+  },
+  {
+   "resource": "instrumental_measurement",
+   "action": "create/read",
+   "participant": "deny",
+   "therapist": "linked",
+   "condition": ""
+  },
+  {
+   "resource": "prescription",
+   "action": "publish",
+   "participant": "deny",
+   "therapist": "linked",
+   "condition": "RN003: only therapist changes the prescription; limits enforced"
+  },
+  {
+   "resource": "prescription",
+   "action": "read",
+   "participant": "own",
+   "therapist": "linked",
+   "condition": ""
+  },
+  {
+   "resource": "draft",
+   "action": "create/read/confirm/discard",
+   "participant": "own (session_report_proposal only)",
+   "therapist": "own (author)",
+   "condition": "draft visible only to its author; voice requires microphone consent"
+  },
+  {
+   "resource": "event: session/capture/report/consent",
+   "action": "append",
+   "participant": "own",
+   "therapist": "deny",
+   "condition": "actor = principal; consent active; schema 3 only; live origin gated"
+  },
+  {
+   "resource": "event: prescription/review/summary/evolution/privacy",
+   "action": "append",
+   "participant": "deny",
+   "therapist": "server-authored (therapist principal)",
+   "condition": "never client-authored"
+  },
+  {
+   "resource": "fact",
+   "action": "read/verify/evidence",
+   "participant": "deny",
+   "therapist": "linked",
+   "condition": ""
+  },
+  {
+   "resource": "review",
+   "action": "record",
+   "participant": "deny",
+   "therapist": "linked",
+   "condition": "bound to content_hash"
+  },
+  {
+   "resource": "summary",
+   "action": "publish",
+   "participant": "deny",
+   "therapist": "linked",
+   "condition": "publication gate"
+  },
+  {
+   "resource": "summary",
+   "action": "read",
+   "participant": "own",
+   "therapist": "linked",
+   "condition": ""
+  },
+  {
+   "resource": "evolution",
+   "action": "series read / publish",
+   "participant": "deny",
+   "therapist": "linked",
+   "condition": "publication gate; unreviewed facts rejected"
+  },
+  {
+   "resource": "evolution",
+   "action": "read published",
+   "participant": "own (simplified)",
+   "therapist": "linked",
+   "condition": ""
+  },
+  {
+   "resource": "timeline",
+   "action": "read",
+   "participant": "deny",
+   "therapist": "linked",
+   "condition": ""
+  },
+  {
+   "resource": "health",
+   "action": "read",
+   "participant": "allow",
+   "therapist": "allow",
+   "condition": "anonymous allowed"
+  },
+  {
+   "resource": "any resource",
+   "action": "any",
+   "participant": "role caregiver: deny; role supervisor: deny; any role not in {participant, therapist}: ROLE_NOT_ALLOWED",
+   "therapist": "same",
+   "condition": "PD-08"
+  },
+  {
+   "resource": "companion / acompanhante",
+   "action": "any",
+   "participant": "no profile: assisting a participant is expressed only as assistance (reported by the participant)",
+   "therapist": "n/a",
+   "condition": "PD-08; REM15 is P1 and out of v3"
+  }
+ ]
+}

@@ -1,0 +1,543 @@
+{
+ "description": "One valid entity per type, plus version chains (assessment v1->v2, goal v1->v2 achieved_confirmed), a voice draft and a participant-authored report proposal.",
+ "entities": {
+  "participant": {
+   "entity_id": "p_fixture-0001",
+   "entity_type": "participant",
+   "version": 1,
+   "prev_hash": null,
+   "org_id": "o_fixture-0001",
+   "participant_id": "p_fixture-0001",
+   "created_at": "2026-11-25T09:46:50.001Z",
+   "author": {
+    "role": "therapist",
+    "id": "t_fixture-0001"
+   },
+   "data_origin": "synthetic_fixture",
+   "payload": {
+    "alias": "Fixture Pessoa",
+    "side": "right"
+   },
+   "hash": "e33b4f05e4a27c9dc28a9ad258921580bec2ff82d47bba91dc5562f4e701b7af"
+  },
+  "therapist": {
+   "entity_id": "t_fixture-0001",
+   "entity_type": "therapist",
+   "version": 1,
+   "prev_hash": null,
+   "org_id": "o_fixture-0001",
+   "created_at": "2026-11-25T09:46:50.001Z",
+   "author": {
+    "role": "therapist",
+    "id": "t_fixture-0001"
+   },
+   "data_origin": "synthetic_fixture",
+   "payload": {
+    "display_label": "Terapeuta Fixture"
+   },
+   "hash": "0ca0a8c5e32e3495458ef26f8b3a9ec93db353a68b165fcddfc2b3ab723a2802"
+  },
+  "care_link": {
+   "entity_id": "cl_fixture-0001",
+   "entity_type": "care_link",
+   "version": 1,
+   "prev_hash": null,
+   "org_id": "o_fixture-0001",
+   "participant_id": "p_fixture-0001",
+   "created_at": "2026-11-25T09:46:50.001Z",
+   "author": {
+    "role": "therapist",
+    "id": "t_fixture-0001"
+   },
+   "data_origin": "synthetic_fixture",
+   "payload": {
+    "therapist_id": "t_fixture-0001",
+    "status": "active",
+    "valid_from": "2026-11-23",
+    "valid_to": null
+   },
+   "hash": "ac26c345c0d9859d6270f6f0513e49b85a6e7a96588af101a06cef81ac0776fc"
+  },
+  "functional_assessment": {
+   "entity_id": "fa_fixture-0001",
+   "entity_type": "functional_assessment",
+   "version": 1,
+   "prev_hash": null,
+   "org_id": "o_fixture-0001",
+   "participant_id": "p_fixture-0001",
+   "created_at": "2026-11-25T09:46:50.001Z",
+   "author": {
+    "role": "therapist",
+    "id": "t_fixture-0001"
+   },
+   "data_origin": "synthetic_fixture",
+   "payload": {
+    "assessment_date": "2026-11-23",
+    "body_segment": "hand",
+    "side": "right",
+    "instrument": {
+     "instrument_id": "custom_unvalidated",
+     "instrument_version": "0",
+     "status": "unvalidated_custom"
+    },
+    "items": [
+     {
+      "item_key": "grip_open_close_free",
+      "value_type": "category",
+      "value": "with_difficulty",
+      "unit": null,
+      "source": "therapist_observed",
+      "assistance": "some",
+      "not_assessed": false
+     },
+     {
+      "item_key": "wrist_extension",
+      "value_type": "number",
+      "value": null,
+      "unit": "deg",
+      "source": "therapist_instrumental",
+      "assistance": "not_assessed",
+      "not_assessed": true
+     }
+    ],
+    "therapist_note": null
+   },
+   "hash": "25204bab096d671a2a217c664eb6f9f9b88408c5f03b5e06a3c0d5b86a161976"
+  },
+  "goal": {
+   "entity_id": "gl_fixture-0001",
+   "entity_type": "goal",
+   "version": 1,
+   "prev_hash": null,
+   "org_id": "o_fixture-0001",
+   "participant_id": "p_fixture-0001",
+   "created_at": "2026-11-25T09:46:50.001Z",
+   "author": {
+    "role": "therapist",
+    "id": "t_fixture-0001"
+   },
+   "data_origin": "synthetic_fixture",
+   "payload": {
+    "goal_text": "Synthetic goal: use the hand to open a jar lid.",
+    "body_segment": "hand",
+    "target": {
+     "kind": "descriptive_text",
+     "value": null,
+     "unit": null
+    },
+    "status": "active",
+    "confirmed_by": null,
+    "confirmed_at": null
+   },
+   "hash": "1e177303f6e5b4b858a81baae963cfd4609e32eb5de30a7a0e749e3f29d1257a"
+  },
+  "encounter": {
+   "entity_id": "en_fixture-0001",
+   "entity_type": "encounter",
+   "version": 1,
+   "prev_hash": null,
+   "org_id": "o_fixture-0001",
+   "participant_id": "p_fixture-0001",
+   "created_at": "2026-11-25T09:46:50.001Z",
+   "author": {
+    "role": "therapist",
+    "id": "t_fixture-0001"
+   },
+   "data_origin": "synthetic_fixture",
+   "payload": {
+    "encounter_date": "2026-11-23",
+    "modality": "remote_external",
+    "duration_min": 30,
+    "prescription_ref": {
+     "prescription_id": "rx_fixture-0001",
+     "revision": 1
+    },
+    "assessment_ref": "fa_fixture-0001",
+    "therapist_note": null
+   },
+   "hash": "c9884f2c81e841b08f6cba91cff9844541e30b114a4c88bf22ec81baebf145f0"
+  },
+  "reassessment": {
+   "entity_id": "ra_fixture-0001",
+   "entity_type": "reassessment",
+   "version": 1,
+   "prev_hash": null,
+   "org_id": "o_fixture-0001",
+   "participant_id": "p_fixture-0001",
+   "created_at": "2026-11-25T09:46:50.001Z",
+   "author": {
+    "role": "therapist",
+    "id": "t_fixture-0001"
+   },
+   "data_origin": "synthetic_fixture",
+   "payload": {
+    "baseline_assessment_ref": "fa_fixture-0001",
+    "current_assessment_ref": "fa_fixture-0001",
+    "item_comparability": [
+     {
+      "item_key": "grip_open_close_free",
+      "comparable": true,
+      "reason": null
+     },
+     {
+      "item_key": "wrist_extension",
+      "comparable": false,
+      "reason": "method_differs"
+     }
+    ]
+   },
+   "hash": "e60450dc520483f31bbcbcb78f3c09d80c6946b2221b6df7a22264993df2e596"
+  },
+  "instrumental_measurement": {
+   "entity_id": "im_fixture-0001",
+   "entity_type": "instrumental_measurement",
+   "version": 1,
+   "prev_hash": null,
+   "org_id": "o_fixture-0001",
+   "participant_id": "p_fixture-0001",
+   "created_at": "2026-11-25T09:46:50.001Z",
+   "author": {
+    "role": "therapist",
+    "id": "t_fixture-0001"
+   },
+   "data_origin": "synthetic_fixture",
+   "payload": {
+    "measured_at": "2026-11-25T09:46:49.000Z",
+    "body_segment": "wrist",
+    "side": "right",
+    "movement_key": "wrist_extension",
+    "value": 40,
+    "unit": "deg",
+    "instrument_label": "manual goniometer (synthetic)",
+    "method": "therapist_instrumental_manual",
+    "assistance": "none",
+    "therapist_note": null
+   },
+   "hash": "5cf67cc9c6f462bd8d70a0645f69215fbbbbde3cb4713f2eceb35368c39efca8"
+  },
+  "draft": {
+   "entity_id": "dr_fixture-0001",
+   "entity_type": "draft",
+   "version": 1,
+   "prev_hash": null,
+   "org_id": "o_fixture-0001",
+   "participant_id": "p_fixture-0001",
+   "created_at": "2026-11-25T09:46:50.001Z",
+   "author": {
+    "role": "therapist",
+    "id": "t_fixture-0001"
+   },
+   "data_origin": "synthetic_fixture",
+   "payload": {
+    "draft_kind": "structured_extraction",
+    "target": "encounter",
+    "status": "draft",
+    "produced_by": "manual_form",
+    "retention_class": "until_confirmed",
+    "transcript_text": null,
+    "proposals": [
+     {
+      "field_key": "modality",
+      "proposed_value": "remote_external",
+      "state": "proposed"
+     }
+    ],
+    "audio_retained": false,
+    "engine_label": null,
+    "microphone_consent_ref": null,
+    "confirmed_entity_ref": null,
+    "confirmed_by": null
+   },
+   "hash": "0fe9758528928ecea5d223de31b02305391d0724bbcac3a1d27012054bbf0c2d"
+  },
+  "voice_draft": {
+   "entity_id": "dr_fixture-0002",
+   "entity_type": "draft",
+   "version": 1,
+   "prev_hash": null,
+   "org_id": "o_fixture-0001",
+   "participant_id": "p_fixture-0001",
+   "created_at": "2026-11-25T09:46:50.001Z",
+   "author": {
+    "role": "therapist",
+    "id": "t_fixture-0001"
+   },
+   "data_origin": "synthetic_fixture",
+   "payload": {
+    "draft_kind": "dictation_transcript",
+    "target": "encounter",
+    "status": "draft",
+    "produced_by": "voice_to_text",
+    "retention_class": "until_confirmed",
+    "transcript_text": "Synthetic dictation text.",
+    "proposals": [],
+    "audio_retained": false,
+    "engine_label": null,
+    "microphone_consent_ref": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "confirmed_entity_ref": null,
+    "confirmed_by": null
+   },
+   "hash": "6153f7a218ec466b8400635aa21fbc4b91b013caf839ca0ee176dbf6c9cf8ae1"
+  },
+  "participant_report_draft": {
+   "entity_id": "dr_fixture-0003",
+   "entity_type": "draft",
+   "version": 1,
+   "prev_hash": null,
+   "org_id": "o_fixture-0001",
+   "participant_id": "p_fixture-0001",
+   "created_at": "2026-11-25T09:46:50.001Z",
+   "author": {
+    "role": "participant",
+    "id": "p_fixture-0001"
+   },
+   "data_origin": "synthetic_fixture",
+   "payload": {
+    "draft_kind": "session_report_proposal",
+    "target": "session_report",
+    "status": "draft",
+    "produced_by": "assisted_structuring",
+    "retention_class": "session_only",
+    "transcript_text": null,
+    "proposals": [
+     {
+      "field_key": "assistance",
+      "proposed_value": "some",
+      "state": "proposed"
+     }
+    ],
+    "audio_retained": false,
+    "engine_label": null,
+    "microphone_consent_ref": null,
+    "confirmed_entity_ref": null,
+    "confirmed_by": null
+   },
+   "hash": "99477b815094eefd7abb571b108e641b658156e918f0be5b060e57686eccc1dc"
+  },
+  "functional_assessment_v2": {
+   "entity_id": "fa_fixture-0001",
+   "entity_type": "functional_assessment",
+   "version": 2,
+   "prev_hash": "25204bab096d671a2a217c664eb6f9f9b88408c5f03b5e06a3c0d5b86a161976",
+   "org_id": "o_fixture-0001",
+   "participant_id": "p_fixture-0001",
+   "created_at": "2026-11-25T09:46:50.002Z",
+   "author": {
+    "role": "therapist",
+    "id": "t_fixture-0001"
+   },
+   "data_origin": "synthetic_fixture",
+   "payload": {
+    "assessment_date": "2026-11-23",
+    "body_segment": "hand",
+    "side": "right",
+    "instrument": {
+     "instrument_id": "custom_unvalidated",
+     "instrument_version": "0",
+     "status": "unvalidated_custom"
+    },
+    "items": [
+     {
+      "item_key": "grip_open_close_free",
+      "value_type": "category",
+      "value": "with_difficulty",
+      "unit": null,
+      "source": "therapist_observed",
+      "assistance": "some",
+      "not_assessed": false
+     },
+     {
+      "item_key": "wrist_extension",
+      "value_type": "number",
+      "value": null,
+      "unit": "deg",
+      "source": "therapist_instrumental",
+      "assistance": "not_assessed",
+      "not_assessed": true
+     }
+    ],
+    "therapist_note": "Synthetic revision note."
+   },
+   "hash": "a229cd42c94cb7dcf7580c77555f6622083aefd66d1990ab4adfb5bf03369ca8"
+  },
+  "goal_v2": {
+   "entity_id": "gl_fixture-0001",
+   "entity_type": "goal",
+   "version": 2,
+   "prev_hash": "1e177303f6e5b4b858a81baae963cfd4609e32eb5de30a7a0e749e3f29d1257a",
+   "org_id": "o_fixture-0001",
+   "participant_id": "p_fixture-0001",
+   "created_at": "2026-11-25T09:46:50.002Z",
+   "author": {
+    "role": "therapist",
+    "id": "t_fixture-0001"
+   },
+   "data_origin": "synthetic_fixture",
+   "payload": {
+    "goal_text": "Synthetic goal: use the hand to open a jar lid.",
+    "body_segment": "hand",
+    "target": {
+     "kind": "descriptive_text",
+     "value": null,
+     "unit": null
+    },
+    "status": "achieved_confirmed",
+    "confirmed_by": "t_fixture-0001",
+    "confirmed_at": "2026-11-25T09:47:00.000Z"
+   },
+   "hash": "47e66e6c808a17537c2a53f9e568e3038556b4468dab8c2a63aa9bacd725ff0c"
+  }
+ },
+ "chains": {
+  "functional_assessment": [
+   {
+    "entity_id": "fa_fixture-0001",
+    "entity_type": "functional_assessment",
+    "version": 1,
+    "prev_hash": null,
+    "org_id": "o_fixture-0001",
+    "participant_id": "p_fixture-0001",
+    "created_at": "2026-11-25T09:46:50.001Z",
+    "author": {
+     "role": "therapist",
+     "id": "t_fixture-0001"
+    },
+    "data_origin": "synthetic_fixture",
+    "payload": {
+     "assessment_date": "2026-11-23",
+     "body_segment": "hand",
+     "side": "right",
+     "instrument": {
+      "instrument_id": "custom_unvalidated",
+      "instrument_version": "0",
+      "status": "unvalidated_custom"
+     },
+     "items": [
+      {
+       "item_key": "grip_open_close_free",
+       "value_type": "category",
+       "value": "with_difficulty",
+       "unit": null,
+       "source": "therapist_observed",
+       "assistance": "some",
+       "not_assessed": false
+      },
+      {
+       "item_key": "wrist_extension",
+       "value_type": "number",
+       "value": null,
+       "unit": "deg",
+       "source": "therapist_instrumental",
+       "assistance": "not_assessed",
+       "not_assessed": true
+      }
+     ],
+     "therapist_note": null
+    },
+    "hash": "25204bab096d671a2a217c664eb6f9f9b88408c5f03b5e06a3c0d5b86a161976"
+   },
+   {
+    "entity_id": "fa_fixture-0001",
+    "entity_type": "functional_assessment",
+    "version": 2,
+    "prev_hash": "25204bab096d671a2a217c664eb6f9f9b88408c5f03b5e06a3c0d5b86a161976",
+    "org_id": "o_fixture-0001",
+    "participant_id": "p_fixture-0001",
+    "created_at": "2026-11-25T09:46:50.002Z",
+    "author": {
+     "role": "therapist",
+     "id": "t_fixture-0001"
+    },
+    "data_origin": "synthetic_fixture",
+    "payload": {
+     "assessment_date": "2026-11-23",
+     "body_segment": "hand",
+     "side": "right",
+     "instrument": {
+      "instrument_id": "custom_unvalidated",
+      "instrument_version": "0",
+      "status": "unvalidated_custom"
+     },
+     "items": [
+      {
+       "item_key": "grip_open_close_free",
+       "value_type": "category",
+       "value": "with_difficulty",
+       "unit": null,
+       "source": "therapist_observed",
+       "assistance": "some",
+       "not_assessed": false
+      },
+      {
+       "item_key": "wrist_extension",
+       "value_type": "number",
+       "value": null,
+       "unit": "deg",
+       "source": "therapist_instrumental",
+       "assistance": "not_assessed",
+       "not_assessed": true
+      }
+     ],
+     "therapist_note": "Synthetic revision note."
+    },
+    "hash": "a229cd42c94cb7dcf7580c77555f6622083aefd66d1990ab4adfb5bf03369ca8"
+   }
+  ],
+  "goal": [
+   {
+    "entity_id": "gl_fixture-0001",
+    "entity_type": "goal",
+    "version": 1,
+    "prev_hash": null,
+    "org_id": "o_fixture-0001",
+    "participant_id": "p_fixture-0001",
+    "created_at": "2026-11-25T09:46:50.001Z",
+    "author": {
+     "role": "therapist",
+     "id": "t_fixture-0001"
+    },
+    "data_origin": "synthetic_fixture",
+    "payload": {
+     "goal_text": "Synthetic goal: use the hand to open a jar lid.",
+     "body_segment": "hand",
+     "target": {
+      "kind": "descriptive_text",
+      "value": null,
+      "unit": null
+     },
+     "status": "active",
+     "confirmed_by": null,
+     "confirmed_at": null
+    },
+    "hash": "1e177303f6e5b4b858a81baae963cfd4609e32eb5de30a7a0e749e3f29d1257a"
+   },
+   {
+    "entity_id": "gl_fixture-0001",
+    "entity_type": "goal",
+    "version": 2,
+    "prev_hash": "1e177303f6e5b4b858a81baae963cfd4609e32eb5de30a7a0e749e3f29d1257a",
+    "org_id": "o_fixture-0001",
+    "participant_id": "p_fixture-0001",
+    "created_at": "2026-11-25T09:46:50.002Z",
+    "author": {
+     "role": "therapist",
+     "id": "t_fixture-0001"
+    },
+    "data_origin": "synthetic_fixture",
+    "payload": {
+     "goal_text": "Synthetic goal: use the hand to open a jar lid.",
+     "body_segment": "hand",
+     "target": {
+      "kind": "descriptive_text",
+      "value": null,
+      "unit": null
+     },
+     "status": "achieved_confirmed",
+     "confirmed_by": "t_fixture-0001",
+     "confirmed_at": "2026-11-25T09:47:00.000Z"
+    },
+    "hash": "47e66e6c808a17537c2a53f9e568e3038556b4468dab8c2a63aa9bacd725ff0c"
+   }
+  ]
+ }
+}

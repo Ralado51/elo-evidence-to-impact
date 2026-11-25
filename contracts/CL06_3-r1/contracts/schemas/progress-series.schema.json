@@ -1,0 +1,162 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "elo:contracts:3.0.0:progress-series",
+ "type": "object",
+ "properties": {
+  "series_key": {
+   "type": "object",
+   "properties": {
+    "participant_id": {
+     "type": "string",
+     "maxLength": 80
+    },
+    "body_segment": {
+     "type": "string",
+     "maxLength": 80
+    },
+    "laterality": {
+     "type": "string",
+     "maxLength": 80
+    },
+    "movement_task": {
+     "type": "string",
+     "maxLength": 80
+    },
+    "method": {
+     "type": "string",
+     "maxLength": 80
+    },
+    "unit": {
+     "type": "string",
+     "maxLength": 80
+    },
+    "protocol": {
+     "type": "string",
+     "maxLength": 80
+    },
+    "algorithm_version": {
+     "type": "string",
+     "maxLength": 80
+    },
+    "observation_quality_class": {
+     "type": "string",
+     "maxLength": 80
+    },
+    "execution_mode": {
+     "type": "string",
+     "maxLength": 80
+    },
+    "data_origin_class": {
+     "type": "string",
+     "maxLength": 80
+    },
+    "fact_type": {
+     "type": "string",
+     "maxLength": 80
+    },
+    "fact_definition_version": {
+     "type": "string",
+     "maxLength": 80
+    },
+    "limits_version": {
+     "type": "string",
+     "maxLength": 80
+    }
+   },
+   "required": [
+    "participant_id",
+    "body_segment",
+    "laterality",
+    "movement_task",
+    "method",
+    "unit",
+    "protocol",
+    "algorithm_version",
+    "observation_quality_class",
+    "execution_mode",
+    "data_origin_class",
+    "fact_type",
+    "fact_definition_version",
+    "limits_version"
+   ],
+   "additionalProperties": false
+  },
+  "series_key_hash": {
+   "type": "string",
+   "pattern": "^[0-9a-f]{64}$"
+  },
+  "items": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "properties": {
+     "fact_id": {
+      "type": "string",
+      "pattern": "^f_[0-9a-f]{64}$"
+     },
+     "content_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+     },
+     "session_date_local": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+     },
+     "context": {
+      "type": "object",
+      "properties": {
+       "assistance_level": {
+        "type": "string",
+        "enum": [
+         "none",
+         "some",
+         "full",
+         "unreported"
+        ]
+       },
+       "pain_or_fatigue_signalled": {
+        "type": "boolean"
+       },
+       "dose_prescribed": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 100
+       },
+       "session_end_reason": {
+        "type": "string",
+        "enum": [
+         "completed",
+         "ended",
+         "symptom",
+         "interrupted"
+        ]
+       }
+      },
+      "required": [
+       "assistance_level",
+       "pain_or_fatigue_signalled",
+       "dose_prescribed",
+       "session_end_reason"
+      ],
+      "additionalProperties": false
+     }
+    },
+    "required": [
+     "fact_id",
+     "content_hash",
+     "session_date_local",
+     "context"
+    ],
+    "additionalProperties": false
+   },
+   "minItems": 1,
+   "maxItems": 500
+  }
+ },
+ "required": [
+  "series_key",
+  "series_key_hash",
+  "items"
+ ],
+ "additionalProperties": false
+}

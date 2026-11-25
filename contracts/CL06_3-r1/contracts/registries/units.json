@@ -1,0 +1,14 @@
+{
+ "registry_version": "1",
+ "units": [
+  {
+   "unit": "1",
+   "meaning": "dimensionless ratio (CL06.1)"
+  },
+  {
+   "unit": "deg",
+   "meaning": "degrees (angle)"
+  }
+ ],
+ "note": "Further units require registry revision; entity `unit` accepts a lowercase token pattern so the registry can grow without a schema break."
+}

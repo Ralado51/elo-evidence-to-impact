@@ -1,0 +1,69 @@
+{
+ "rules_version": "cmp-v1",
+ "purpose": "Descriptive longitudinal comparison between published, reviewed observations. No statistical inference, no prediction, no clinical interpretation (ADR-015).",
+ "technical_criteria": {
+  "description": "ALL must be equal for two observations to share one series. Any difference => separate series with a visible notice.",
+  "keys": [
+   "participant_id",
+   "body_segment",
+   "laterality",
+   "movement_task",
+   "method",
+   "unit",
+   "protocol",
+   "algorithm_version",
+   "observation_quality_class",
+   "execution_mode",
+   "data_origin_class",
+   "fact_type",
+   "fact_definition_version",
+   "limits_version"
+  ],
+  "key_notes": {
+   "laterality": "prescribed side (prescription.side); incompatible-handedness cycles are never in a series",
+   "observation_quality_class": "usable vs low (F06.low_capture_quality) kept apart",
+   "data_origin_class": "synthetic_fixture, experimental_capture, live and imported_v1 are never mixed in one series (PD-03)",
+   "execution_mode": "camera and simulation are never mixed",
+   "fact_definition_version": "e.g. F01 definition 1 (legacy) vs 2 (PD-04) are never mixed"
+  }
+ },
+ "contextual_dimensions": {
+  "description": "Do NOT block comparability. Shown with every item; a change between consecutive items is itself reported as a descriptive indicator.",
+  "dimensions": [
+   "assistance_level",
+   "pain_or_fatigue_signalled",
+   "dose_prescribed",
+   "session_end_reason"
+  ],
+  "assistance_transition": {
+   "source_fact": "F04",
+   "ordinal": [
+    "none",
+    "some",
+    "full"
+   ],
+   "output": [
+    "less_help_reported",
+    "more_help_reported",
+    "unchanged"
+   ],
+   "note": "Reported help is a participant declaration (L04, L15). The indicator states the change in reported help; it is not a clinical judgement and uses no value words.",
+   "unreported_handling": "unreported assistance is absent, never zero (RN008): no transition is produced across an unreported session"
+  }
+ },
+ "publication": "Only facts effectively approved (ADR-012) with the current content_hash may enter a published evolution (evolution.published). Unreviewed or rejected facts never appear.",
+ "forbidden_outputs": [
+  "trend or slope with significance",
+  "recovery prediction",
+  "worsening alert",
+  "global recovery score",
+  "percentage of recovery"
+ ],
+ "examples_not_comparable": [
+  "F01 definition 1 vs 2",
+  "camera vs simulation",
+  "usable vs low quality capture",
+  "experimental_capture vs live",
+  "different protocol or algorithm_version"
+ ]
+}

@@ -1,0 +1,100 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "elo:contracts:3.0.0:entity.therapist",
+ "type": "object",
+ "properties": {
+  "entity_id": {
+   "type": "string",
+   "pattern": "^t_[A-Za-z0-9-]{8,64}$"
+  },
+  "entity_type": {
+   "const": "therapist"
+  },
+  "version": {
+   "type": "integer",
+   "minimum": 1,
+   "maximum": 100000
+  },
+  "prev_hash": {
+   "type": [
+    "string",
+    "null"
+   ],
+   "pattern": "^[0-9a-f]{64}$"
+  },
+  "org_id": {
+   "type": "string",
+   "pattern": "^o_[A-Za-z0-9-]{8,64}$"
+  },
+  "created_at": {
+   "type": "string",
+   "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$"
+  },
+  "author": {
+   "type": "object",
+   "properties": {
+    "role": {
+     "type": "string",
+     "enum": [
+      "participant",
+      "therapist"
+     ]
+    },
+    "id": {
+     "type": "string",
+     "pattern": "^(p|t)_[A-Za-z0-9-]{8,64}$"
+    }
+   },
+   "required": [
+    "role",
+    "id"
+   ],
+   "additionalProperties": false
+  },
+  "data_origin": {
+   "type": "string",
+   "enum": [
+    "live",
+    "synthetic_fixture",
+    "experimental_capture",
+    "imported_v1"
+   ]
+  },
+  "origin_ref": {
+   "type": "string",
+   "pattern": "^[0-9a-f]{64}$"
+  },
+  "payload": {
+   "type": "object",
+   "properties": {
+    "display_label": {
+     "type": "string",
+     "pattern": "^[A-Za-zÀ-ÖØ-öø-ÿĀ-ž0-9 ._-]+$",
+     "minLength": 1,
+     "maxLength": 40
+    }
+   },
+   "required": [
+    "display_label"
+   ],
+   "additionalProperties": false
+  },
+  "hash": {
+   "type": "string",
+   "pattern": "^[0-9a-f]{64}$"
+  }
+ },
+ "required": [
+  "entity_id",
+  "entity_type",
+  "version",
+  "prev_hash",
+  "org_id",
+  "created_at",
+  "author",
+  "data_origin",
+  "payload",
+  "hash"
+ ],
+ "additionalProperties": false
+}

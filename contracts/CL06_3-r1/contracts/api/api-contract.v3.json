@@ -1,0 +1,823 @@
+{
+ "api_version": "v3",
+ "base_path": "/api/v3",
+ "auth": "Authorization: Bearer <opaque>; principal derived by the server, never read from bodies.",
+ "roles": [
+  "participant",
+  "therapist"
+ ],
+ "error_body": {
+  "error": {
+   "code": "string",
+   "message": "string",
+   "details": "optional"
+  }
+ },
+ "limits": {
+  "batch_max_events": 500,
+  "body_max_bytes": 2097152
+ },
+ "endpoints": [
+  {
+   "id": "auth.therapist",
+   "method": "POST",
+   "path": "/api/v3/auth/therapist",
+   "roles": [
+    "anonymous"
+   ],
+   "request": null,
+   "response": null,
+   "errors": [],
+   "status": "carried",
+   "notes": "Same as v1 (MVP seeded). Credential storage is an implementation choice.",
+   "prd_requirements": []
+  },
+  {
+   "id": "auth.invite",
+   "method": "POST",
+   "path": "/api/v3/auth/invite",
+   "roles": [
+    "anonymous"
+   ],
+   "request": null,
+   "response": null,
+   "errors": [],
+   "status": "carried",
+   "notes": "Single use, expiry, stored as hash.",
+   "prd_requirements": []
+  },
+  {
+   "id": "participants.create",
+   "method": "POST",
+   "path": "/api/v3/participants",
+   "roles": [
+    "therapist"
+   ],
+   "request": {
+    "payload_of": "schemas/entities/participant.schema.json#payload",
+    "participant_id": "path or body"
+   },
+   "response": {
+    "$ref_file": "schemas/entities/participant.schema.json"
+   },
+   "errors": [
+    "FORBIDDEN"
+   ],
+   "status": "changed",
+   "notes": "Also creates the care_link entity (version 1, status active).",
+   "prd_requirements": [
+    "CLI01",
+    "CLI02"
+   ]
+  },
+  {
+   "id": "invites.create",
+   "method": "POST",
+   "path": "/api/v3/invites",
+   "roles": [
+    "therapist"
+   ],
+   "request": null,
+   "response": null,
+   "errors": [],
+   "status": "carried",
+   "notes": "",
+   "prd_requirements": [
+    "CLI02"
+   ]
+  },
+  {
+   "id": "care_links.revoke",
+   "method": "POST",
+   "path": "/api/v3/care-links/{entity_id}:revoke",
+   "roles": [
+    "therapist"
+   ],
+   "request": null,
+   "response": {
+    "$ref_file": "schemas/entities/care_link.schema.json"
+   },
+   "errors": [
+    "SCOPE_VIOLATION",
+    "NOT_FOUND"
+   ],
+   "status": "new",
+   "notes": "Creates a new version with status revoked; history preserved (RN004).",
+   "prd_requirements": [
+    "CLI02"
+   ]
+  },
+  {
+   "id": "assessments.create",
+   "method": "POST",
+   "path": "/api/v3/participants/{participant_id}/assessments",
+   "roles": [
+    "therapist"
+   ],
+   "request": {
+    "payload_of": "schemas/entities/functional_assessment.schema.json#payload",
+    "participant_id": "path or body"
+   },
+   "response": {
+    "$ref_file": "schemas/entities/functional_assessment.schema.json"
+   },
+   "errors": [
+    "SCOPE_VIOLATION",
+    "RULE_VIOLATION"
+   ],
+   "status": "new",
+   "notes": "Generic items; no clinical instrument is defined by the contract.",
+   "prd_requirements": [
+    "CLI03",
+    "CLI04"
+   ]
+  },
+  {
+   "id": "assessments.revise",
+   "method": "POST",
+   "path": "/api/v3/assessments/{entity_id}/versions",
+   "roles": [
+    "therapist"
+   ],
+   "request": {
+    "payload_of": "schemas/entities/functional_assessment.schema.json#payload",
+    "participant_id": "path or body"
+   },
+   "response": {
+    "$ref_file": "schemas/entities/functional_assessment.schema.json"
+   },
+   "errors": [
+    "SCOPE_VIOLATION",
+    "ENTITY_VERSION_CONFLICT"
+   ],
+   "status": "new",
+   "notes": "New version; previous versions immutable (RN004).",
+   "prd_requirements": [
+    "CLI04",
+    "CLI09"
+   ]
+  },
+  {
+   "id": "assessments.list",
+   "method": "GET",
+   "path": "/api/v3/participants/{participant_id}/assessments",
+   "roles": [
+    "therapist"
+   ],
+   "request": null,
+   "response": {
+    "list_of": "entity.functional_assessment"
+   },
+   "errors": [
+    "SCOPE_VIOLATION"
+   ],
+   "status": "new",
+   "notes": "",
+   "prd_requirements": [
+    "CLI09"
+   ]
+  },
+  {
+   "id": "goals.create",
+   "method": "POST",
+   "path": "/api/v3/participants/{participant_id}/goals",
+   "roles": [
+    "therapist"
+   ],
+   "request": {
+    "payload_of": "schemas/entities/goal.schema.json#payload",
+    "participant_id": "path or body"
+   },
+   "response": {
+    "$ref_file": "schemas/entities/goal.schema.json"
+   },
+   "errors": [
+    "SCOPE_VIOLATION",
+    "GOAL_CONFIRMATION_REQUIRED"
+   ],
+   "status": "new",
+   "notes": "",
+   "prd_requirements": [
+    "CLI05",
+    "PRG06"
+   ]
+  },
+  {
+   "id": "goals.revise",
+   "method": "POST",
+   "path": "/api/v3/goals/{entity_id}/versions",
+   "roles": [
+    "therapist"
+   ],
+   "request": {
+    "payload_of": "schemas/entities/goal.schema.json#payload",
+    "participant_id": "path or body"
+   },
+   "response": {
+    "$ref_file": "schemas/entities/goal.schema.json"
+   },
+   "errors": [
+    "SCOPE_VIOLATION",
+    "ENTITY_VERSION_CONFLICT",
+    "GOAL_CONFIRMATION_REQUIRED"
+   ],
+   "status": "new",
+   "notes": "achieved_confirmed requires the therapist's confirmation (RN014).",
+   "prd_requirements": [
+    "CLI05",
+    "PRG06"
+   ]
+  },
+  {
+   "id": "goals.list",
+   "method": "GET",
+   "path": "/api/v3/participants/{participant_id}/goals",
+   "roles": [
+    "therapist",
+    "participant"
+   ],
+   "request": null,
+   "response": {
+    "list_of": "entity.goal"
+   },
+   "errors": [
+    "SCOPE_VIOLATION"
+   ],
+   "status": "new",
+   "notes": "Participant sees own goals (simplified view).",
+   "prd_requirements": [
+    "PRG06",
+    "PRG11"
+   ]
+  },
+  {
+   "id": "encounters.create",
+   "method": "POST",
+   "path": "/api/v3/participants/{participant_id}/encounters",
+   "roles": [
+    "therapist"
+   ],
+   "request": {
+    "payload_of": "schemas/entities/encounter.schema.json#payload",
+    "participant_id": "path or body"
+   },
+   "response": {
+    "$ref_file": "schemas/entities/encounter.schema.json"
+   },
+   "errors": [
+    "SCOPE_VIOLATION",
+    "RULE_VIOLATION"
+   ],
+   "status": "new",
+   "notes": "modality in_person|remote_external; remote_integrated is P1 and rejected.",
+   "prd_requirements": [
+    "CLI06",
+    "REM01",
+    "REM02"
+   ]
+  },
+  {
+   "id": "encounters.list",
+   "method": "GET",
+   "path": "/api/v3/participants/{participant_id}/encounters",
+   "roles": [
+    "therapist"
+   ],
+   "request": null,
+   "response": {
+    "list_of": "entity.encounter"
+   },
+   "errors": [
+    "SCOPE_VIOLATION"
+   ],
+   "status": "new",
+   "notes": "",
+   "prd_requirements": [
+    "CLI09",
+    "REM04"
+   ]
+  },
+  {
+   "id": "reassessments.create",
+   "method": "POST",
+   "path": "/api/v3/participants/{participant_id}/reassessments",
+   "roles": [
+    "therapist"
+   ],
+   "request": {
+    "payload_of": "schemas/entities/reassessment.schema.json#payload",
+    "participant_id": "path or body"
+   },
+   "response": {
+    "$ref_file": "schemas/entities/reassessment.schema.json"
+   },
+   "errors": [
+    "SCOPE_VIOLATION",
+    "RULE_VIOLATION"
+   ],
+   "status": "new",
+   "notes": "",
+   "prd_requirements": [
+    "CLI10",
+    "PRG12"
+   ]
+  },
+  {
+   "id": "instrumental.create",
+   "method": "POST",
+   "path": "/api/v3/participants/{participant_id}/instrumental-measurements",
+   "roles": [
+    "therapist"
+   ],
+   "request": {
+    "payload_of": "schemas/entities/instrumental_measurement.schema.json#payload",
+    "participant_id": "path or body"
+   },
+   "response": {
+    "$ref_file": "schemas/entities/instrumental_measurement.schema.json"
+   },
+   "errors": [
+    "SCOPE_VIOLATION",
+    "RULE_VIOLATION"
+   ],
+   "status": "new",
+   "notes": "Manual therapist measure; source distinct from automatic measures (A4).",
+   "prd_requirements": [
+    "MOT11",
+    "CLI04"
+   ]
+  },
+  {
+   "id": "drafts.create",
+   "method": "POST",
+   "path": "/api/v3/drafts",
+   "roles": [
+    "therapist",
+    "participant"
+   ],
+   "request": {
+    "payload_of": "schemas/entities/draft.schema.json#payload",
+    "participant_id": "path or body"
+   },
+   "response": {
+    "$ref_file": "schemas/entities/draft.schema.json"
+   },
+   "errors": [
+    "SCOPE_VIOLATION",
+    "MICROPHONE_CONSENT_REQUIRED",
+    "CONSENT_REQUIRED"
+   ],
+   "status": "new",
+   "notes": "Draft is never a record or a fact. voice_to_text requires microphone consent; audio is not retained.",
+   "prd_requirements": [
+    "INT01",
+    "INT02",
+    "INT03",
+    "INT08",
+    "CLI12",
+    "REM06",
+    "ACC06"
+   ]
+  },
+  {
+   "id": "drafts.get",
+   "method": "GET",
+   "path": "/api/v3/drafts/{entity_id}",
+   "roles": [
+    "therapist",
+    "participant"
+   ],
+   "request": null,
+   "response": {
+    "$ref_file": "schemas/entities/draft.schema.json"
+   },
+   "errors": [
+    "SCOPE_VIOLATION",
+    "NOT_FOUND"
+   ],
+   "status": "new",
+   "notes": "Visible only to its author.",
+   "prd_requirements": [
+    "INT07"
+   ]
+  },
+  {
+   "id": "drafts.confirm",
+   "method": "POST",
+   "path": "/api/v3/drafts/{entity_id}:confirm",
+   "roles": [
+    "therapist",
+    "participant"
+   ],
+   "request": {
+    "corrections": "proposals[] with final values"
+   },
+   "response": {
+    "$ref_file": "schemas/entities/draft.schema.json"
+   },
+   "errors": [
+    "SCOPE_VIOLATION",
+    "RULE_VIOLATION"
+   ],
+   "status": "new",
+   "notes": "Creates the target entity (therapist) or yields values the participant submits as report.submitted (participant). No autonomous publication.",
+   "prd_requirements": [
+    "INT07",
+    "INT03"
+   ]
+  },
+  {
+   "id": "drafts.discard",
+   "method": "POST",
+   "path": "/api/v3/drafts/{entity_id}:discard",
+   "roles": [
+    "therapist",
+    "participant"
+   ],
+   "request": null,
+   "response": {
+    "$ref_file": "schemas/entities/draft.schema.json"
+   },
+   "errors": [
+    "SCOPE_VIOLATION"
+   ],
+   "status": "new",
+   "notes": "",
+   "prd_requirements": [
+    "INT09"
+   ]
+  },
+  {
+   "id": "prescriptions.publish",
+   "method": "POST",
+   "path": "/api/v3/prescriptions",
+   "roles": [
+    "therapist"
+   ],
+   "request": {
+    "draft": "prescription.published payload minus server fields"
+   },
+   "response": {
+    "prescription_id": "id",
+    "revision": "int",
+    "event_id": "hex"
+   },
+   "errors": [
+    "SCOPE_VIOLATION",
+    "RULE_VIOLATION",
+    "LIMITS_EXCEEDED",
+    "CONFLICT_IMMUTABLE"
+   ],
+   "status": "changed",
+   "notes": "limits_version assigned by the server from catalogs/limits.v1.json.",
+   "prd_requirements": [
+    "CLI08",
+    "BTS01"
+   ]
+  },
+  {
+   "id": "prescriptions.current",
+   "method": "GET",
+   "path": "/api/v3/participants/{participant_id}/prescription/current",
+   "roles": [
+    "participant",
+    "therapist"
+   ],
+   "request": null,
+   "response": null,
+   "errors": [],
+   "status": "carried",
+   "notes": "",
+   "prd_requirements": [
+    "CLI08"
+   ]
+  },
+  {
+   "id": "prescriptions.history",
+   "method": "GET",
+   "path": "/api/v3/participants/{participant_id}/prescriptions",
+   "roles": [
+    "therapist"
+   ],
+   "request": null,
+   "response": {
+    "list_of": "event.prescription.published"
+   },
+   "errors": [
+    "SCOPE_VIOLATION"
+   ],
+   "status": "new",
+   "notes": "",
+   "prd_requirements": [
+    "CLI08",
+    "CLI09"
+   ]
+  },
+  {
+   "id": "events.batch",
+   "method": "POST",
+   "path": "/api/v3/events:batch",
+   "roles": [
+    "participant"
+   ],
+   "request": {
+    "events": "array<event v3> 1..500"
+   },
+   "response": {
+    "results": "array<BatchItem>"
+   },
+   "errors": [
+    "BATCH_TOO_LARGE",
+    "BATCH_UNORDERED",
+    "SCOPE_VIOLATION",
+    "CONSENT_REQUIRED",
+    "REAL_DATA_GATE_CLOSED",
+    "LEGACY_STREAM_READ_ONLY",
+    "HANDEDNESS_INCOMPATIBLE_ACCEPTED",
+    "EXECUTION_MODE_MISMATCH"
+   ],
+   "status": "changed",
+   "notes": "Only client-authored types. v3 envelope. data_origin live rejected while the real-data gate is closed.",
+   "prd_requirements": [
+    "BTS02",
+    "MOT01",
+    "PLY01"
+   ]
+  },
+  {
+   "id": "sessions.list",
+   "method": "GET",
+   "path": "/api/v3/participants/{participant_id}/sessions",
+   "roles": [
+    "therapist"
+   ],
+   "request": null,
+   "response": null,
+   "errors": [],
+   "status": "carried",
+   "notes": "",
+   "prd_requirements": [
+    "BTS09"
+   ]
+  },
+  {
+   "id": "facts.list",
+   "method": "GET",
+   "path": "/api/v3/participants/{participant_id}/facts",
+   "roles": [
+    "therapist"
+   ],
+   "request": null,
+   "response": {
+    "facts": "array<fact v2>",
+    "catalog_version": "2"
+   },
+   "errors": [
+    "SCOPE_VIOLATION"
+   ],
+   "status": "changed",
+   "notes": "Each fact derived AND verified on read (verifier dependent).",
+   "prd_requirements": [
+    "EVD01"
+   ]
+  },
+  {
+   "id": "facts.evidence",
+   "method": "GET",
+   "path": "/api/v3/facts/{fact_id}/evidence",
+   "roles": [
+    "therapist"
+   ],
+   "request": null,
+   "response": null,
+   "errors": [],
+   "status": "carried",
+   "notes": "",
+   "prd_requirements": [
+    "EVD07"
+   ]
+  },
+  {
+   "id": "facts.verify",
+   "method": "POST",
+   "path": "/api/v3/facts/verify",
+   "roles": [
+    "therapist"
+   ],
+   "request": null,
+   "response": null,
+   "errors": [],
+   "status": "carried",
+   "notes": "Never persists. Verifier dependent.",
+   "prd_requirements": [
+    "EVD04"
+   ]
+  },
+  {
+   "id": "reviews.record",
+   "method": "POST",
+   "path": "/api/v3/reviews",
+   "roles": [
+    "therapist"
+   ],
+   "request": null,
+   "response": null,
+   "errors": [],
+   "status": "carried",
+   "notes": "",
+   "prd_requirements": [
+    "EVD08",
+    "EVD09"
+   ]
+  },
+  {
+   "id": "summaries.publish",
+   "method": "POST",
+   "path": "/api/v3/summaries",
+   "roles": [
+    "therapist"
+   ],
+   "request": null,
+   "response": null,
+   "errors": [],
+   "status": "carried",
+   "notes": "",
+   "prd_requirements": [
+    "EVD10"
+   ]
+  },
+  {
+   "id": "summaries.get",
+   "method": "GET",
+   "path": "/api/v3/summaries/{summary_id}",
+   "roles": [
+    "participant",
+    "therapist"
+   ],
+   "request": null,
+   "response": null,
+   "errors": [],
+   "status": "carried",
+   "notes": "",
+   "prd_requirements": [
+    "EVD10"
+   ]
+  },
+  {
+   "id": "evolution.series",
+   "method": "GET",
+   "path": "/api/v3/participants/{participant_id}/evolution/series",
+   "roles": [
+    "therapist"
+   ],
+   "request": null,
+   "response": {
+    "list_of": "progress-series",
+    "rules_version": "cmp-v1"
+   },
+   "errors": [
+    "SCOPE_VIOLATION"
+   ],
+   "status": "new",
+   "notes": "Descriptive projection of approved facts under catalogs/comparability-rules.v1.json. No statistics.",
+   "prd_requirements": [
+    "PRG01",
+    "PRG02",
+    "PRG03",
+    "PRG04",
+    "PRG05",
+    "PRG09",
+    "MOT10"
+   ]
+  },
+  {
+   "id": "evolution.publish",
+   "method": "POST",
+   "path": "/api/v3/evolution",
+   "roles": [
+    "therapist"
+   ],
+   "request": {
+    "participant_id": "id",
+    "period": "dates",
+    "series_keys": "array<hex>"
+   },
+   "response": {
+    "evolution_id": "id",
+    "content_hash": "hex",
+    "event_id": "hex"
+   },
+   "errors": [
+    "SCOPE_VIOLATION",
+    "UNREVIEWED_FACT_IN_EVOLUTION",
+    "COMPARABILITY_VIOLATION",
+    "CONTENT_HASH_STALE"
+   ],
+   "status": "new",
+   "notes": "Publication gate for evolution (PD-02).",
+   "prd_requirements": [
+    "PRG02",
+    "PRG03",
+    "PRG10",
+    "EVD12",
+    "REM05"
+   ]
+  },
+  {
+   "id": "evolution.get",
+   "method": "GET",
+   "path": "/api/v3/evolution/{evolution_id}",
+   "roles": [
+    "participant",
+    "therapist"
+   ],
+   "request": null,
+   "response": {
+    "event": "evolution.published",
+    "view": "participant: simplified"
+   },
+   "errors": [
+    "SCOPE_VIOLATION",
+    "NOT_FOUND"
+   ],
+   "status": "new",
+   "notes": "Participant view is a simplified, same-data view (PRG11, RN018).",
+   "prd_requirements": [
+    "PRG11"
+   ]
+  },
+  {
+   "id": "timeline.get",
+   "method": "GET",
+   "path": "/api/v3/participants/{participant_id}/timeline",
+   "roles": [
+    "therapist"
+   ],
+   "request": null,
+   "response": {
+    "items": "array of {kind, ref, occurred_at, origin_label}"
+   },
+   "errors": [
+    "SCOPE_VIOLATION"
+   ],
+   "status": "new",
+   "notes": "Unified history: entities + published items. Each item shows data_origin and execution_mode.",
+   "prd_requirements": [
+    "PRG09",
+    "REM04",
+    "CLI09"
+   ]
+  },
+  {
+   "id": "entities.versions",
+   "method": "GET",
+   "path": "/api/v3/entities/{entity_id}/versions",
+   "roles": [
+    "therapist"
+   ],
+   "request": null,
+   "response": {
+    "list_of": "entity versions"
+   },
+   "errors": [
+    "SCOPE_VIOLATION",
+    "NOT_FOUND"
+   ],
+   "status": "new",
+   "notes": "Audit trail of an entity.",
+   "prd_requirements": [
+    "CLI09",
+    "EVD07"
+   ]
+  },
+  {
+   "id": "health",
+   "method": "GET",
+   "path": "/api/v3/health",
+   "roles": [
+    "anonymous"
+   ],
+   "request": null,
+   "response": {
+    "status": "ok",
+    "versions": {
+     "schema": 3,
+     "catalog": "2",
+     "contracts": "3.0.0"
+    }
+   },
+   "errors": [],
+   "status": "changed",
+   "notes": "",
+   "prd_requirements": []
+  }
+ ],
+ "reserved_not_available": [
+  "POST /api/v3/assistant/structure-report",
+  "POST /api/v3/assistant/draft-selection",
+  "any role other than participant|therapist",
+  "encounter modality remote_integrated (P1)"
+ ],
+ "carried_v1_endpoints": 15,
+ "note": "v1 base path /api/v1 is read-only legacy; no v1 write routes exist in v3."
+}
