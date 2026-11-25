@@ -13,14 +13,10 @@ from typing import Any
 from .authz import CareLinkView, Principal
 from .entities import (
     build_entity,
-    check_entity_chain,
-    check_entity_semantics,
-    load_entity_schema,
-    load_event_catalog,
     utc_now_ms,
-    validate,
 )
-from .errors import V3Error
+from .errors import to_http_error
+from .validation import check_real_data_gate, validate_entity, validate_entity_chain
 
 V3_SCHEMA = """
 CREATE TABLE IF NOT EXISTS v3_therapist_credentials (
@@ -146,7 +142,7 @@ class V3Store:
                 org_id=org_id,
                 author_role="therapist",
                 author_id=therapist_id,
-                data_origin="synthetic_fixture" if self.data_origin == "live" and not self.real_data_gate_open else self.data_origin,
+                data_origin="synthetic_fixture" if check_real_data_gate(self.data_origin, gate_open=self.real_data_gate_open) else self.data_origin,
                 payload={"display_label": display_label},
                 created_at=now,
             )
@@ -244,24 +240,13 @@ class V3Store:
 
     # --- CL06.3 versioned entities ---
     def _validate_and_insert_entity(self, ent: dict[str, Any], *, existing: list[dict[str, Any]]) -> None:
-        schema = load_entity_schema(ent["entity_type"])
-        schema_errs = validate(schema, ent)
-        if schema_errs:
-            first_path, first_code = schema_errs[0]
-            code = first_code if first_code in (
-                "TYPE", "UNKNOWN_FIELD", "MISSING_FIELD", "NULL_NOT_ALLOWED",
-                "OUT_OF_RANGE", "ENUM", "PATTERN", "LENGTH", "LITERAL",
-            ) else "RULE_VIOLATION"
-            raise V3Error(code, f"Entity schema validation failed at {first_path}", details=schema_errs)
+        ent_errs = validate_entity(ent, gate_open=self.real_data_gate_open)
+        if ent_errs:
+            raise to_http_error(ent_errs[0], f"Entity validation failed: {', '.join(ent_errs)}", details=ent_errs)
 
-        cat = load_event_catalog()
-        sem_errs = check_entity_semantics(ent, cat, real_data_gate_open=self.real_data_gate_open)
-        if sem_errs:
-            raise V3Error(sem_errs[0], f"Entity semantic check failed: {', '.join(sem_errs)}", details=sem_errs)
-
-        chain_errs = check_entity_chain([*existing, ent])
+        chain_errs = validate_entity_chain([*existing, ent])
         if chain_errs:
-            raise V3Error(chain_errs[0], f"Entity chain check failed: {', '.join(chain_errs)}", details=chain_errs)
+            raise to_http_error(chain_errs[0], f"Entity chain check failed: {', '.join(chain_errs)}", details=chain_errs)
 
         self.db.execute(
             """INSERT INTO v3_entities (entity_id, entity_type, version, org_id, participant_id, hash, prev_hash, data)

@@ -25,6 +25,7 @@ from .authz import AuthzScope, authorize
 from .entities import build_entity, new_id, utc_now_ms
 from .errors import V3Error
 from .store import V3Store
+from .validation import check_real_data_gate, is_real_data_gate_open
 
 _PARTICIPANT_ID_RE = re.compile(r"^p_[A-Za-z0-9-]{8,64}$")
 _CARE_LINK_ID_RE = re.compile(r"^cl_[A-Za-z0-9-]{8,64}$")
@@ -47,13 +48,13 @@ async def _read_json_object(request: Request, *, allow_empty: bool = False) -> d
 
 def _reject_live_data_origin_request(body: dict[str, Any], *, real_data_gate_open: bool) -> None:
     """Reject any request attempting to set data_origin='live' while the real-data gate is closed."""
-    if real_data_gate_open:
-        return
-    if body.get("data_origin") == "live":
-        raise V3Error("REAL_DATA_GATE_CLOSED", "data_origin 'live' is rejected while real-data gate is closed.")
+    candidates = [body.get("data_origin")]
     nested = body.get("payload")
-    if isinstance(nested, dict) and nested.get("data_origin") == "live":
-        raise V3Error("REAL_DATA_GATE_CLOSED", "data_origin 'live' is rejected while real-data gate is closed.")
+    if isinstance(nested, dict):
+        candidates.append(nested.get("data_origin"))
+    for origin in candidates:
+        if isinstance(origin, str) and check_real_data_gate(origin, gate_open=real_data_gate_open):
+            raise V3Error("REAL_DATA_GATE_CLOSED", "data_origin 'live' is rejected while real-data gate is closed.")
 
 
 def _enforce(decision) -> None:
@@ -69,10 +70,7 @@ def create_v3_router(
     real_data_gate_open: bool | None = None,
 ) -> tuple[APIRouter, V3Store, AuthService]:
     resolved_origin = data_origin if data_origin is not None else os.environ.get("ELO_V3_DATA_ORIGIN", "synthetic_fixture")
-    if real_data_gate_open is None:
-        resolved_gate = os.environ.get("ELO_V3_REAL_DATA_GATE_OPEN", "").lower() in ("1", "true", "yes")
-    else:
-        resolved_gate = real_data_gate_open
+    resolved_gate = is_real_data_gate_open() if real_data_gate_open is None else real_data_gate_open
 
     store = V3Store(db_path, data_origin=resolved_origin, real_data_gate_open=resolved_gate)
     auth = AuthService(store)
