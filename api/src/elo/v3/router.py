@@ -1,4 +1,4 @@
-"""CL06.3 v3 FastAPI router exposing the S0-02, S0-04, S1a-01, and S1a-02 endpoints under /api/v3.
+"""CL06.3 v3 FastAPI router exposing the S0-02, S0-04, S1a-01, S1a-02, and S1a-03 endpoints under /api/v3.
 
 Endpoints (api-contract.v3.json):
   1.  GET  /api/v3/health                                          (id: health, roles: anonymous)
@@ -15,6 +15,10 @@ Endpoints (api-contract.v3.json):
   12. POST /api/v3/participants/{participant_id}/goals             (id: goals.create, roles: therapist)
   13. POST /api/v3/goals/{entity_id}/versions                      (id: goals.revise, roles: therapist)
   14. GET  /api/v3/participants/{participant_id}/goals             (id: goals.list, roles: therapist, participant)
+  15. POST /api/v3/participants/{participant_id}/encounters        (id: encounters.create, roles: therapist)
+  16. GET  /api/v3/participants/{participant_id}/encounters        (id: encounters.list, roles: therapist)
+  17. POST /api/v3/participants/{participant_id}/reassessments     (id: reassessments.create, roles: therapist)
+  18. POST /api/v3/participants/{participant_id}/instrumental-measurements (id: instrumental.create, roles: therapist)
 """
 
 from __future__ import annotations
@@ -421,5 +425,42 @@ def create_v3_router(
         principal = auth.require_principal(request)
         items = clinical.list("goal", participant_id, principal)
         return JSONResponse(items, status_code=200)
+
+    # 15. encounters.create (S1a-03, D-S1a-03-1)
+    @router.post("/participants/{participant_id}/encounters", status_code=201)
+    async def encounters_create(participant_id: str, request: Request):
+        principal = auth.require_principal(request)
+        clinical.authorize_create("encounter", participant_id, principal)
+        body = await _read_json_object(request)
+        payload = extract_entity_payload(body)
+        ent = clinical.create("encounter", participant_id, payload, principal)
+        return JSONResponse(ent, status_code=201)
+
+    # 16. encounters.list (S1a-03)
+    @router.get("/participants/{participant_id}/encounters")
+    def encounters_list(participant_id: str, request: Request):
+        principal = auth.require_principal(request)
+        items = clinical.list("encounter", participant_id, principal)
+        return JSONResponse(items, status_code=200)
+
+    # 17. reassessments.create (S1a-03, D-S1a-03-1)
+    @router.post("/participants/{participant_id}/reassessments", status_code=201)
+    async def reassessments_create(participant_id: str, request: Request):
+        principal = auth.require_principal(request)
+        clinical.authorize_create("reassessment", participant_id, principal)
+        body = await _read_json_object(request)
+        payload = extract_entity_payload(body)
+        ent = clinical.create("reassessment", participant_id, payload, principal)
+        return JSONResponse(ent, status_code=201)
+
+    # 18. instrumental.create (S1a-03)
+    @router.post("/participants/{participant_id}/instrumental-measurements", status_code=201)
+    async def instrumental_create(participant_id: str, request: Request):
+        principal = auth.require_principal(request)
+        clinical.authorize_create("instrumental_measurement", participant_id, principal)
+        body = await _read_json_object(request)
+        payload = extract_entity_payload(body)
+        ent = clinical.create("instrumental_measurement", participant_id, payload, principal)
+        return JSONResponse(ent, status_code=201)
 
     return router, store, auth

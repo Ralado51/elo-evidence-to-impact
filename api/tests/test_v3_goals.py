@@ -63,6 +63,10 @@ S1A_02_ROUTE_IDS = {
     "goals.create",
     "goals.revise",
     "goals.list",
+    "encounters.create",
+    "encounters.list",
+    "reassessments.create",
+    "instrumental.create",
 }
 
 
