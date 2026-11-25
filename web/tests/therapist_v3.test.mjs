@@ -14,6 +14,7 @@ import {
   formatApiErrorMessage,
   formatExecutionMode,
   formatOriginLabel,
+  getPublishableEvolutionSeries,
   getPublishableSummaryItems,
   scanForbiddenOutputs,
 } from "../v3/therapist_model.mjs";
@@ -131,6 +132,28 @@ test("therapist_model review gate blocks unreviewed, annotated, rejected, stale,
       [approvedF02]
     ),
     false
+  );
+
+  // F1 regression: if cached series mix one still-approved series (F02) with any obsolete/unreviewed/stale series (F03/F04),
+  // canPublishEvolution MUST return false and getPublishableEvolutionSeries MUST exclude unsafe series.
+  const mixedSeries = [
+    { series_key_hash: "1".repeat(64), items: [{ fact_id: "f_02", content_hash: "a".repeat(64) }] },
+    { series_key_hash: "2".repeat(64), items: [{ fact_id: "f_03_old", content_hash: "c".repeat(64) }] },
+    { series_key_hash: "3".repeat(64), items: [{ fact_id: "f_04_old", content_hash: "d".repeat(64) }] },
+  ];
+  const refreshedFacts = [
+    approvedF02,
+    { fact: { fact_id: "f_03_new", type: "F03", flags: { summary_eligible: true } }, contentHash: "7".repeat(64), effectiveReview: null },
+    { fact: { fact_id: "f_04_new", type: "F04", flags: { summary_eligible: true } }, contentHash: "8".repeat(64), effectiveReview: null },
+  ];
+  assert.equal(
+    canPublishEvolution(mixedSeries, refreshedFacts),
+    false,
+    "F1: canPublishEvolution must be false when any cached series contains obsolete/unreviewed facts"
+  );
+  assert.deepEqual(
+    getPublishableEvolutionSeries(mixedSeries, refreshedFacts).map((s) => s.series_key_hash),
+    ["1".repeat(64)]
   );
 });
 

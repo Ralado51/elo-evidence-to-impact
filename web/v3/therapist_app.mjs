@@ -18,6 +18,7 @@ import {
   formatApiErrorMessage,
   formatExecutionMode,
   formatOriginLabel,
+  getPublishableEvolutionSeries,
   getPublishableSummaryItems,
 } from "./therapist_model.mjs";
 
@@ -227,6 +228,13 @@ export function initTherapistApp() {
     }
   }
 
+  function clearEvolutionSeriesCache() {
+    state.evolutionSeries = [];
+    state.evolutionNotices = [];
+    state.evolutionContextChanges = {};
+    renderEvolutionSeries();
+  }
+
   function setActiveParticipant(participantId, alias = "", careLinkId = "", side = "") {
     state.participantId = participantId;
     if (alias) state.participantAlias = alias;
@@ -242,11 +250,8 @@ export function initTherapistApp() {
     if (pidInput) pidInput.value = participantId;
     state.factEntries = [];
     state.effectiveReviews = {};
-    state.evolutionSeries = [];
-    state.evolutionNotices = [];
-    state.evolutionContextChanges = {};
     renderFactsList();
-    renderEvolutionSeries();
+    clearEvolutionSeriesCache();
     updatePublishGates();
     updateSessionBar();
   }
@@ -383,9 +388,8 @@ export function initTherapistApp() {
         state.effectiveReviews[entry.fact.fact_id] = entry.effectiveReview;
       }
       // Changing effective review invalidates previously loaded evolution series snapshot.
-      if (decision === "reject") {
-        state.evolutionSeries = [];
-        renderEvolutionSeries();
+      if (decision === "approve" || decision === "reject") {
+        clearEvolutionSeriesCache();
       }
       renderFactsList();
       updatePublishGates();
@@ -916,6 +920,9 @@ export function initTherapistApp() {
       }
 
       state.factEntries = entries;
+      // Row 3 / F1: Refreshing verified facts invalidates any cached evolution series snapshot
+      // so obsolete/unreviewed/stale series can never remain displayed or offered for publication.
+      clearEvolutionSeriesCache();
       renderFactsList();
       updatePublishGates();
 
@@ -984,7 +991,12 @@ export function initTherapistApp() {
   el("form-evolution").addEventListener("submit", async (event) => {
     event.preventDefault();
     if (!requireParticipant()) return;
-    if (!canPublishEvolution(state.evolutionSeries, state.factEntries)) {
+    const publishableSeries = getPublishableEvolutionSeries(state.evolutionSeries, state.factEntries);
+    if (
+      !canPublishEvolution(state.evolutionSeries, state.factEntries) ||
+      publishableSeries.length !== state.evolutionSeries.length ||
+      publishableSeries.length === 0
+    ) {
       showError(
         "UNREVIEWED_FACT_IN_EVOLUTION",
         formatApiErrorMessage({ code: "UNREVIEWED_FACT_IN_EVOLUTION", status: 409 })
@@ -993,7 +1005,7 @@ export function initTherapistApp() {
     }
     const periodFrom = el("evolution-period-from").value.trim();
     const periodTo = el("evolution-period-to").value.trim();
-    const seriesKeys = state.evolutionSeries.map((s) => s.series_key_hash);
+    const seriesKeys = publishableSeries.map((s) => s.series_key_hash);
     try {
       const pubRes = await client.publishEvolution({
         participant_id: state.participantId,

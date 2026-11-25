@@ -159,7 +159,9 @@ async function startPythonApi() {
       cwd: REPO_ROOT,
       env: {
         ...process.env,
-        PYTHONPATH: path.join(REPO_ROOT, "api", "src"),
+        PYTHONPATH: process.env.PYTHONPATH
+          ? `${path.join(REPO_ROOT, "api", "src")}${path.delimiter}${process.env.PYTHONPATH}`
+          : path.join(REPO_ROOT, "api", "src"),
         ELO_DATA_DIR: dataDir,
         ELO_V3_DATA_ORIGIN: "synthetic_fixture",
         ELO_V3_THERAPIST_SEEDS: seeds,
@@ -374,6 +376,7 @@ async function seedReportOnlySessions(apiBase, therapistToken, participantId, or
   ];
 
   const batchEvents = [];
+  let lastSessionHead = null;
   for (const spec of sessionsSpec) {
     const streamId = `session:${spec.sessionId}`;
     const ev1 = await buildEvent({
@@ -416,6 +419,12 @@ async function seedReportOnlySessions(apiBase, therapistToken, participantId, or
       },
     });
     batchEvents.push(ev1, ev2, ev3);
+    lastSessionHead = {
+      sessionId: spec.sessionId,
+      streamId,
+      lastSeq: 3,
+      lastHash: ev3.hash,
+    };
   }
 
   // Sort by (stream_id, seq) ascending per events:batch contract
@@ -431,7 +440,56 @@ async function seedReportOnlySessions(apiBase, therapistToken, participantId, or
     assert.equal(item.status, "stored", `Event rejected in seed batch: ${JSON.stringify(item)}`);
   }
 
-  return { participantToken, seededSessions: sessionsSpec.length };
+  return { participantToken, seededSessions: sessionsSpec.length, lastSessionHead };
+}
+
+/**
+ * Append a genuine later report.submitted (seq = lastSeq + 1) to an existing report-only
+ * session so old F03/F04 become obsolete and new unreviewed F03/F04 derive (F1 regression).
+ */
+async function appendSupersedingReport(
+  apiBase,
+  participantToken,
+  participantId,
+  orgId,
+  rxId,
+  rxRev,
+  sessionHead
+) {
+  const seq = sessionHead.lastSeq + 1;
+  const eventId = await hashCanonical({ seq, stream_id: sessionHead.streamId });
+  const evNoHash = {
+    event_id: eventId,
+    schema_version: 3,
+    type: "report.submitted",
+    stream_id: sessionHead.streamId,
+    seq,
+    prev_hash: sessionHead.lastHash,
+    occurred_at: "2026-10-08T13:10:00.000Z",
+    actor: { role: "participant", id: participantId },
+    scope: {
+      org_id: orgId,
+      participant_id: participantId,
+      session_id: sessionHead.sessionId,
+      prescription_id: rxId,
+      prescription_revision: rxRev,
+      exercise_id: "organizar-a-mesa",
+    },
+    source: { type: "participant_report", device_hint: "desktop-chrome" },
+    execution_mode: "report_only",
+    data_origin: "synthetic_fixture",
+    payload: {
+      execution: "partial",
+      assistance: "full",
+      reporter_role: "participant",
+    },
+  };
+  const ev = { ...evNoHash, hash: await hashCanonical(evNoHash) };
+  const batchRes = await apiJson(apiBase, "POST", "/api/v3/events:batch", participantToken, {
+    events: [ev],
+  });
+  assert.equal(batchRes.status, 200, `superseding report batch failed: ${JSON.stringify(batchRes.data)}`);
+  assert.equal(batchRes.data.results[0].status, "stored");
 }
 
 function attachLoopbackGuardAndLog(context, allowedOrigin, browserRequests) {
@@ -639,7 +697,7 @@ async function runPointerPass(browser, contractMatchers) {
     const rxRev = rxCur.data.payload.revision;
 
     // Seed 2 synthetic report-only sessions for this participant
-    const { participantToken } = await seedReportOnlySessions(
+    const { participantToken, lastSessionHead } = await seedReportOnlySessions(
       api.apiBase,
       sessionA.token,
       participantId,
@@ -838,9 +896,49 @@ async function runPointerPass(browser, contractMatchers) {
     assert.equal(await page.locator("#success-banner").isHidden(), true);
     assert.ok((await page.locator("#elo-live-region").textContent()).includes("COMPARABILITY_VIOLATION"));
 
-    // Approve remaining fact, reload comparable series, and publish evolution cleanly
+    // Approve remaining fact, reload comparable series, and verify F1 stale-refresh gate:
+    // Append a genuine later report that invalidates 2 cached F03/F04 facts, refresh facts,
+    // verify obsolete evolution cards are cleared and Publish Evolution is disabled until
+    // the newly derived facts are approved and series are reloaded.
     await page.click(`button[data-review-decision="approve"][data-fact-id="${unreviewedFact.factId}"]`);
     await page.waitForSelector(`li[data-fact-item="${unreviewedFact.factId}"] [data-review-status="approved"]`);
+    await page.click("#btn-load-evolution-series");
+    await page.waitForSelector("#evolution-series-container [data-evolution-series]");
+    assert.equal(await page.locator("#btn-publish-evolution").isDisabled(), false);
+
+    await appendSupersedingReport(
+      api.apiBase,
+      participantToken,
+      participantId,
+      THERAPIST_A.org_id,
+      rxId,
+      rxRev,
+      lastSessionHead
+    );
+    await page.click("#btn-load-facts");
+    await page.waitForSelector('#facts-list [data-review-status="unreviewed"]');
+    assert.equal(
+      await page.locator("#evolution-series-container [data-evolution-series]").count(),
+      0,
+      "F1 regression: refreshing facts must clear cached obsolete evolution series cards"
+    );
+    assert.equal(
+      await page.locator("#btn-publish-evolution").isDisabled(),
+      true,
+      "F1 regression: Publish Evolution must be disabled after fact refresh invalidates cached series"
+    );
+
+    // Approve the newly derived unreviewed facts, reload comparable series, and publish evolution cleanly
+    const refreshedUnreviewedIds = await page.evaluate(() =>
+      Array.from(document.querySelectorAll("#facts-list li[data-fact-item]"))
+        .filter((li) => li.querySelector('[data-review-status="unreviewed"]'))
+        .map((li) => li.getAttribute("data-fact-item"))
+    );
+    assert.equal(refreshedUnreviewedIds.length, 2, "Expected 2 newly derived unreviewed facts (F03/F04)");
+    for (const fid of refreshedUnreviewedIds) {
+      await page.click(`button[data-review-decision="approve"][data-fact-id="${fid}"]`);
+      await page.waitForSelector(`li[data-fact-item="${fid}"] [data-review-status="approved"]`);
+    }
     await page.click("#btn-load-evolution-series");
     await page.waitForSelector("#evolution-series-container [data-evolution-series]");
     await page.click("#btn-publish-evolution");

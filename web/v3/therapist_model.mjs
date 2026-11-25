@@ -262,17 +262,16 @@ export function canPublishSummary(factEntries) {
 }
 
 /**
- * Determine whether the Publish Evolution control may be enabled.
- * Requires at least one comparable series returned by GET /evolution/series
- * AND every item in the selected series to be verified as approved in the current state.
+ * Filter a list of comparable evolution series to only those whose items are ALL
+ * currently publishable (effectively approved, current content_hash, summary-eligible).
  *
  * @param {Array<{ series_key_hash: string, items: Array<{ fact_id: string, content_hash: string }> }>} seriesList
  * @param {Array<{ fact: any, contentHash: string, effectiveReview?: any }>} factEntries
- * @returns {boolean}
+ * @returns {Array<{ series_key_hash: string, items: Array<{ fact_id: string, content_hash: string }> }>}
  */
-export function canPublishEvolution(seriesList, factEntries) {
+export function getPublishableEvolutionSeries(seriesList, factEntries) {
   if (!Array.isArray(seriesList) || seriesList.length === 0) {
-    return false;
+    return [];
   }
   const approvedById = new Map();
   for (const entry of factEntries || []) {
@@ -282,14 +281,32 @@ export function canPublishEvolution(seriesList, factEntries) {
     }
   }
   if (approvedById.size === 0) {
-    return false;
+    return [];
   }
-  return seriesList.some(
+  return seriesList.filter(
     (s) =>
       Array.isArray(s.items) &&
       s.items.length > 0 &&
       s.items.every((it) => approvedById.get(String(it.fact_id)) === String(it.content_hash))
   );
+}
+
+/**
+ * Determine whether the Publish Evolution control may be enabled.
+ * Requires at least one comparable series returned by GET /evolution/series
+ * AND every item in EVERY cached series to be verified as currently approved
+ * (zero stale, obsolete, rejected, or unreviewed items in the offered selection).
+ *
+ * @param {Array<{ series_key_hash: string, items: Array<{ fact_id: string, content_hash: string }> }>} seriesList
+ * @param {Array<{ fact: any, contentHash: string, effectiveReview?: any }>} factEntries
+ * @returns {boolean}
+ */
+export function canPublishEvolution(seriesList, factEntries) {
+  if (!Array.isArray(seriesList) || seriesList.length === 0) {
+    return false;
+  }
+  const publishable = getPublishableEvolutionSeries(seriesList, factEntries);
+  return publishable.length === seriesList.length;
 }
 
 /**
