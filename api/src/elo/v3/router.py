@@ -1,4 +1,4 @@
-"""CL06.3 v3 FastAPI router exposing the S0-02, S0-04, and S1a-01 endpoints under /api/v3.
+"""CL06.3 v3 FastAPI router exposing the S0-02, S0-04, S1a-01, and S1a-02 endpoints under /api/v3.
 
 Endpoints (api-contract.v3.json):
   1.  GET  /api/v3/health                                          (id: health, roles: anonymous)
@@ -12,6 +12,9 @@ Endpoints (api-contract.v3.json):
   9.  POST /api/v3/participants/{participant_id}/assessments       (id: assessments.create, roles: therapist)
   10. POST /api/v3/assessments/{entity_id}/versions                (id: assessments.revise, roles: therapist)
   11. GET  /api/v3/participants/{participant_id}/assessments       (id: assessments.list, roles: therapist)
+  12. POST /api/v3/participants/{participant_id}/goals             (id: goals.create, roles: therapist)
+  13. POST /api/v3/goals/{entity_id}/versions                      (id: goals.revise, roles: therapist)
+  14. GET  /api/v3/participants/{participant_id}/goals             (id: goals.list, roles: therapist, participant)
 """
 
 from __future__ import annotations
@@ -390,6 +393,33 @@ def create_v3_router(
     def assessments_list(participant_id: str, request: Request):
         principal = auth.require_principal(request)
         items = clinical.list("functional_assessment", participant_id, principal)
+        return JSONResponse(items, status_code=200)
+
+    # 12. goals.create (S1a-02, D-S1a-02-1)
+    @router.post("/participants/{participant_id}/goals", status_code=201)
+    async def goals_create(participant_id: str, request: Request):
+        principal = auth.require_principal(request)
+        clinical.authorize_create("goal", participant_id, principal)
+        body = await _read_json_object(request)
+        payload = extract_entity_payload(body)
+        ent = clinical.create("goal", participant_id, payload, principal)
+        return JSONResponse(ent, status_code=201)
+
+    # 13. goals.revise (S1a-02, D-S1a-01-1/-2, D-S1a-02-1)
+    @router.post("/goals/{entity_id}/versions", status_code=201)
+    async def goals_revise(entity_id: str, request: Request):
+        principal = auth.require_principal(request)
+        clinical.authorize_revise(entity_id, principal, expected_entity_type="goal")
+        body = await _read_json_object(request)
+        payload = extract_entity_payload(body)
+        ent = clinical.revise(entity_id, payload, principal, expected_entity_type="goal")
+        return JSONResponse(ent, status_code=201)
+
+    # 14. goals.list (S1a-02, D-S1a-02-1)
+    @router.get("/participants/{participant_id}/goals")
+    def goals_list(participant_id: str, request: Request):
+        principal = auth.require_principal(request)
+        items = clinical.list("goal", participant_id, principal)
         return JSONResponse(items, status_code=200)
 
     return router, store, auth
