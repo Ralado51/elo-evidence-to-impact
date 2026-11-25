@@ -641,10 +641,18 @@ def test_effective_review_publication_gate_and_stale_after_change(tmp_path: Path
         == 201
     )
     r_pub1 = client.post(
-        "/api/v3/summaries", headers=_headers(w["t1_tok"]), json={"participant_id": w["p1_id"], "fact_ids": [f01_id]}
+        "/api/v3/summaries",
+        headers=_headers(w["t1_tok"]),
+        json={
+            "participant_id": w["p1_id"],
+            "period_from": "2026-11-25",
+            "period_to": "2026-11-25",
+            "items": [{"fact_id": f01_id, "content_hash": f01_hash}],
+            "note_refs": [],
+        },
     )
     assert r_pub1.status_code == 201, r_pub1.text
-    assert set(r_pub1.json().keys()) == {"summary_id", "event_id"}
+    assert set(r_pub1.json().keys()) == {"summary_id", "content_hash", "event_id"}
     assert _summary_event_count() == 1
 
     # Validate stored summary.published event against S0-03 & REF
@@ -653,6 +661,60 @@ def test_effective_review_publication_gate_and_stale_after_change(tmp_path: Path
     _assert_valid_review_or_summary_event(sum_ev, summary_schema, stream_evs)
     p = sum_ev["payload"]
     assert p["content_hash"] == hash_canonical({k: v for k, v in p.items() if k != "content_hash"})
+    assert r_pub1.json()["content_hash"] == p["content_hash"]
+
+    # Also test D-S1b-03-2 items with stale item content_hash -> 409 CONTENT_HASH_STALE
+    r_bad_item_hash = client.post(
+        "/api/v3/summaries",
+        headers=_headers(w["t1_tok"]),
+        json={
+            "period_from": "2026-11-25",
+            "period_to": "2026-11-25",
+            "items": [{"fact_id": f01_id, "content_hash": "0" * 64}],
+            "note_refs": [],
+        },
+    )
+    assert r_bad_item_hash.status_code == 409 and r_bad_item_hash.json()["error"]["code"] == "CONTENT_HASH_STALE"
+
+    # Also test D-S1b-03-2 note_refs validation: unsorted -> 400 NOT_SORTED; unknown ref -> 400 RULE_VIOLATION; valid sorted -> 201
+    rev_evs = store.get_participant_reviews(w["p1_id"])
+    two_rev_ids = sorted([rev_evs[0]["event_id"], rev_evs[1]["event_id"]])
+    r_unsorted = client.post(
+        "/api/v3/summaries",
+        headers=_headers(w["t1_tok"]),
+        json={
+            "participant_id": w["p1_id"],
+            "period_from": "2026-11-25",
+            "period_to": "2026-11-25",
+            "items": [{"fact_id": f01_id, "content_hash": f01_hash}],
+            "note_refs": list(reversed(two_rev_ids)),
+        },
+    )
+    assert r_unsorted.status_code == 400 and r_unsorted.json()["error"]["code"] == "NOT_SORTED"
+    r_bad_ref = client.post(
+        "/api/v3/summaries",
+        headers=_headers(w["t1_tok"]),
+        json={
+            "participant_id": w["p1_id"],
+            "period_from": "2026-11-25",
+            "period_to": "2026-11-25",
+            "items": [{"fact_id": f01_id, "content_hash": f01_hash}],
+            "note_refs": ["e" * 64],
+        },
+    )
+    assert r_bad_ref.status_code == 400 and r_bad_ref.json()["error"]["code"] == "RULE_VIOLATION"
+    r_good_ref = client.post(
+        "/api/v3/summaries",
+        headers=_headers(w["t1_tok"]),
+        json={
+            "period_from": "2026-11-25",
+            "period_to": "2026-11-25",
+            "items": [{"fact_id": f01_id, "content_hash": f01_hash}],
+            "note_refs": two_rev_ids,
+        },
+    )
+    assert r_good_ref.status_code == 201
+    assert _summary_event_count() == 2
 
     # 4. Mixed set [approved F01, unreviewed F02] -> 422 FACT_NOT_APPROVED, nothing published
     r_mix = client.post(
@@ -661,7 +723,7 @@ def test_effective_review_publication_gate_and_stale_after_change(tmp_path: Path
         json={"participant_id": w["p1_id"], "fact_ids": [f01_id, f02_id]},
     )
     assert r_mix.status_code == 422 and r_mix.json()["error"]["code"] == "FACT_NOT_APPROVED"
-    assert _summary_event_count() == 1
+    assert _summary_event_count() == 2
 
     # 5. Approve F02 then reject F02 -> effective decision is reject -> 422 FACT_NOT_APPROVED
     assert (
@@ -684,7 +746,7 @@ def test_effective_review_publication_gate_and_stale_after_change(tmp_path: Path
         "/api/v3/summaries", headers=_headers(w["t1_tok"]), json={"participant_id": w["p1_id"], "fact_ids": [f02_id]}
     )
     assert r_rej.status_code == 422 and r_rej.json()["error"]["code"] == "FACT_NOT_APPROVED"
-    assert _summary_event_count() == 1
+    assert _summary_event_count() == 2
 
     # 6. Never-seen & not-derivable fact_id -> 404 NOT_FOUND, nothing published
     r_unk = client.post(
@@ -693,10 +755,14 @@ def test_effective_review_publication_gate_and_stale_after_change(tmp_path: Path
         json={"participant_id": w["p1_id"], "fact_ids": ["f_" + "9" * 64]},
     )
     assert r_unk.status_code == 404 and r_unk.json()["error"]["code"] == "NOT_FOUND"
-    assert _summary_event_count() == 1
+    assert _summary_event_count() == 2
 
-    # 7. Non-summary-eligible facts (F09, F10) rejected even when approved -> 422 FACT_NOT_SUMMARY_ELIGIBLE
+    # 7. Non-summary-eligible facts (F09, F10) -> 422 FACT_NOT_SUMMARY_ELIGIBLE (both before and after review per D-S1b-03-2)
     for fid, fh in [(f09_id, f09_hash), (f10_id, f10_hash)]:
+        r_inelig_pre = client.post(
+            "/api/v3/summaries", headers=_headers(w["t1_tok"]), json={"participant_id": w["p1_id"], "fact_ids": [fid]}
+        )
+        assert r_inelig_pre.status_code == 422 and r_inelig_pre.json()["error"]["code"] == "FACT_NOT_SUMMARY_ELIGIBLE"
         assert (
             client.post(
                 "/api/v3/reviews",
@@ -709,7 +775,7 @@ def test_effective_review_publication_gate_and_stale_after_change(tmp_path: Path
             "/api/v3/summaries", headers=_headers(w["t1_tok"]), json={"participant_id": w["p1_id"], "fact_ids": [fid]}
         )
         assert r_inelig.status_code == 422 and r_inelig.json()["error"]["code"] == "FACT_NOT_SUMMARY_ELIGIBLE"
-    assert _summary_event_count() == 1
+    assert _summary_event_count() == 2
 
     # 8. Row 4: Approve F04, then append new report.submitted changing ledger -> old F04 approval is STALE (409)
     assert (
@@ -748,7 +814,7 @@ def test_effective_review_publication_gate_and_stale_after_change(tmp_path: Path
     )
     assert r_stale_pub.status_code == 409
     assert r_stale_pub.json()["error"]["code"] == "CONTENT_HASH_STALE"
-    assert _summary_event_count() == 1
+    assert _summary_event_count() == 2
 
     # 9. Also test same-fact_id stale content_hash directly (e.g. review event cites outdated content_hash)
     stale_rev_stream = f"review:{w['t1_id']}.{w['p1_id']}"
@@ -782,7 +848,7 @@ def test_effective_review_publication_gate_and_stale_after_change(tmp_path: Path
     )
     assert r_stale_hash.status_code == 409
     assert r_stale_hash.json()["error"]["code"] == "CONTENT_HASH_STALE"
-    assert _summary_event_count() == 1
+    assert _summary_event_count() == 2
 
 
 # ---------------------------------------------------------------------------
@@ -819,6 +885,7 @@ def test_immutable_summaries_idempotency_and_get_views(tmp_path: Path):
     )
     assert r_first.status_code == 201
     ev_id_1 = r_first.json()["event_id"]
+    chash_1 = r_first.json()["content_hash"]
 
     # Same summary_id with identical content -> 200 idempotent, no duplicate event
     r_idem = client.post(
@@ -827,7 +894,7 @@ def test_immutable_summaries_idempotency_and_get_views(tmp_path: Path):
         json={"participant_id": w["p1_id"], "fact_ids": [f01_id], "summary_id": sum_id},
     )
     assert r_idem.status_code == 200
-    assert r_idem.json() == {"summary_id": sum_id, "event_id": ev_id_1}
+    assert r_idem.json() == {"summary_id": sum_id, "content_hash": chash_1, "event_id": ev_id_1}
 
     # Same summary_id with DIFFERENT content -> 409 CONFLICT_IMMUTABLE
     r_conf = client.post(
@@ -854,13 +921,14 @@ def test_immutable_summaries_idempotency_and_get_views(tmp_path: Path):
     assert t_body["payload"]["items"] == [{"fact_id": f01_id, "content_hash": f01_hash}]
     _assert_valid_review_or_summary_event(t_body, summary_schema, store.get_stream_events(t_body["stream_id"]))
 
-    # Participant gets simplified own view: ONLY summary_id, published_at, rendered_facts
+    # Participant gets simplified own view: ONLY summary_id, published_at, period, rendered_facts
     r_p = client.get(f"/api/v3/summaries/{sum_id}", headers=_headers(w["p1_tok"]))
     assert r_p.status_code == 200
     p_body = r_p.json()
-    assert set(p_body.keys()) == {"summary_id", "published_at", "rendered_facts"}
+    assert set(p_body.keys()) == {"summary_id", "published_at", "period", "rendered_facts"}
     assert p_body["summary_id"] == sum_id
     assert p_body["published_at"] == t_body["occurred_at"]
+    assert p_body["period"] == {"from": t_body["payload"]["period_from"], "to": t_body["payload"]["period_to"]}
     assert p_body["rendered_facts"] == [
         {"text_ptbr": f01_rendered["text_ptbr"], "limitations_ptbr": f01_rendered["limitations_ptbr"]}
     ]

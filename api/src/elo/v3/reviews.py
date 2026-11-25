@@ -1,31 +1,35 @@
 """Server-authored review recording, publication gate, and immutable summaries (CL06.3 v3, S1b-03).
 
-Implements D-S1b-03-1:
+Implements D-S1b-03-1 and D-S1b-03-2:
 - ``reviews.record`` (POST /api/v3/reviews):
   Request = ``review.recorded`` payload minus server fields (``fact_id``, ``content_hash``,
-  ``decision``, ``note``; optional ``participant_id``). Verifies the fact via S1b-02
-  ``derive_facts`` / ``verify_fact``; checks ``content_hash`` against the fact's current
-  content hash (mismatch -> 409 ``CONTENT_HASH_STALE``; unknown/unverifiable -> 404
-  ``NOT_FOUND``); stores one server-authored ``review.recorded`` event on stream
-  ``review:<therapist_id>.<participant_id>``; returns 201 ``{event_id, review}``.
-- Effective review of a fact = latest ``review.recorded`` for that ``fact_id`` with a
-  status-changing decision (``approve`` or ``reject``), ordered by server append order;
-  ``annotate`` never changes effective status.
+  ``decision``, ``note`` optional default null; ``participant_id`` optional, resolved from
+  the fact). Verifies the fact via S1b-02 ``derive_facts`` / ``verify_fact``; checks
+  ``content_hash`` against the fact's current content hash (mismatch -> 409
+  ``CONTENT_HASH_STALE``; unknown/unverifiable -> 404 ``NOT_FOUND``); stores one
+  server-authored ``review.recorded`` event on ``review:<therapist_id>.<participant_id>``;
+  returns 201 ``{event_id, review}``.
+- Effective review of a fact = latest ``review.recorded`` across all review streams of the
+  participant (any therapist), ordered by server append order, with a status-changing
+  decision (``approve`` or ``reject``); ``annotate`` never changes effective status.
 - ``summaries.publish`` (POST /api/v3/summaries):
-  Request = ``{participant_id, fact_ids, summary_id?}`` (optional ``period_from``,
-  ``period_to``, ``note_refs``). Enforces publication gate on every requested ``fact_id``:
-    * never reviewed / only annotated -> 422 ``FACT_NOT_APPROVED``
-    * effective review is ``reject`` -> 422 ``FACT_NOT_APPROVED``
-    * effective ``approve`` whose ``content_hash`` != current hash, or whose ``fact_id``
-      no longer derives from the ledger -> 409 ``CONTENT_HASH_STALE``
-    * ``fact_id`` never seen in any review and not derivable -> 404 ``NOT_FOUND``
-    * non-summary-eligible fact (``F09``/``F10``) -> 422 ``FACT_NOT_SUMMARY_ELIGIBLE``
-  Any failure publishes nothing. Stores one immutable ``summary.published`` event;
-  same ``summary_id`` with identical content -> 200 idempotent; different content ->
-  409 ``CONFLICT_IMMUTABLE``. Returns ``{summary_id, event_id}``.
+  Request = ``summary.published`` payload fields minus server fields (``items`` as
+  ``[{fact_id, content_hash}]`` or ``fact_ids`` list, ``period_from``/``period_to`` or
+  ``period``, ``note_refs``) plus optional ``participant_id`` and ``summary_id``.
+  ``note_refs`` must cite existing ``review.recorded`` events of the participant and be
+  strictly ascending (else 400 ``NOT_SORTED`` / ``RULE_VIOLATION``).
+  Precedence per requested fact (any failure publishes nothing):
+    1. unknown / not derivable and never reviewed -> 404 ``NOT_FOUND``
+    2. non-summary-eligible (``F09``/``F10``) -> 422 ``FACT_NOT_SUMMARY_ELIGIBLE``
+    3. item ``content_hash`` != current, or approved only under an older hash, or approved
+       ``fact_id`` no longer derives -> 409 ``CONTENT_HASH_STALE``
+    4. never approved or effective ``reject`` -> 422 ``FACT_NOT_APPROVED``
+  ``content_hash`` = canonical hash of payload without ``content_hash``.
+  Same ``summary_id`` + identical content -> 200 idempotent; different content -> 409
+  ``CONFLICT_IMMUTABLE``. Returns ``{summary_id, content_hash, event_id}``.
 - ``summaries.get`` (GET /api/v3/summaries/{summary_id}):
   * Linked therapist -> full ``summary.published`` event.
-  * Participant (own) -> simplified view containing only ``summary_id``, ``published_at``,
+  * Participant (own) -> simplified view: ``summary_id``, ``published_at``, ``period``,
     and ``rendered_facts`` (each ``{text_ptbr, limitations_ptbr}``).
   * Other / unlinked / revoked / other org -> 404 ``NOT_FOUND`` (D-S0-02-1).
 """
@@ -76,7 +80,16 @@ _SERVER_OWNED_ENVELOPE_FIELDS: frozenset[str] = frozenset(
 
 _REVIEW_ALLOWED_FIELDS: frozenset[str] = frozenset({"fact_id", "content_hash", "decision", "note", "participant_id"})
 _SUMMARY_ALLOWED_FIELDS: frozenset[str] = frozenset(
-    {"participant_id", "fact_ids", "summary_id", "period_from", "period_to", "note_refs"}
+    {
+        "participant_id",
+        "items",
+        "fact_ids",
+        "summary_id",
+        "period_from",
+        "period_to",
+        "period",
+        "note_refs",
+    }
 )
 
 
@@ -118,7 +131,7 @@ def _is_valid_date_str(value: str) -> bool:
 def resolve_effective_reviews(
     review_events: Sequence[Mapping[str, Any]],
 ) -> tuple[set[str], dict[str, Mapping[str, Any]]]:
-    """Fold ``review.recorded`` events in server append order (D-S1b-03-1(2)).
+    """Fold ``review.recorded`` events in server append order across all review streams (D-S1b-03-2).
 
     Returns ``(seen_fact_ids, effective_by_fact_id)`` where ``effective_by_fact_id[fid]``
     is the latest ``review.recorded`` event for ``fid`` whose decision is ``approve`` or
@@ -178,19 +191,49 @@ def _extract_review_payload(body: dict[str, Any]) -> tuple[dict[str, Any], str |
     return source, participant_id
 
 
+def _extract_summary_body(body: dict[str, Any]) -> dict[str, Any]:
+    """Extract summary publish fields from flat body or ``{"payload": ...}``, ignoring server envelope fields."""
+    if "payload" in body:
+        raw_payload = body["payload"]
+        if raw_payload is None:
+            raise V3Error("NULL_NOT_ALLOWED", "Field 'payload' must not be null.")
+        if not isinstance(raw_payload, dict):
+            raise V3Error("TYPE", "Field 'payload' must be a JSON object.")
+        for key in body:
+            if key not in ("payload", "participant_id", "summary_id") and key not in _SERVER_OWNED_ENVELOPE_FIELDS:
+                raise V3Error("UNKNOWN_FIELD", f"Unknown request field: {key!r}.")
+        out = {k: v for k, v in raw_payload.items() if k != "content_hash"}
+        if "participant_id" in body and "participant_id" not in out:
+            out["participant_id"] = body["participant_id"]
+        if "summary_id" in body and "summary_id" not in out:
+            out["summary_id"] = body["summary_id"]
+    else:
+        out = {k: v for k, v in body.items() if k not in _SERVER_OWNED_ENVELOPE_FIELDS and k != "content_hash"}
+
+    for key in out:
+        if key not in _SUMMARY_ALLOWED_FIELDS:
+            raise V3Error("UNKNOWN_FIELD", f"Unknown summary publish field: {key!r}.")
+    return out
+
+
 def _project_summary_for_participant(
     event: Mapping[str, Any],
     rendered_items: Sequence[Mapping[str, Any]],
 ) -> dict[str, Any]:
-    """Simplified participant summary view per D-S1b-03-1(1) & ACCEPTANCE Row 7.
+    """Simplified participant summary view per D-S1b-03-2 & ACCEPTANCE Row 7.
 
-    Contains ONLY ``summary_id``, ``published_at``, and ``rendered_facts`` (each with
-    ``text_ptbr`` and ``limitations_ptbr`` — no internal ids, hashes, therapist actor,
-    or clinical review note refs).
+    Contains ONLY ``summary_id``, ``published_at``, ``period``, and ``rendered_facts``
+    (each with ``text_ptbr`` and ``limitations_ptbr`` — no internal ids, hashes,
+    therapist actor, or clinical review note refs).
     """
+    payload = event["payload"]
     return {
-        "summary_id": event["payload"]["summary_id"],
+        "summary_id": payload["summary_id"],
         "published_at": event["occurred_at"],
+        "period": {
+            "from": payload["period_from"],
+            "to": payload["period_to"],
+        },
         "rendered_facts": [
             {
                 "text_ptbr": str(item["text_ptbr"]),
@@ -249,8 +292,25 @@ class ReviewSummaryService:
         )
         _enforce_decision(decision)
 
+    def _resolve_participant_from_fact_ids(self, fact_ids: Sequence[str]) -> tuple[str | None, str | None]:
+        """Resolve ``(participant_id, org_id)`` from the first matching derived fact or prior review."""
+        all_events = self.store.get_all_events()
+        facts, _ = derive_facts(all_events)
+        by_id = {f["fact_id"]: f for f in facts}
+        for fid in fact_ids:
+            if fid in by_id:
+                sc = by_id[fid]["scope"]
+                return str(sc["participant_id"]), str(sc["org_id"])
+        all_reviews = self.store.get_all_reviews()
+        for fid in fact_ids:
+            for rev in reversed(all_reviews):
+                if rev.get("payload", {}).get("fact_id") == fid:
+                    sc = rev["scope"]
+                    return str(sc["participant_id"]), str(sc["org_id"])
+        return None, None
+
     def record_review(self, body: dict[str, Any], principal: Principal | None) -> dict[str, Any]:
-        """Validate and store a server-authored ``review.recorded`` event (D-S1b-03-1(1))."""
+        """Validate and store a server-authored ``review.recorded`` event (D-S1b-03-1/-2)."""
         caller = self.authorize_review_role(principal)
         fields, req_pid = _extract_review_payload(body)
 
@@ -303,7 +363,7 @@ class ReviewSummaryService:
             self._authorize_participant_action(caller, "review", "record", req_pid, org_id)
 
             p_events = self.store.get_participant_events(req_pid)
-            facts, hashes = derive_facts(p_events, participant_id=req_pid)
+            facts, _ = derive_facts(p_events, participant_id=req_pid)
             for fact in facts:
                 if fact["fact_id"] == fact_id:
                     recheck = verify_fact(_proposal_from_fact(fact), p_events)
@@ -315,7 +375,7 @@ class ReviewSummaryService:
             target_org = org_id
         else:
             all_events = self.store.get_all_events()
-            facts, hashes = derive_facts(all_events)
+            facts, _ = derive_facts(all_events)
             for fact in facts:
                 if fact["fact_id"] == fact_id:
                     target_pid = str(fact["scope"]["participant_id"])
@@ -379,45 +439,84 @@ class ReviewSummaryService:
         }
 
     def publish_summary(self, body: dict[str, Any], principal: Principal | None) -> tuple[dict[str, Any], int]:
-        """Enforce publication gate and publish an immutable ``summary.published`` event (D-S1b-03-1)."""
+        """Enforce publication gate and publish an immutable ``summary.published`` event (D-S1b-03-1/-2)."""
         caller = self.authorize_summary_publish_role(principal)
+        clean_body = _extract_summary_body(body)
 
-        clean_body = {k: v for k, v in body.items() if k not in _SERVER_OWNED_ENVELOPE_FIELDS}
-        for key in clean_body:
-            if key not in _SUMMARY_ALLOWED_FIELDS:
-                raise V3Error("UNKNOWN_FIELD", f"Unknown summary publish field: {key!r}.")
+        # Parse requested items: support both D-S1b-03-2 ``items: [{fact_id, content_hash}]``
+        # and D-S1b-03-1 ``fact_ids: [fact_id]``.
+        requested_items: list[tuple[str, str | None]] = []
+        if "items" in clean_body:
+            if "fact_ids" in clean_body:
+                raise V3Error("RULE_VIOLATION", "Specify either 'items' or 'fact_ids', not both.")
+            raw_items = clean_body["items"]
+            if raw_items is None:
+                raise V3Error("NULL_NOT_ALLOWED", "Field 'items' must not be null.")
+            if not isinstance(raw_items, list):
+                raise V3Error("TYPE", "Field 'items' must be an array.")
+            if len(raw_items) < 1 or len(raw_items) > 500:
+                raise V3Error("LENGTH", "Field 'items' must contain between 1 and 500 entries.")
+            seen_req_fids: set[str] = set()
+            for entry in raw_items:
+                if entry is None:
+                    raise V3Error("NULL_NOT_ALLOWED", "Entries in 'items' must not be null.")
+                if not isinstance(entry, dict):
+                    raise V3Error("TYPE", "Entries in 'items' must be JSON objects.")
+                for ek in entry:
+                    if ek not in ("fact_id", "content_hash"):
+                        raise V3Error("UNKNOWN_FIELD", f"Unknown field in summary item: {ek!r}.")
+                if "fact_id" not in entry:
+                    raise V3Error("MISSING_FIELD", "Missing required field 'fact_id' in summary item.")
+                if "content_hash" not in entry:
+                    raise V3Error("MISSING_FIELD", "Missing required field 'content_hash' in summary item.")
+                fid = entry["fact_id"]
+                ch = entry["content_hash"]
+                if fid is None or ch is None:
+                    raise V3Error("NULL_NOT_ALLOWED", "Item 'fact_id' and 'content_hash' must not be null.")
+                if not isinstance(fid, str) or not isinstance(ch, str):
+                    raise V3Error("TYPE", "Item 'fact_id' and 'content_hash' must be strings.")
+                if fid in seen_req_fids:
+                    raise V3Error("DUPLICATE_ITEM", f"Duplicate fact_id in 'items': {fid!r}.")
+                seen_req_fids.add(fid)
+                requested_items.append((fid, ch))
+        elif "fact_ids" in clean_body:
+            fact_ids = clean_body["fact_ids"]
+            if fact_ids is None:
+                raise V3Error("NULL_NOT_ALLOWED", "Field 'fact_ids' must not be null.")
+            if not isinstance(fact_ids, list):
+                raise V3Error("TYPE", "Field 'fact_ids' must be an array.")
+            if len(fact_ids) < 1 or len(fact_ids) > 500:
+                raise V3Error("LENGTH", "Field 'fact_ids' must contain between 1 and 500 items.")
+            for fid in fact_ids:
+                if fid is None:
+                    raise V3Error("NULL_NOT_ALLOWED", "Items in 'fact_ids' must not be null.")
+                if not isinstance(fid, str):
+                    raise V3Error("TYPE", "Items in 'fact_ids' must be strings.")
+            if len(set(fact_ids)) != len(fact_ids):
+                raise V3Error("DUPLICATE_ITEM", "Field 'fact_ids' must not contain duplicate items.")
+            requested_items = [(fid, None) for fid in fact_ids]
+        else:
+            raise V3Error("MISSING_FIELD", "Missing required field 'items' (or 'fact_ids').")
 
-        if "participant_id" not in clean_body:
-            raise V3Error("MISSING_FIELD", "Missing required field 'participant_id'.")
-        participant_id = clean_body["participant_id"]
-        if participant_id is None:
-            raise V3Error("NULL_NOT_ALLOWED", "Field 'participant_id' must not be null.")
-        if not isinstance(participant_id, str):
-            raise V3Error("TYPE", "Field 'participant_id' must be a string.")
-        if not _PARTICIPANT_ID_RE.fullmatch(participant_id):
-            raise V3Error("PATTERN", "Field 'participant_id' must match ^p_[A-Za-z0-9-]{8,64}$.")
+        # Resolve participant_id (from request if supplied, else from requested facts) & authorize
+        participant_id: str | None = None
+        org_id: str | None = None
+        if "participant_id" in clean_body and clean_body["participant_id"] is not None:
+            pid_raw = clean_body["participant_id"]
+            if not isinstance(pid_raw, str):
+                raise V3Error("TYPE", "Field 'participant_id' must be a string.")
+            if not _PARTICIPANT_ID_RE.fullmatch(pid_raw):
+                raise V3Error("PATTERN", "Field 'participant_id' must match ^p_[A-Za-z0-9-]{8,64}$.")
+            participant_id = pid_raw
+            org_id = self._resolve_participant_org(participant_id)
+            if org_id is None:
+                raise V3Error("NOT_FOUND", "Participant not found.")
+        else:
+            participant_id, org_id = self._resolve_participant_from_fact_ids([fid for fid, _ in requested_items])
+            if participant_id is None or org_id is None:
+                raise V3Error("NOT_FOUND", "Fact not found.")
 
-        org_id = self._resolve_participant_org(participant_id)
-        if org_id is None:
-            raise V3Error("NOT_FOUND", "Participant not found.")
         self._authorize_participant_action(caller, "summary", "publish", participant_id, org_id)
-
-        if "fact_ids" not in clean_body:
-            raise V3Error("MISSING_FIELD", "Missing required field 'fact_ids'.")
-        fact_ids = clean_body["fact_ids"]
-        if fact_ids is None:
-            raise V3Error("NULL_NOT_ALLOWED", "Field 'fact_ids' must not be null.")
-        if not isinstance(fact_ids, list):
-            raise V3Error("TYPE", "Field 'fact_ids' must be an array.")
-        if len(fact_ids) < 1 or len(fact_ids) > 500:
-            raise V3Error("LENGTH", "Field 'fact_ids' must contain between 1 and 500 items.")
-        for fid in fact_ids:
-            if fid is None:
-                raise V3Error("NULL_NOT_ALLOWED", "Items in 'fact_ids' must not be null.")
-            if not isinstance(fid, str):
-                raise V3Error("TYPE", "Items in 'fact_ids' must be strings.")
-        if len(set(fact_ids)) != len(fact_ids):
-            raise V3Error("DUPLICATE_ITEM", "Field 'fact_ids' must not contain duplicate items.")
 
         req_summary_id = clean_body.get("summary_id")
         if req_summary_id is not None:
@@ -429,20 +528,35 @@ class ReviewSummaryService:
         else:
             summary_id = new_id("sum")
 
+        # Optional period_from / period_to or period: {from, to}
         req_period_from = clean_body.get("period_from")
+        req_period_to = clean_body.get("period_to")
+        if "period" in clean_body and clean_body["period"] is not None:
+            period_obj = clean_body["period"]
+            if not isinstance(period_obj, dict):
+                raise V3Error("TYPE", "Field 'period' must be a JSON object.")
+            for pk in period_obj:
+                if pk not in ("from", "to", "period_from", "period_to"):
+                    raise V3Error("UNKNOWN_FIELD", f"Unknown field in 'period': {pk!r}.")
+            if req_period_from is None:
+                req_period_from = period_obj.get("from", period_obj.get("period_from"))
+            if req_period_to is None:
+                req_period_to = period_obj.get("to", period_obj.get("period_to"))
+
         if req_period_from is not None:
             if not isinstance(req_period_from, str):
                 raise V3Error("TYPE", "Field 'period_from' must be a string.")
             if not _is_valid_date_str(req_period_from):
                 raise V3Error("PATTERN", "Field 'period_from' must be a valid YYYY-MM-DD date.")
 
-        req_period_to = clean_body.get("period_to")
         if req_period_to is not None:
             if not isinstance(req_period_to, str):
                 raise V3Error("TYPE", "Field 'period_to' must be a string.")
             if not _is_valid_date_str(req_period_to):
                 raise V3Error("PATTERN", "Field 'period_to' must be a valid YYYY-MM-DD date.")
 
+        # Validate note_refs per D-S1b-03-2: sorted strictly ascending (else NOT_SORTED) and must cite
+        # existing review.recorded events of this participant.
         raw_note_refs = clean_body.get("note_refs", [])
         if raw_note_refs is None:
             raise V3Error("NULL_NOT_ALLOWED", "Field 'note_refs' must not be null.")
@@ -457,23 +571,35 @@ class ReviewSummaryService:
                 raise V3Error("PATTERN", "Items in 'note_refs' must be 64-char hex sha256 strings.")
         if len(set(raw_note_refs)) != len(raw_note_refs):
             raise V3Error("DUPLICATE_ITEM", "Field 'note_refs' must not contain duplicates.")
-        note_refs = sorted(raw_note_refs)
+        if any(raw_note_refs[i] >= raw_note_refs[i + 1] for i in range(len(raw_note_refs) - 1)):
+            raise V3Error("NOT_SORTED", "Field 'note_refs' must be sorted strictly ascending.")
+
+        # Load participant reviews in exact server append order (across all therapists)
+        review_events = self.store.get_participant_reviews(participant_id)
+        participant_review_ids = {ev["event_id"] for ev in review_events}
+        for nref in raw_note_refs:
+            if nref not in participant_review_ids:
+                raise V3Error(
+                    "RULE_VIOLATION",
+                    f"note_ref {nref!r} does not cite an existing review.recorded event of this participant.",
+                )
+        note_refs = list(raw_note_refs)
 
         # Derive and verify current facts for participant via S1b-02 verifier
         p_events = self.store.get_participant_events(participant_id)
-        current_facts, current_hashes = derive_facts(p_events, participant_id=participant_id)
+        current_facts, _ = derive_facts(p_events, participant_id=participant_id)
         facts_by_id = {f["fact_id"]: f for f in current_facts}
 
-        # Fold reviews in exact server append order (D-S1b-03-1(2))
-        review_events = self.store.get_participant_reviews(participant_id)
+        # Fold reviews in exact server append order across all review streams of the participant
         seen_fact_ids, effective_reviews = resolve_effective_reviews(review_events)
 
-        # Publication gate check across ALL requested fact_ids before writing anything (D-S1b-03-1(3))
+        # Publication gate check across ALL requested items before writing anything (D-S1b-03-2 precedence)
         verified_selected: list[tuple[dict[str, Any], str]] = []
-        for fid in fact_ids:
+        for fid, req_item_hash in requested_items:
             cur_fact = facts_by_id.get(fid)
             eff = effective_reviews.get(fid)
 
+            # 1. Unknown / not derivable
             if cur_fact is None:
                 if eff is not None and eff["payload"]["decision"] == "approve":
                     raise V3Error(
@@ -505,20 +631,28 @@ class ReviewSummaryService:
             cur_hash = str(recheck["content_hash"])
             cur_verified_fact = recheck["fact"]
 
-            if eff is None:
-                raise V3Error("FACT_NOT_APPROVED", f"Fact {fid!r} has not been approved.")
-            if eff["payload"]["decision"] != "approve":
-                raise V3Error("FACT_NOT_APPROVED", f"Fact {fid!r} has effective decision {eff['payload']['decision']!r}.")
-            if eff["payload"]["content_hash"] != cur_hash:
-                raise V3Error(
-                    "CONTENT_HASH_STALE",
-                    f"Approving review for fact {fid!r} cites a stale content_hash.",
-                )
+            # 2. Non-summary-eligible fact (F09 / F10) -> 422 FACT_NOT_SUMMARY_ELIGIBLE (D-S1b-03-2)
             if not cur_verified_fact["flags"].get("summary_eligible", False):
                 raise V3Error(
                     "FACT_NOT_SUMMARY_ELIGIBLE",
                     f"Fact {fid!r} of type {cur_verified_fact['type']!r} is not eligible for summaries.",
                 )
+
+            # 3. Item hash != current, or approved only under older hash -> 409 CONTENT_HASH_STALE (D-S1b-03-2)
+            if req_item_hash is not None and req_item_hash != cur_hash:
+                raise V3Error(
+                    "CONTENT_HASH_STALE",
+                    f"Requested content_hash for fact {fid!r} does not match current content_hash.",
+                )
+            if eff is not None and eff["payload"]["decision"] == "approve" and eff["payload"]["content_hash"] != cur_hash:
+                raise V3Error(
+                    "CONTENT_HASH_STALE",
+                    f"Approving review for fact {fid!r} cites a stale content_hash.",
+                )
+
+            # 4. Never approved or effective reject -> 422 FACT_NOT_APPROVED (D-S1b-03-2)
+            if eff is None or eff["payload"]["decision"] != "approve":
+                raise V3Error("FACT_NOT_APPROVED", f"Fact {fid!r} is not effectively approved.")
 
             verified_selected.append((cur_verified_fact, cur_hash))
 
@@ -588,6 +722,7 @@ class ReviewSummaryService:
         return (
             {
                 "summary_id": summary_id,
+                "content_hash": stored_event["payload"]["content_hash"],
                 "event_id": stored_event["event_id"],
             },
             201 if created else 200,
@@ -620,7 +755,7 @@ class ReviewSummaryService:
         if caller.role == "therapist":
             return event
 
-        # Participant simplified view (D-S1b-03-1(1) & Row 7)
+        # Participant simplified view (D-S1b-03-2 & Row 7)
         if rendered_items is None:
             p_events = self.store.get_participant_events(participant_id)
             facts, _ = derive_facts(p_events, participant_id=participant_id)
