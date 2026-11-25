@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import threading
 from collections.abc import Sequence
 from typing import Any
 
@@ -54,51 +55,64 @@ _WARNING_INFO_CODES = frozenset({"SEQ_GAP", "DUPLICATE"})
 class EventLedger:
     """Append-only hash-chained CL06.3 event ledger backed by SQLite."""
 
-    def __init__(self, db: sqlite3.Connection, *, real_data_gate_open: bool = False) -> None:
+    def __init__(
+        self,
+        db: sqlite3.Connection,
+        *,
+        real_data_gate_open: bool = False,
+        lock: threading.RLock | None = None,
+    ) -> None:
         self.db = db
         self.real_data_gate_open = real_data_gate_open
-        self.db.executescript(LEDGER_SCHEMA)
+        self._lock = lock if lock is not None else threading.RLock()
+        with self._lock:
+            self.db.executescript(LEDGER_SCHEMA)
 
     def get_stream_events(self, stream_id: str) -> list[dict[str, Any]]:
-        rows = self.db.execute(
-            "SELECT data FROM v3_events WHERE stream_id = ? ORDER BY seq ASC",
-            (stream_id,),
-        ).fetchall()
+        with self._lock:
+            rows = self.db.execute(
+                "SELECT data FROM v3_events WHERE stream_id = ? ORDER BY seq ASC",
+                (stream_id,),
+            ).fetchall()
         return [json.loads(r[0]) for r in rows]
 
     def get_all_events(self) -> list[dict[str, Any]]:
-        rows = self.db.execute(
-            "SELECT data FROM v3_events ORDER BY stream_id ASC, seq ASC"
-        ).fetchall()
+        with self._lock:
+            rows = self.db.execute(
+                "SELECT data FROM v3_events ORDER BY stream_id ASC, seq ASC"
+            ).fetchall()
         return [json.loads(r[0]) for r in rows]
 
     def is_stream_incomplete(self, stream_id: str) -> bool:
-        row = self.db.execute(
-            "SELECT incomplete FROM v3_stream_state WHERE stream_id = ?",
-            (stream_id,),
-        ).fetchone()
+        with self._lock:
+            row = self.db.execute(
+                "SELECT incomplete FROM v3_stream_state WHERE stream_id = ?",
+                (stream_id,),
+            ).fetchone()
         return bool(row and row[0])
 
     def _stream_schema_version(self, stream_id: str) -> int | None:
-        row = self.db.execute(
-            "SELECT schema_version FROM v3_stream_state WHERE stream_id = ?",
-            (stream_id,),
-        ).fetchone()
-        if row is not None:
-            return int(row[0])
-        ev_row = self.db.execute(
-            "SELECT schema_version FROM v3_events WHERE stream_id = ? LIMIT 1",
-            (stream_id,),
-        ).fetchone()
+        with self._lock:
+            row = self.db.execute(
+                "SELECT schema_version FROM v3_stream_state WHERE stream_id = ?",
+                (stream_id,),
+            ).fetchone()
+            if row is not None:
+                return int(row[0])
+            ev_row = self.db.execute(
+                "SELECT schema_version FROM v3_events WHERE stream_id = ? LIMIT 1",
+                (stream_id,),
+            ).fetchone()
         return int(ev_row[0]) if ev_row is not None else None
 
     def get_consent_events(self, participant_id: str) -> list[dict[str, Any]]:
-        rows = self.db.execute(
-            """SELECT data FROM v3_events
-               WHERE participant_id = ? AND type IN ('consent.accepted', 'consent.revoked')
-               ORDER BY seq ASC""",
-            (participant_id,),
-        ).fetchall()
+        with self._lock:
+            rows = self.db.execute(
+                """SELECT data FROM v3_events
+                   WHERE participant_id = ? AND type IN ('consent.accepted', 'consent.revoked')
+                   ORDER BY seq ASC""",
+                (participant_id,),
+            ).fetchall()
         return [json.loads(r[0]) for r in rows]
 
     def get_prescription(
@@ -109,11 +123,12 @@ class EventLedger:
         org_id: str | None = None,
         participant_id: str | None = None,
     ) -> dict[str, Any] | None:
-        row = self.db.execute(
-            """SELECT data FROM v3_events
-               WHERE stream_id = ? AND seq = ? AND type = 'prescription.published'""",
-            (f"prescription:{prescription_id}", revision),
-        ).fetchone()
+        with self._lock:
+            row = self.db.execute(
+                """SELECT data FROM v3_events
+                   WHERE stream_id = ? AND seq = ? AND type = 'prescription.published'""",
+                (f"prescription:{prescription_id}", revision),
+            ).fetchone()
         if row is None:
             return None
         ent = json.loads(row[0])
@@ -125,43 +140,48 @@ class EventLedger:
 
     def import_legacy_events(self, events: Sequence[dict[str, Any]]) -> int:
         """Store-level import of read-only CL06.1 (schema_version 2) legacy events."""
-        count = 0
-        for ev in events:
-            if not isinstance(ev, dict) or ev.get("schema_version") != 2:
-                raise ValueError("import_legacy_events accepts schema_version == 2 events only")
-            errs = check_event_integrity(ev)
-            if errs:
-                raise ValueError(f"Legacy event failed integrity check: {errs}")
-            stream_id = ev["stream_id"]
-            seq = ev["seq"]
-            scope = ev["scope"]
-            canonical_json = canonicalize(ev)
-            self.db.execute(
-                """INSERT INTO v3_events
-                   (event_id, stream_id, seq, schema_version, type, org_id, participant_id, hash, prev_hash, data)
-                   VALUES (?,?,?,?,?,?,?,?,?,?)""",
-                (
-                    ev["event_id"],
-                    stream_id,
-                    seq,
-                    2,
-                    ev["type"],
-                    scope["org_id"],
-                    scope["participant_id"],
-                    ev["hash"],
-                    ev["prev_hash"],
-                    canonical_json,
-                ),
-            )
-            self.db.execute(
-                """INSERT INTO v3_stream_state (stream_id, schema_version, incomplete)
-                   VALUES (?, 2, 0)
-                   ON CONFLICT(stream_id) DO NOTHING""",
-                (stream_id,),
-            )
-            count += 1
-        self.db.commit()
-        return count
+        with self._lock:
+            count = 0
+            try:
+                for ev in events:
+                    if not isinstance(ev, dict) or ev.get("schema_version") != 2:
+                        raise ValueError("import_legacy_events accepts schema_version == 2 events only")
+                    errs = check_event_integrity(ev)
+                    if errs:
+                        raise ValueError(f"Legacy event failed integrity check: {errs}")
+                    stream_id = ev["stream_id"]
+                    seq = ev["seq"]
+                    scope = ev["scope"]
+                    canonical_json = canonicalize(ev)
+                    self.db.execute(
+                        """INSERT INTO v3_events
+                           (event_id, stream_id, seq, schema_version, type, org_id, participant_id, hash, prev_hash, data)
+                           VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                        (
+                            ev["event_id"],
+                            stream_id,
+                            seq,
+                            2,
+                            ev["type"],
+                            scope["org_id"],
+                            scope["participant_id"],
+                            ev["hash"],
+                            ev["prev_hash"],
+                            canonical_json,
+                        ),
+                    )
+                    self.db.execute(
+                        """INSERT INTO v3_stream_state (stream_id, schema_version, incomplete)
+                           VALUES (?, 2, 0)
+                           ON CONFLICT(stream_id) DO NOTHING""",
+                        (stream_id,),
+                    )
+                    count += 1
+                self.db.commit()
+            except Exception:
+                self.db.rollback()
+                raise
+            return count
 
     def append(
         self,
@@ -171,6 +191,20 @@ class EventLedger:
         map_http_codes: bool = False,
     ) -> list[dict[str, Any]]:
         """Validate and append events in order, returning per-item results (D-S0-04-1, D-S0-04-2)."""
+        with self._lock:
+            try:
+                return self._append_locked(events, principal=principal, map_http_codes=map_http_codes)
+            except Exception:
+                self.db.rollback()
+                raise
+
+    def _append_locked(
+        self,
+        events: Sequence[dict[str, Any]],
+        *,
+        principal: Principal | None = None,
+        map_http_codes: bool = False,
+    ) -> list[dict[str, Any]]:
         cat = load_event_catalog()
         results: list[dict[str, Any]] = []
         rejected_streams: set[str] = set()

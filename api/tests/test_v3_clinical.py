@@ -892,3 +892,79 @@ def test_reusable_service_generic_second_type_without_new_service_code(monkeypat
     # List returns latest version (v2)
     listed_goals = service.list("goal", ctx["p1_id"], therapist)
     assert listed_goals == [goal_v2]
+
+
+# --- F1 / D-S1a-01-2 stress test: >= 200 concurrent revise races + authenticated reads ---
+
+
+def test_stress_200_concurrent_revise_races_and_authenticated_reads(monkeypatch):
+    import elo.api as elo_api
+
+    monkeypatch.setattr(elo_api, "RATE_LIMIT", (100_000, 60))
+    ref = _load_ref()
+    app, client, ctx = _make_seeded_app(monkeypatch)
+    hdrs = {"Authorization": f"Bearer {ctx['t1_tok']}"}
+
+    r1 = client.post(
+        f"/api/v3/participants/{ctx['p1_id']}/assessments",
+        headers=hdrs,
+        json=_valid_fa_payload(note="Stress base v1"),
+    )
+    assert r1.status_code == 201
+    v1 = r1.json()
+    eid = v1["entity_id"]
+    store = app.state.v3_store
+    raw_v1_before = store.db.execute(
+        "SELECT data FROM v3_entities WHERE entity_id=? AND version=1", (eid,)
+    ).fetchone()[0]
+
+    orig_insert = store.insert_entity_version
+    state = {"target_version": 2, "barrier": threading.Barrier(2)}
+
+    def racing_insert(ent, *, existing):
+        if ent["entity_id"] == eid and ent["version"] == state["target_version"]:
+            state["barrier"].wait(timeout=5.0)
+        return orig_insert(ent, existing=existing)
+
+    monkeypatch.setattr(store, "insert_entity_version", racing_insert)
+
+    num_races = 200
+    payload_a = _valid_fa_payload(note="Stress writer A")
+    payload_b = _valid_fa_payload(note="Stress writer B")
+
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        for i in range(num_races):
+            expected_v = i + 2
+            state["target_version"] = expected_v
+            state["barrier"] = threading.Barrier(2)
+
+            f_w1 = pool.submit(client.post, f"/api/v3/assessments/{eid}/versions", headers=hdrs, json=payload_a)
+            f_w2 = pool.submit(client.post, f"/api/v3/assessments/{eid}/versions", headers=hdrs, json=payload_b)
+            f_list = pool.submit(client.get, f"/api/v3/participants/{ctx['p1_id']}/assessments", headers=hdrs)
+            f_hist = pool.submit(client.get, f"/api/v3/entities/{eid}/versions", headers=hdrs)
+
+            w_resps = [f_w1.result(timeout=10), f_w2.result(timeout=10)]
+            r_list = f_list.result(timeout=10)
+            r_hist = f_hist.result(timeout=10)
+
+            assert sorted(r.status_code for r in w_resps) == [201, 409], (
+                f"round {i}: {[(r.status_code, r.text) for r in w_resps]}"
+            )
+            winner = next(r for r in w_resps if r.status_code == 201)
+            loser = next(r for r in w_resps if r.status_code == 409)
+            assert winner.json()["version"] == expected_v
+            _assert_error(loser, 409, "ENTITY_VERSION_CONFLICT")
+
+            assert r_list.status_code == 200 and len(r_list.json()) == 1
+            assert r_hist.status_code == 200 and len(r_hist.json()) >= expected_v - 1
+
+    versions = store.get_entity_versions(eid)
+    assert len(versions) == num_races + 1
+    assert versions[0] == v1
+    assert ref.check_entity_chain(versions) == []
+
+    raw_v1_after = store.db.execute(
+        "SELECT data FROM v3_entities WHERE entity_id=? AND version=1", (eid,)
+    ).fetchone()[0]
+    assert raw_v1_after == raw_v1_before
+
