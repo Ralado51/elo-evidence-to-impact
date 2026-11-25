@@ -1,4 +1,4 @@
-"""CL06.3 v3 FastAPI router exposing the S0-02, S0-04, S1a-01..04, and S1b-02 endpoints under /api/v3.
+"""CL06.3 v3 FastAPI router exposing the S0-02, S0-04, S1a-01..04, S1b-02, and S1b-03 endpoints under /api/v3.
 
 Endpoints (api-contract.v3.json):
   1.  GET  /api/v3/health                                          (id: health, roles: anonymous)
@@ -25,6 +25,9 @@ Endpoints (api-contract.v3.json):
   22. GET  /api/v3/participants/{participant_id}/facts             (id: facts.list, roles: therapist)
   23. GET  /api/v3/facts/{fact_id}/evidence                        (id: facts.evidence, roles: therapist)
   24. POST /api/v3/facts/verify                                    (id: facts.verify, roles: therapist)
+  25. POST /api/v3/reviews                                         (id: reviews.record, roles: therapist)
+  26. POST /api/v3/summaries                                       (id: summaries.publish, roles: therapist)
+  27. GET  /api/v3/summaries/{summary_id}                          (id: summaries.get, roles: participant, therapist)
 """
 
 from __future__ import annotations
@@ -44,6 +47,7 @@ from .clinical import ClinicalEntityService, extract_entity_payload
 from .entities import build_entity, new_id, utc_now_ms
 from .errors import V3Error
 from .prescriptions import PrescriptionService
+from .reviews import ReviewSummaryService
 from .store import V3Store
 from .validation import check_real_data_gate, is_real_data_gate_open
 from .verifier import FactsService
@@ -108,6 +112,7 @@ def create_v3_router(
     clinical = ClinicalEntityService(store)
     prescriptions = PrescriptionService(store)
     facts = FactsService(store)
+    reviews = ReviewSummaryService(store)
     router = APIRouter(prefix="/api/v3")
 
     # 1. health
@@ -523,6 +528,31 @@ def create_v3_router(
         principal = auth.require_principal(request)
         body = await _read_json_object(request)
         result = facts.verify_proposal(body, principal)
+        return JSONResponse(result, status_code=200)
+
+    # 25. reviews.record (S1b-03, D-S1b-03-1)
+    @router.post("/reviews", status_code=201)
+    async def reviews_record(request: Request):
+        principal = auth.require_principal(request)
+        reviews.authorize_review_role(principal)
+        body = await _read_json_object(request)
+        result = reviews.record_review(body, principal)
+        return JSONResponse(result, status_code=201)
+
+    # 26. summaries.publish (S1b-03, D-S1b-03-1)
+    @router.post("/summaries", status_code=201)
+    async def summaries_publish(request: Request):
+        principal = auth.require_principal(request)
+        reviews.authorize_summary_publish_role(principal)
+        body = await _read_json_object(request)
+        result, status_code = reviews.publish_summary(body, principal)
+        return JSONResponse(result, status_code=status_code)
+
+    # 27. summaries.get (S1b-03, D-S1b-03-1)
+    @router.get("/summaries/{summary_id}")
+    def summaries_get(summary_id: str, request: Request):
+        principal = auth.require_principal(request)
+        result = reviews.get_summary(summary_id, principal)
         return JSONResponse(result, status_code=200)
 
     return router, store, auth
