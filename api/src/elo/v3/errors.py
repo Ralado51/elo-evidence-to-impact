@@ -77,6 +77,16 @@ ITEM_WARNING_CODES: dict[str, int] = {
     "CLOCK_REGRESSION": 200,
 }
 
+# Verifier-layer result codes emitted only inside HTTP 200 facts.verify responses (error-codes.v3.json).
+VERIFIER_RESULT_CODES: dict[str, int] = {
+    "REF_MISSING": 200,
+    "REF_OUT_OF_SCOPE": 200,
+    "REF_WRONG_TYPE": 200,
+    "PRECONDITION_FAILED": 200,
+    "EVIDENCE_SET_MISMATCH": 200,
+    "RECOMPUTE_MISMATCH": 200,
+}
+
 
 def map_validation_code(code: str, details: Any = None) -> tuple[str, int, Any]:
     """Map a validation-layer code onto the cataloged HTTP error surface (D-S0-03-4).

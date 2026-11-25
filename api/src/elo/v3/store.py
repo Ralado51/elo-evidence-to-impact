@@ -138,6 +138,12 @@ class V3Store:
     def get_all_events(self) -> list[dict[str, Any]]:
         return self.ledger.get_all_events()
 
+    def get_participant_events(self, participant_id: str) -> list[dict[str, Any]]:
+        return self.ledger.get_participant_events(participant_id)
+
+    def has_events_for_participant(self, participant_id: str) -> bool:
+        return self.ledger.has_events_for_participant(participant_id)
+
     def is_stream_incomplete(self, stream_id: str) -> bool:
         return self.ledger.is_stream_incomplete(stream_id)
 

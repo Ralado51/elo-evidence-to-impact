@@ -94,6 +94,22 @@ class EventLedger:
             ).fetchall()
         return [json.loads(r[0]) for r in rows]
 
+    def get_participant_events(self, participant_id: str) -> list[dict[str, Any]]:
+        with self._lock:
+            rows = self.db.execute(
+                "SELECT data FROM v3_events WHERE participant_id = ? ORDER BY stream_id ASC, seq ASC",
+                (participant_id,),
+            ).fetchall()
+        return [json.loads(r[0]) for r in rows]
+
+    def has_events_for_participant(self, participant_id: str) -> bool:
+        with self._lock:
+            row = self.db.execute(
+                "SELECT 1 FROM v3_events WHERE participant_id = ? LIMIT 1",
+                (participant_id,),
+            ).fetchone()
+        return row is not None
+
     def is_stream_incomplete(self, stream_id: str) -> bool:
         with self._lock:
             row = self.db.execute(
