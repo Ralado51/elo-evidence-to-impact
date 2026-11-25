@@ -26,6 +26,18 @@ Static bilingual interface (pt-BR and English), served by nginx at `/app/`. No f
 node --test web/tests/*.test.mjs
 ```
 
+### Real-browser accessibility harness (`web/tests/browser/`)
+
+- Serves `web/` over a loopback-only (`127.0.0.1`) Node `http` server, opens each entry listed in `web/tests/browser/pages.json` in headless Chromium via the PO-installed `playwright-core@1.65.1` (resolved by path from `ELO_PLAYWRIGHT_DIR`, defaulting to `~/hackathons/elo-platform/workspace/tools/playwright`), blocks any outbound request outside loopback, verifies rendered accessibility tree, keyboard traversal/skip-link/focus ring, `>= 48×48` CSS px targets, computed contrast, reflow at `320×640` and `640×800@2x`, reduced-motion durations `<= 0.01 ms`, and real-DOM `announce()` live-region isolation, and prints a deterministic JSON report (excluding `timings_ms`).
+- Adding a new v3 screen requires only adding an entry to `web/tests/browser/pages.json`.
+- Run from the repository root:
+
+```bash
+node web/tests/browser/run.mjs
+```
+
+Optional overrides: `--pages <path/to/pages.json>`, `--web-root <path/to/web>`, and `ELO_PLAYWRIGHT_DIR=<path/to/playwright>`.
+
 ## Build notes
 
 The Dockerfile fetches `@mediapipe/tasks-vision@1.2.3` and the hand model at build time, so the app serves them itself and the CSP stays `'self'`

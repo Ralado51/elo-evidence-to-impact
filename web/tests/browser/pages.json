@@ -1,0 +1,10 @@
+{
+  "pages": [
+    {
+      "id": "v3-shell",
+      "path": "web/v3/index.html",
+      "liveRegionModule": "/v3/a11y.mjs",
+      "inlineLinkExceptions": []
+    }
+  ]
+}
