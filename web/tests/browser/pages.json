@@ -11,6 +11,12 @@
       "path": "/v3/therapist.html",
       "liveRegionModule": "/v3/a11y.mjs",
       "inlineLinkExceptions": []
+    },
+    {
+      "id": "v3-participant",
+      "path": "/v3/participant.html",
+      "liveRegionModule": "/v3/a11y.mjs",
+      "inlineLinkExceptions": []
     }
   ]
 }
