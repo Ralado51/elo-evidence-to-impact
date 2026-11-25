@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Elo v3 — Base de Acessibilidade</title>
+  <link rel="stylesheet" href="./tokens.css">
+  <link rel="stylesheet" href="./base.css">
+</head>
+<body>
+  <a class="skip-link target" href="#main">Pular para o conteúdo principal</a>
+
+  <header class="elo-header">
+    <div class="elo-shell">
+      <p class="elo-brand">Elo — Reabilitação Motora (v3)</p>
+      <nav class="elo-nav" aria-label="Navegação principal">
+        <a class="target" href="#controles-exemplos">
+          <span class="elo-icon" aria-hidden="true">&#9881;</span>
+          <span>Controles</span>
+        </a>
+        <a class="target" href="#status-exemplos">
+          <span class="elo-icon" aria-hidden="true">&#9432;</span>
+          <span>Estados</span>
+        </a>
+        <a class="target" href="#formulario-exemplos">
+          <span class="elo-icon" aria-hidden="true">&#9998;</span>
+          <span>Formulário</span>
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main" class="elo-shell" tabindex="-1">
+    <h1>Base acessível do cliente Elo v3</h1>
+
+    <section id="controles-exemplos" class="elo-card" aria-labelledby="sec-controles-titulo">
+      <h2 id="sec-controles-titulo">Controles rotulados e ampliados</h2>
+      <p class="elo-muted">
+        Demonstração sintética dos padrões de acessibilidade (ícone com rótulo visível, alvo mínimo de 48×48 px e foco visível).
+      </p>
+      <div class="elo-actions">
+        <button type="button" class="elo-btn-primary" id="btn-iniciar-demo">
+          <span class="elo-icon" aria-hidden="true">&#9654;</span>
+          <span>Iniciar exercício</span>
+        </button>
+        <button type="button" id="btn-parar-demo">
+          <span class="elo-icon" aria-hidden="true">&#9632;</span>
+          <span>Parar agora</span>
+        </button>
+        <a class="button" href="#status-exemplos">
+          <span class="elo-icon" aria-hidden="true">&#8595;</span>
+          <span>Ver estados</span>
+        </a>
+      </div>
+    </section>
+
+    <section id="status-exemplos" class="elo-card" aria-labelledby="sec-status-titulo">
+      <h2 id="sec-status-titulo">Estados com texto, ícone e cor</h2>
+      <h3>Variantes de retorno visual</h3>
+      <ul class="elo-status-list">
+        <li class="elo-status elo-status--info" data-status="info">
+          <span class="elo-icon" aria-hidden="true">&#8505;</span>
+          <span class="elo-status-label">Informação: ambiente sintético pronto para prática.</span>
+        </li>
+        <li class="elo-status elo-status--success" data-status="success">
+          <span class="elo-icon" aria-hidden="true">&#10003;</span>
+          <span class="elo-status-label">Concluído: relato da sessão registrado.</span>
+        </li>
+        <li class="elo-status elo-status--warning" data-status="warning">
+          <span class="elo-icon" aria-hidden="true">&#9888;</span>
+          <span class="elo-status-label">Atenção: câmera desativada; modo somente relato disponível.</span>
+        </li>
+        <li class="elo-status elo-status--error" data-status="error">
+          <span class="elo-icon" aria-hidden="true">&#10005;</span>
+          <span class="elo-status-label">Erro: não foi possível enviar o registro agora.</span>
+        </li>
+      </ul>
+    </section>
+
+    <section id="formulario-exemplos" class="elo-card" aria-labelledby="sec-form-titulo">
+      <h2 id="sec-form-titulo">Controles nativos de formulário</h2>
+      <form action="#main" method="get">
+        <div class="elo-field">
+          <label for="campo-identificador">Identificador sintético da prática</label>
+          <input id="campo-identificador" name="identificador" type="text" autocomplete="off">
+        </div>
+
+        <div class="elo-field">
+          <label for="campo-modo">Modo de prática</label>
+          <select id="campo-modo" name="modo">
+            <option value="report_only">Somente relato (sem câmera)</option>
+            <option value="camera">Com câmera</option>
+            <option value="simulation">Simulação sintética</option>
+          </select>
+        </div>
+
+        <fieldset>
+          <legend>Ajuda percebida na prática</legend>
+          <div class="elo-actions">
+            <label class="choice-target">
+              <input type="radio" name="ajuda" value="none" checked>
+              <span>Sem ajuda</span>
+            </label>
+            <label class="choice-target">
+              <input type="radio" name="ajuda" value="some">
+              <span>Com alguma ajuda</span>
+            </label>
+          </div>
+        </fieldset>
+
+        <div class="elo-field">
+          <label class="choice-target">
+            <input type="checkbox" name="consentimento_camera" value="camera">
+            <span>Autorizo uso opcional da câmera nesta prática</span>
+          </label>
+        </div>
+
+        <div class="elo-field">
+          <label for="campo-observacao">Observação opcional</label>
+          <textarea id="campo-observacao" name="observacao" rows="3"></textarea>
+        </div>
+
+        <button type="submit" class="elo-btn-primary">
+          <span class="elo-icon" aria-hidden="true">&#10003;</span>
+          <span>Salvar preferência</span>
+        </button>
+      </form>
+    </section>
+
+    <div id="elo-live-region" class="elo-live-region" role="status" aria-live="polite" aria-atomic="true"></div>
+  </main>
+
+  <footer class="elo-footer">
+    <div class="elo-shell">
+      <p>Interface de demonstração v3 com dados exclusivamente sintéticos. Não realiza diagnóstico nem prescrição.</p>
+    </div>
+  </footer>
+
+  <script type="module" src="./a11y.mjs"></script>
+</body>
+</html>
