@@ -716,9 +716,9 @@ def test_session_events_unlocked_handedness_checked_and_server_authored_only(mon
             },
         },
     )
-    # Matching handedness (right) -> stored!
-    s2_ok = _build_signed_event(
-        event_type="cycle.accepted",
+    # Calibrate and start the capture session before emitting cycles (S1b-01 phase rules)
+    s2_open = _build_signed_event(
+        event_type="calibration.attempted",
         stream_id=s_stream,
         seq=2,
         prev_hash=s1["hash"],
@@ -726,7 +726,70 @@ def test_session_events_unlocked_handedness_checked_and_server_authored_only(mon
         scope=s_scope,
         source={"type": "camera", "algorithm_version": "c05-hand-2", "device_hint": "desktop-chrome"},
         execution_mode="camera",
+        t_mono_ms=200,
+        occurred_at="2026-11-25T11:00:01.000Z",
+        payload={"attempt": 1, "posture": "open", "n_samples": 30, "median": 1.8, "mad": 0.02, "accepted": True, "reason": None},
+    )
+    s3_closed = _build_signed_event(
+        event_type="calibration.attempted",
+        stream_id=s_stream,
+        seq=3,
+        prev_hash=s2_open["hash"],
+        actor={"role": "participant", "id": ctx["p1_id"]},
+        scope=s_scope,
+        source={"type": "camera", "algorithm_version": "c05-hand-2", "device_hint": "desktop-chrome"},
+        execution_mode="camera",
+        t_mono_ms=300,
+        occurred_at="2026-11-25T11:00:02.000Z",
+        payload={"attempt": 2, "posture": "closed", "n_samples": 30, "median": 0.7, "mad": 0.02, "accepted": True, "reason": None},
+    )
+    s4_cal = _build_signed_event(
+        event_type="calibration.applied",
+        stream_id=s_stream,
+        seq=4,
+        prev_hash=s3_closed["hash"],
+        actor={"role": "participant", "id": ctx["p1_id"]},
+        scope=s_scope,
+        source={"type": "camera", "algorithm_version": "c05-hand-2", "device_hint": "desktop-chrome"},
+        execution_mode="camera",
+        t_mono_ms=400,
+        occurred_at="2026-11-25T11:00:03.000Z",
+        payload={
+            "calibration_id": "cal_synth0001",
+            "open": 1.8,
+            "closed": 0.7,
+            "span": 1.1,
+            "open_samples": 30,
+            "closed_samples": 30,
+            "attempt_refs": sorted([s2_open["event_id"], s3_closed["event_id"]]),
+            "min_span_required": None,
+        },
+    )
+    s5_start = _build_signed_event(
+        event_type="session.control",
+        stream_id=s_stream,
+        seq=5,
+        prev_hash=s4_cal["hash"],
+        actor={"role": "participant", "id": ctx["p1_id"]},
+        scope=s_scope,
+        source={"type": "camera", "algorithm_version": "c05-hand-2", "device_hint": "desktop-chrome"},
+        execution_mode="camera",
+        t_mono_ms=500,
+        occurred_at="2026-11-25T11:00:04.000Z",
+        payload={"action": "start", "interrupt_reason": None},
+    )
+    # Matching handedness (right) -> stored!
+    s6_ok = _build_signed_event(
+        event_type="cycle.accepted",
+        stream_id=s_stream,
+        seq=6,
+        prev_hash=s5_start["hash"],
+        actor={"role": "participant", "id": ctx["p1_id"]},
+        scope=s_scope,
+        source={"type": "camera", "algorithm_version": "c05-hand-2", "device_hint": "desktop-chrome"},
+        execution_mode="camera",
         t_mono_ms=900,
+        occurred_at="2026-11-25T11:00:05.000Z",
         payload={
             "cycle_index": 1,
             "calibration_id": "cal_synth0001",
@@ -739,16 +802,17 @@ def test_session_events_unlocked_handedness_checked_and_server_authored_only(mon
         },
     )
     # Wrong handedness (left != prescribed right) -> HANDEDNESS_INCOMPATIBLE_ACCEPTED!
-    s3_bad_hand = _build_signed_event(
+    s7_bad_hand = _build_signed_event(
         event_type="cycle.accepted",
         stream_id=s_stream,
-        seq=3,
-        prev_hash=s2_ok["hash"],
+        seq=7,
+        prev_hash=s6_ok["hash"],
         actor={"role": "participant", "id": ctx["p1_id"]},
         scope=s_scope,
         source={"type": "camera", "algorithm_version": "c05-hand-2", "device_hint": "desktop-chrome"},
         execution_mode="camera",
         t_mono_ms=1700,
+        occurred_at="2026-11-25T11:00:06.000Z",
         payload={
             "cycle_index": 2,
             "calibration_id": "cal_synth0001",
@@ -760,13 +824,17 @@ def test_session_events_unlocked_handedness_checked_and_server_authored_only(mon
             "handedness": {"label": "left", "score": 0.95},
         },
     )
-    r_sess = client.post("/api/v3/events:batch", headers=p1_hdrs, json={"events": [s1, s2_ok, s3_bad_hand]})
+    r_sess = client.post(
+        "/api/v3/events:batch",
+        headers=p1_hdrs,
+        json={"events": [s1, s2_open, s3_closed, s4_cal, s5_start, s6_ok, s7_bad_hand]},
+    )
     assert r_sess.status_code == 200
     items = r_sess.json()["results"]
-    assert items[0] == {"event_id": s1["event_id"], "status": "stored", "codes": []}
-    assert items[1] == {"event_id": s2_ok["event_id"], "status": "stored", "codes": []}
-    assert items[2] == {
-        "event_id": s3_bad_hand["event_id"],
+    for idx, ev in enumerate([s1, s2_open, s3_closed, s4_cal, s5_start, s6_ok]):
+        assert items[idx] == {"event_id": ev["event_id"], "status": "stored", "codes": []}
+    assert items[6] == {
+        "event_id": s7_bad_hand["event_id"],
         "status": "rejected",
         "codes": ["HANDEDNESS_INCOMPATIBLE_ACCEPTED"],
     }
