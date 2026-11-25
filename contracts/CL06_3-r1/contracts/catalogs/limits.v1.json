@@ -1,0 +1,8 @@
+{
+ "limits_version": "limits-v1",
+ "max_sets": 10,
+ "max_repetitions": 100,
+ "max_product": 100,
+ "kind": "technical_processing_and_prescription_limits",
+ "not_a_clinical_recommendation": true
+}

@@ -11,6 +11,15 @@ Static bilingual interface (pt-BR and English), served by nginx at `/app/`. No f
 - The tab sends plan, sensor events, patient reports and draft claims to `POST /api/home/verify` and shows the verdict and reason for each claim.
 - Draft claims here are built by rules. The local model's draft comes later; the verifier stays deterministic code.
 
+## Canonical JSON & Hashing (CL06.3)
+
+- `canonical.mjs`: RFC 8785 subset canonical JSON, SHA-256 hashing, `event_id`, `content_hash`, and per-stream `prev_hash` / duplicate-`seq` integrity checks (Node built-in `node:crypto` only).
+- Run JS canonical/ledger tests (signals pass/fail strictly via process exit code):
+
+```bash
+node --test web/tests/*.test.mjs
+```
+
 ## Build notes
 
 The Dockerfile fetches `@mediapipe/tasks-vision@1.2.3` and the hand model at build time, so the app serves them itself and the CSP stays `'self'`

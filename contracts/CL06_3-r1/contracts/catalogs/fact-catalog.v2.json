@@ -1,0 +1,558 @@
+{
+ "catalog_version": "2",
+ "supersedes": "1 (CL06.1, read-only legacy)",
+ "types": {
+  "F01": {
+   "name": "session_observed_count",
+   "meaning": "Quantos ciclos abrir→fechar foram aceitos pelo motor de captura numa sessão com câmera ou simulação, e qual era a meta congelada.",
+   "evidence": [
+    {
+     "role": "start",
+     "type": "session.started",
+     "select": "start(S)"
+    },
+    {
+     "role": "revision",
+     "type": "prescription.published",
+     "select": "revision(S)"
+    },
+    {
+     "role": "calibration",
+     "type": "calibration.applied",
+     "select": "effective_calibration(S)"
+    },
+    {
+     "role": "cycles",
+     "type": "cycle.accepted",
+     "select": "ALL cycle.accepted in S (zero or more)"
+    },
+    {
+     "role": "terminal",
+     "type": [
+      "session.completed",
+      "session.control"
+     ],
+     "select": "terminal(S)"
+    },
+    {
+     "role": "incompatible",
+     "type": "cycle.rejected",
+     "select": "ALL cycle.rejected in S with payload.reason = handedness_incompatible (zero or more)"
+    }
+   ],
+   "preconditions": [
+    "START_PRESENT",
+    "MODE_IS_CAPTURE",
+    "TERMINAL_PRESENT",
+    "EFFECTIVE_CALIBRATION_PRESENT",
+    "STREAM_CHECK_CLEAN"
+   ],
+   "derivation": [
+    "accepted = count(cycle.accepted in S)  [stream rule guarantees none has handedness.label ≠ revision.side]",
+    "target = revision.target_sets × revision.target_repetitions",
+    "capture_source = start(S).payload.source_mode",
+    "algorithm_version = start(S).source.algorithm_version",
+    "calibration_id = effective_calibration(S).payload.calibration_id",
+    "handedness_mismatch_cycles = count(cycle.rejected in S where reason = handedness_incompatible)",
+    "handedness_unknown_cycles = count(cycle.accepted c in S where c.handedness = null)   [CL06.3-D1: unknown is counted and flagged]",
+    "incomplete_upload = gaps(S) is non-empty"
+   ],
+   "recompute": "Re-derive every param from the ledger (not from the proposal). Require deep equality of params and exact equality of the evidence set.",
+   "limitations": {
+    "always": [
+     "L01",
+     "L02",
+     "L03"
+    ],
+    "when": [
+     {
+      "code": "L06",
+      "param": "incomplete_upload",
+      "eq": true
+     },
+     {
+      "code": "L17",
+      "param": "handedness_mismatch_cycles",
+      "gt": 0
+     },
+     {
+      "code": "L19",
+      "param": "handedness_unknown_cycles",
+      "gt": 0
+     },
+     {
+      "code": "L13",
+      "param": "capture_source",
+      "eq": "simulation"
+     }
+    ]
+   },
+   "template": {
+    "text": "Na sessão de {session_date_local|date}, {capture_source|label:capture_subject} contou {accepted|int} de {target|int} ciclos de abrir e fechar a mão prescrita."
+   },
+   "highlight": [
+    {
+     "param": "incomplete_upload",
+     "eq": true
+    },
+    {
+     "param": "handedness_mismatch_cycles",
+     "gt": 0
+    }
+   ],
+   "summary_eligible": true,
+   "definition_version": 2,
+   "changed_from_v1": true,
+   "semantic_change": "PD-04: cycles with incompatible handedness are not accepted cycles; they arrive as cycle.rejected(reason=handedness_incompatible). `handedness_mismatch_cycles` now counts those rejected cycles (v1: accepted cycles whose label differed). New param handedness_unknown_cycles. Numbers are NOT comparable with F01 v1 mismatch counts."
+  },
+  "F02": {
+   "name": "session_end_reason",
+   "meaning": "Como a sessão terminou.",
+   "evidence": [
+    {
+     "role": "start",
+     "type": "session.started",
+     "select": "start(S)"
+    },
+    {
+     "role": "terminal",
+     "type": [
+      "session.completed",
+      "session.control"
+     ],
+     "select": "terminal(S)"
+    }
+   ],
+   "preconditions": [
+    "START_PRESENT",
+    "TERMINAL_PRESENT"
+   ],
+   "derivation": [
+    "(end_reason, interrupt_reason) = endReasonOf(terminal(S)) — see session-states.mjs",
+    "interrupt_reason is non-null iff end_reason = interrupted"
+   ],
+   "recompute": "Re-derive from terminal(S); deep equality.",
+   "limitations": {
+    "always": [],
+    "when": []
+   },
+   "template": {
+    "variant_by": "end_reason",
+    "variants": {
+     "completed": "A sessão de {session_date_local|date} foi concluída com todos os ciclos previstos registrados.",
+     "ended": "A sessão de {session_date_local|date} foi encerrada pela pessoa.",
+     "symptom": "A sessão de {session_date_local|date} foi encerrada após sinalização de sintoma.",
+     "interrupted": "A sessão de {session_date_local|date} foi interrompida ({interrupt_reason|label:interrupt_reason})."
+    }
+   },
+   "highlight": [
+    {
+     "param": "end_reason",
+     "eq": "symptom"
+    }
+   ],
+   "summary_eligible": true,
+   "definition_version": 1,
+   "changed_from_v1": false
+  },
+  "F03": {
+   "name": "session_reported_execution",
+   "meaning": "O que a pessoa declarou sobre a execução da atividade.",
+   "evidence": [
+    {
+     "role": "start",
+     "type": "session.started",
+     "select": "start(S)"
+    },
+    {
+     "role": "report",
+     "type": "report.submitted",
+     "select": "effective_report(S)"
+    }
+   ],
+   "preconditions": [
+    "START_PRESENT",
+    "EFFECTIVE_REPORT_PRESENT",
+    "REPORT_EXECUTION_NOT_UNREPORTED"
+   ],
+   "derivation": [
+    "execution = effective_report(S).payload.execution"
+   ],
+   "recompute": "Re-derive from effective_report(S). Citing an older (superseded) report → EVIDENCE_SET_MISMATCH.",
+   "limitations": {
+    "always": [
+     "L04"
+    ],
+    "when": []
+   },
+   "template": {
+    "variant_by": "execution",
+    "variants": {
+     "complete": "Na sessão de {session_date_local|date}, a pessoa relatou ter feito a atividade por completo.",
+     "partial": "Na sessão de {session_date_local|date}, a pessoa relatou ter feito a atividade em parte.",
+     "none": "Na sessão de {session_date_local|date}, a pessoa relatou não ter conseguido fazer a atividade."
+    }
+   },
+   "highlight": [],
+   "summary_eligible": true,
+   "definition_version": 1,
+   "changed_from_v1": false
+  },
+  "F04": {
+   "name": "session_reported_assistance",
+   "meaning": "A ajuda declarada durante a atividade, e por quem foi declarada.",
+   "evidence": [
+    {
+     "role": "start",
+     "type": "session.started",
+     "select": "start(S)"
+    },
+    {
+     "role": "report",
+     "type": "report.submitted",
+     "select": "effective_report(S)"
+    }
+   ],
+   "preconditions": [
+    "START_PRESENT",
+    "EFFECTIVE_REPORT_PRESENT",
+    "REPORT_ASSISTANCE_NOT_UNREPORTED"
+   ],
+   "derivation": [
+    "assistance = effective_report(S).payload.assistance",
+    "reporter_role = effective_report(S).payload.reporter_role"
+   ],
+   "recompute": "Re-derive from effective_report(S); conflicting older reports are superseded, never merged.",
+   "limitations": {
+    "always": [
+     "L04",
+     "L15"
+    ],
+    "when": []
+   },
+   "template": {
+    "variant_by": "assistance",
+    "variants": {
+     "none": "Na sessão de {session_date_local|date}, foi relatado que a atividade foi feita sem ajuda (informado pela própria pessoa).",
+     "some": "Na sessão de {session_date_local|date}, foi relatada alguma ajuda durante a atividade (informado pela própria pessoa).",
+     "full": "Na sessão de {session_date_local|date}, foi relatada ajuda total durante a atividade (informado pela própria pessoa)."
+    }
+   },
+   "highlight": [],
+   "summary_eligible": true,
+   "definition_version": 1,
+   "changed_from_v1": false
+  },
+  "F05": {
+   "name": "report_observation_discrepancy",
+   "meaning": "O relato categórico de execução diverge da contagem registrada. Nenhuma das fontes é considerada correta.",
+   "evidence": [
+    {
+     "role": "start",
+     "type": "session.started",
+     "select": "start(S)"
+    },
+    {
+     "role": "revision",
+     "type": "prescription.published",
+     "select": "revision(S)"
+    },
+    {
+     "role": "cycles",
+     "type": "cycle.accepted",
+     "select": "ALL cycle.accepted in S (zero or more)"
+    },
+    {
+     "role": "terminal",
+     "type": [
+      "session.completed",
+      "session.control"
+     ],
+     "select": "terminal(S)"
+    },
+    {
+     "role": "report",
+     "type": "report.submitted",
+     "select": "effective_report(S)"
+    },
+    {
+     "role": "incompatible",
+     "type": "cycle.rejected",
+     "select": "ALL cycle.rejected in S with payload.reason = handedness_incompatible (zero or more)"
+    }
+   ],
+   "preconditions": [
+    "START_PRESENT",
+    "MODE_IS_CAPTURE",
+    "TERMINAL_PRESENT",
+    "EFFECTIVE_REPORT_PRESENT",
+    "REPORT_EXECUTION_NOT_UNREPORTED",
+    "STREAM_CHECK_CLEAN",
+    "NO_GAPS",
+    "DISCREPANCY_RULE"
+   ],
+   "derivation": [
+    "DISCREPANCY_RULE (no numeric threshold): (reported = complete ∧ observed < target) ∨ (reported = partial ∧ (observed = 0 ∨ observed = target)) ∨ (reported = none ∧ observed > 0)",
+    "observed_accepted = count(cycle.accepted in S); target as F01; reported_execution = effective_report(S).payload.execution"
+   ],
+   "recompute": "Re-derive; if the rule is false the proposal is rejected with PRECONDITION_FAILED. If gaps(S) exist the fact is not derived (counts may be incomplete).",
+   "limitations": {
+    "always": [
+     "L04",
+     "L08"
+    ],
+    "when": [
+     {
+      "code": "L13",
+      "param": "capture_source",
+      "eq": "simulation"
+     }
+    ]
+   },
+   "template": {
+    "text": "Na sessão de {session_date_local|date}, a pessoa relatou {reported_execution|label:reported_clause}; {capture_source|label:capture_subject} registrou {observed_accepted|int} de {target|int} ciclos."
+   },
+   "highlight": [
+    {
+     "always": true
+    }
+   ],
+   "summary_eligible": true,
+   "definition_version": 2,
+   "changed_from_v1": true,
+   "semantic_change": "observed_accepted counts only cycle.accepted, which under v3 never includes incompatible-handedness cycles (PD-04). Discrepancy rule text unchanged."
+  },
+  "F06": {
+   "name": "tracking_quality_summary",
+   "meaning": "Resumo técnico da captura: fração do tempo com a mão utilizável para contagem, perdas de rastreamento e taxa de quadros.",
+   "evidence": [
+    {
+     "role": "start",
+     "type": "session.started",
+     "select": "start(S)"
+    },
+    {
+     "role": "summary",
+     "type": "session.capture_summary",
+     "select": "the single session.capture_summary of S"
+    }
+   ],
+   "preconditions": [
+    "START_PRESENT",
+    "MODE_IS_CAPTURE",
+    "CAPTURE_SUMMARY_PRESENT",
+    "CAPTURE_SUMMARY_NONEMPTY"
+   ],
+   "derivation": [
+    "usable_fraction, lost_events, fps_mean, fps_min = capture_summary.payload.*",
+    "low_capture_quality = usable_fraction < 0.5"
+   ],
+   "recompute": "Re-derive from the capture_summary event. NOTE: values are computed on the participant device; the verifier checks consistency with the event, not with raw frames (which never leave the device).",
+   "limitations": {
+    "always": [],
+    "when": [
+     {
+      "code": "L14",
+      "param": "low_capture_quality",
+      "eq": true
+     }
+    ]
+   },
+   "template": {
+    "text": "Na sessão de {session_date_local|date}, a mão esteve visível o suficiente para contagem em {usable_fraction|percent}% do tempo de captura, com {lost_events|count:perda de rastreamento:perdas de rastreamento}."
+   },
+   "highlight": [
+    {
+     "param": "low_capture_quality",
+     "eq": true
+    }
+   ],
+   "summary_eligible": true,
+   "definition_version": 1,
+   "changed_from_v1": false
+  },
+  "F08": {
+   "name": "symptom_reported",
+   "meaning": "A pessoa sinalizou dor ou cansaço, o que encerrou a sessão.",
+   "evidence": [
+    {
+     "role": "start",
+     "type": "session.started",
+     "select": "start(S)"
+    },
+    {
+     "role": "terminal",
+     "type": "session.control",
+     "select": "terminal(S) with action pain|fatigue"
+    }
+   ],
+   "preconditions": [
+    "START_PRESENT",
+    "TERMINAL_PRESENT",
+    "TERMINAL_IS_SYMPTOM"
+   ],
+   "derivation": [
+    "symptom = terminal(S).payload.action"
+   ],
+   "recompute": "Re-derive from terminal(S); deep equality.",
+   "limitations": {
+    "always": [
+     "L09"
+    ],
+    "when": []
+   },
+   "template": {
+    "variant_by": "symptom",
+    "variants": {
+     "pain": "Na sessão de {session_date_local|date}, foi sinalizada dor e a sessão foi encerrada.",
+     "fatigue": "Na sessão de {session_date_local|date}, foi sinalizado cansaço e a sessão foi encerrada."
+    }
+   },
+   "highlight": [
+    {
+     "always": true
+    }
+   ],
+   "summary_eligible": true,
+   "definition_version": 1,
+   "changed_from_v1": false
+  },
+  "F09": {
+   "name": "calibration_span",
+   "meaning": "Separação entre as posturas aberta e fechada na calibração efetiva do dia (razão adimensional). Não é amplitude articular.",
+   "evidence": [
+    {
+     "role": "start",
+     "type": "session.started",
+     "select": "start(S)"
+    },
+    {
+     "role": "calibration",
+     "type": "calibration.applied",
+     "select": "effective_calibration(S)"
+    },
+    {
+     "role": "attempts",
+     "type": "calibration.attempted",
+     "select": "the two events cited in effective_calibration(S).payload.attempt_refs"
+    }
+   ],
+   "preconditions": [
+    "START_PRESENT",
+    "MODE_IS_CAPTURE",
+    "EFFECTIVE_CALIBRATION_PRESENT"
+   ],
+   "derivation": [
+    "calibration_id, open, closed, span, min_span_required = effective_calibration(S).payload.*"
+   ],
+   "recompute": "Re-derive; deep equality (numbers compared exactly as stored).",
+   "limitations": {
+    "always": [
+     "L02",
+     "L10"
+    ],
+    "when": []
+   },
+   "template": {
+    "text": "Na sessão de {session_date_local|date}, a calibração teve separação de {span|decimal2} (razão adimensional)."
+   },
+   "highlight": [],
+   "summary_eligible": false,
+   "definition_version": 1,
+   "changed_from_v1": false
+  },
+  "F10": {
+   "name": "session_opening_index_experimental",
+   "definition_version": 1,
+   "changed_from_v1": false,
+   "new_in_v2": true,
+   "experimental": true,
+   "meaning": "Índice adimensional de abertura da mão registrado pela captura numa sessão. Medida experimental; não é amplitude articular nem ângulo.",
+   "evidence": [
+    {
+     "role": "start",
+     "type": "session.started",
+     "select": "start(S)"
+    },
+    {
+     "role": "measurement",
+     "type": "measurement.recorded",
+     "select": "effective_measurement(S, opening_index) = highest seq"
+    }
+   ],
+   "preconditions": [
+    "START_PRESENT",
+    "MODE_IS_CAPTURE",
+    "MEASUREMENT_PRESENT",
+    "MEASUREMENT_EXPERIMENTAL"
+   ],
+   "derivation": [
+    "value, unit, method, protocol_id = effective_measurement.payload.*",
+    "measurement_quality = effective_measurement.payload.quality (usable|insufficient; missing is not derived)",
+    "algorithm_version = effective_measurement.source.algorithm_version"
+   ],
+   "recompute": "Re-derive; deep equality. Never expressed as a percentage or as recovery.",
+   "limitations": {
+    "always": [
+     "L02",
+     "L10",
+     "L18"
+    ],
+    "when": []
+   },
+   "template": {
+    "text": "Na sessão de {session_date_local|date}, a medida experimental de abertura da mão (índice adimensional) foi {value|decimal2}."
+   },
+   "highlight": [],
+   "summary_eligible": false,
+   "eligibility_note": "Detail-only until the experimental protocol is validated (T7); publication into evolution then needs a catalog revision approved by the PO."
+  }
+ },
+ "labels": {
+  "capture_subject": {
+   "camera": "a câmera",
+   "simulation": "a simulação"
+  },
+  "reported_clause": {
+   "complete": "ter feito a atividade por completo",
+   "partial": "ter feito a atividade em parte",
+   "none": "não ter conseguido fazer a atividade"
+  },
+  "interrupt_reason": {
+   "track_ended": "a câmera deixou de enviar imagens",
+   "model_execution": "falha no processamento local",
+   "camera_error": "falha da câmera",
+   "permission_denied": "permissão da câmera negada",
+   "camera_unavailable": "câmera indisponível",
+   "page_closed": "a página foi fechada",
+   "consent_revoked": "consentimento revogado"
+  }
+ },
+ "formatters": [
+  "date",
+  "int",
+  "percent",
+  "decimal2",
+  "count",
+  "label"
+ ],
+ "preconditions": {
+  "START_PRESENT": "start(S) exists in the ledger.",
+  "MODE_IS_CAPTURE": "start(S).payload.source_mode ∈ {camera, simulation}.",
+  "TERMINAL_PRESENT": "terminal(S) exists.",
+  "EFFECTIVE_CALIBRATION_PRESENT": "effective_calibration(S) exists.",
+  "EFFECTIVE_REPORT_PRESENT": "effective_report(S) exists.",
+  "REPORT_EXECUTION_NOT_UNREPORTED": "effective_report(S).payload.execution ≠ unreported.",
+  "REPORT_ASSISTANCE_NOT_UNREPORTED": "effective_report(S).payload.assistance ≠ unreported.",
+  "CAPTURE_SUMMARY_PRESENT": "exactly one session.capture_summary in S.",
+  "CAPTURE_SUMMARY_NONEMPTY": "capture_summary.payload.frames_total > 0.",
+  "TERMINAL_IS_SYMPTOM": "terminal(S) is session.control with action pain|fatigue.",
+  "STREAM_CHECK_CLEAN": "checkSessionStream(S, revision(S)).errors is empty.",
+  "NO_GAPS": "gaps(S) is empty.",
+  "DISCREPANCY_RULE": "See F05.derivation[0].",
+  "MEASUREMENT_PRESENT": "effective_measurement(S, kind) exists.",
+  "MEASUREMENT_EXPERIMENTAL": "effective_measurement.payload.experimental = true."
+ },
+ "free_text_params": "forbidden",
+ "closed": true
+}

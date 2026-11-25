@@ -1,0 +1,238 @@
+{
+ "enums": {
+  "actor_role": [
+   "participant",
+   "therapist",
+   "system"
+  ],
+  "source_type": [
+   "camera",
+   "simulation",
+   "participant_report",
+   "therapist",
+   "system"
+  ],
+  "execution_mode": [
+   "camera",
+   "simulation",
+   "report_only",
+   "not_applicable"
+  ],
+  "data_origin": [
+   "live",
+   "synthetic_fixture",
+   "experimental_capture",
+   "imported_v1"
+  ],
+  "device_hint": [
+   "desktop-chrome",
+   "desktop-edge",
+   "desktop-other",
+   "mobile-chrome",
+   "mobile-safari",
+   "mobile-other"
+  ],
+  "side": [
+   "left",
+   "right"
+  ],
+  "body_segment": [
+   "hand",
+   "wrist"
+  ],
+  "source_mode": [
+   "camera",
+   "simulation",
+   "report_only"
+  ],
+  "quality": [
+   "usable",
+   "insufficient",
+   "missing"
+  ],
+  "quality_reason": [
+   "no_hand",
+   "incomplete_landmarks",
+   "edge",
+   "too_small",
+   "palm_bounds",
+   "low_frame_rate",
+   "frame_gap"
+  ],
+  "handedness_label": [
+   "left",
+   "right"
+  ],
+  "posture": [
+   "open",
+   "closed"
+  ],
+  "calibration_attempt_reason": [
+   "insufficient_samples",
+   "unstable"
+  ],
+  "calibration_failure_reason": [
+   "not_separable",
+   "unstable",
+   "below_min_span"
+  ],
+  "cycle_rejection_reason": [
+   "low_quality",
+   "inactive",
+   "over_target",
+   "calibration_mismatch",
+   "low_frame_rate"
+  ],
+  "control_action": [
+   "start",
+   "pause",
+   "resume",
+   "end",
+   "pain",
+   "fatigue",
+   "interrupt"
+  ],
+  "interrupt_reason": [
+   "track_ended",
+   "model_execution",
+   "camera_error",
+   "permission_denied",
+   "camera_unavailable",
+   "page_closed",
+   "consent_revoked"
+  ],
+  "execution": [
+   "complete",
+   "partial",
+   "none",
+   "unreported"
+  ],
+  "assistance": [
+   "none",
+   "some",
+   "full",
+   "unreported"
+  ],
+  "reporter_role": [
+   "participant"
+  ],
+  "review_decision": [
+   "approve",
+   "reject",
+   "annotate"
+  ],
+  "end_reason": [
+   "completed",
+   "ended",
+   "symptom",
+   "interrupted"
+  ],
+  "symptom": [
+   "pain",
+   "fatigue"
+  ],
+  "consent_scope": [
+   "camera",
+   "microphone"
+  ],
+  "measure_kind": [
+   "opening_index",
+   "angle_auto",
+   "amplitude_auto"
+  ],
+  "measure_unit": [
+   "1",
+   "deg"
+  ],
+  "encounter_modality": [
+   "in_person",
+   "remote_external"
+  ],
+  "link_status": [
+   "active",
+   "revoked"
+  ],
+  "goal_status": [
+   "active",
+   "achieved_confirmed",
+   "discontinued"
+  ],
+  "goal_target_kind": [
+   "descriptive_text",
+   "session_count",
+   "repetitions",
+   "measure_value"
+  ],
+  "item_value_type": [
+   "integer",
+   "number",
+   "category",
+   "boolean"
+  ],
+  "item_source": [
+   "therapist_observed",
+   "therapist_instrumental",
+   "participant_reported"
+  ],
+  "assistance_level_item": [
+   "none",
+   "some",
+   "full",
+   "not_assessed"
+  ],
+  "instrument_status": [
+   "unvalidated_custom",
+   "validated_with_therapists"
+  ],
+  "comparability_reason": [
+   "method_differs",
+   "unit_differs",
+   "protocol_differs",
+   "instrument_version_differs",
+   "side_differs",
+   "segment_differs",
+   "other_not_comparable"
+  ],
+  "draft_kind": [
+   "dictation_transcript",
+   "structured_extraction",
+   "session_report_proposal"
+  ],
+  "draft_target": [
+   "encounter",
+   "functional_assessment",
+   "goal",
+   "session_report"
+  ],
+  "draft_status": [
+   "draft",
+   "confirmed",
+   "discarded"
+  ],
+  "draft_producer": [
+   "voice_to_text",
+   "assisted_structuring",
+   "manual_form"
+  ],
+  "retention_class": [
+   "session_only",
+   "until_confirmed",
+   "pending_definition"
+  ],
+  "entity_type": [
+   "participant",
+   "therapist",
+   "care_link",
+   "functional_assessment",
+   "goal",
+   "encounter",
+   "reassessment",
+   "instrumental_measurement",
+   "draft"
+  ]
+ },
+ "removed_roles_must_be_rejected": [
+  "caregiver",
+  "supervisor"
+ ]
+}

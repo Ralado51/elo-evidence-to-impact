@@ -1,0 +1,769 @@
+{
+  "description": "Synthetic ledger: prescription rev 1, consent, camera session S1 (fatigue, 3/4, handedness mismatch on cycle 4, two reports), report-only session S2.",
+  "events": [
+    {
+      "event_id": "80c2996856fa66aa99450340f14848bf6e4ac0c3a248e629eaf6d2404c917d37",
+      "schema_version": 2,
+      "type": "prescription.published",
+      "stream_id": "prescription:rx_fixture-0001",
+      "seq": 1,
+      "prev_hash": null,
+      "occurred_at": "2026-11-23T12:00:00.000Z",
+      "actor": {
+        "role": "therapist",
+        "id": "t_fixture-0001"
+      },
+      "scope": {
+        "org_id": "o_fixture-0001",
+        "participant_id": "p_fixture-0001",
+        "prescription_id": "rx_fixture-0001",
+        "prescription_revision": 1,
+        "exercise_id": "organizar-a-mesa"
+      },
+      "source": {
+        "type": "therapist"
+      },
+      "data_origin": "synthetic_fixture",
+      "payload": {
+        "participant_id": "p_fixture-0001",
+        "exercise_id": "organizar-a-mesa",
+        "permitted_movement": "hand_open_close",
+        "side": "right",
+        "target_sets": 1,
+        "target_repetitions": 4,
+        "sessions_per_week": 5,
+        "valid_from": "2026-11-23",
+        "valid_to": "2026-12-21",
+        "timezone": "America/Sao_Paulo",
+        "min_calibration_span": null,
+        "instructions_ptbr": "Abra e feche a mão no seu ritmo. Pare se doer.",
+        "prescription_id": "rx_fixture-0001",
+        "revision": 1,
+        "supersedes_revision": null,
+        "created_by": "t_fixture-0001",
+        "created_at": "2026-11-23T12:00:00.000Z"
+      },
+      "hash": "645e7a0a1dd1c6355fd7bc3a420c761ebd3cf82aea2c846d0e4e7bc47112cae8"
+    },
+    {
+      "event_id": "4b7efe7a5c2f48431f41837df53acdff9c1c45dd80a5b2c6fe5972b5de1cef08",
+      "schema_version": 2,
+      "type": "consent.accepted",
+      "stream_id": "consent:p_fixture-0001",
+      "seq": 1,
+      "prev_hash": null,
+      "occurred_at": "2026-11-23T12:30:00.000Z",
+      "actor": {
+        "role": "participant",
+        "id": "p_fixture-0001"
+      },
+      "scope": {
+        "org_id": "o_fixture-0001",
+        "participant_id": "p_fixture-0001"
+      },
+      "source": {
+        "type": "participant_report"
+      },
+      "data_origin": "synthetic_fixture",
+      "payload": {
+        "consent_version": "consent-2026-11-24-v1"
+      },
+      "hash": "2e7d75b13151ed0200df978ec4e136b92101a5e55bf91a4751752f5241299fda"
+    },
+    {
+      "event_id": "1028ede6a89e5b622e337928c08c96c845a4e57c675186643be1bbb5d97a823b",
+      "schema_version": 2,
+      "type": "session.started",
+      "stream_id": "session:s_fixture-0001",
+      "seq": 1,
+      "prev_hash": null,
+      "occurred_at": "2026-11-24T13:00:00.000Z",
+      "t_mono_ms": 0,
+      "actor": {
+        "role": "participant",
+        "id": "p_fixture-0001"
+      },
+      "scope": {
+        "org_id": "o_fixture-0001",
+        "participant_id": "p_fixture-0001",
+        "session_id": "s_fixture-0001",
+        "prescription_id": "rx_fixture-0001",
+        "prescription_revision": 1,
+        "exercise_id": "organizar-a-mesa"
+      },
+      "source": {
+        "type": "camera",
+        "algorithm_version": "c05-hand-2",
+        "device_hint": "desktop-chrome"
+      },
+      "data_origin": "synthetic_fixture",
+      "payload": {
+        "source_mode": "camera",
+        "prescription_id": "rx_fixture-0001",
+        "prescription_revision": 1,
+        "capture_context": {
+          "device_hint": "desktop-chrome",
+          "frame_width": 640,
+          "frame_height": 480
+        }
+      },
+      "hash": "f1214286b9e8ba97ab049d6796afa0a623934f0e9ae012726094381decbb940f"
+    },
+    {
+      "event_id": "066ade845a3a3bb32e5f8132576b6f8e4cb6ee4b363710acabafe462950f43fa",
+      "schema_version": 2,
+      "type": "calibration.attempted",
+      "stream_id": "session:s_fixture-0001",
+      "seq": 2,
+      "prev_hash": "f1214286b9e8ba97ab049d6796afa0a623934f0e9ae012726094381decbb940f",
+      "occurred_at": "2026-11-24T13:00:01.500Z",
+      "t_mono_ms": 1500,
+      "actor": {
+        "role": "participant",
+        "id": "p_fixture-0001"
+      },
+      "scope": {
+        "org_id": "o_fixture-0001",
+        "participant_id": "p_fixture-0001",
+        "session_id": "s_fixture-0001",
+        "prescription_id": "rx_fixture-0001",
+        "prescription_revision": 1,
+        "exercise_id": "organizar-a-mesa"
+      },
+      "source": {
+        "type": "camera",
+        "algorithm_version": "c05-hand-2",
+        "device_hint": "desktop-chrome"
+      },
+      "data_origin": "synthetic_fixture",
+      "payload": {
+        "attempt": 1,
+        "posture": "open",
+        "n_samples": 33,
+        "median": 1.9144,
+        "mad": 0.021,
+        "accepted": true,
+        "reason": null
+      },
+      "hash": "0e58f52776db1cfb2a337d3627252a4d188e17db0220fe82c9a7e709ee679a15"
+    },
+    {
+      "event_id": "c702e98be4d63851c089389fd47c686ba5e63434b38913964778808925f3f0de",
+      "schema_version": 2,
+      "type": "calibration.attempted",
+      "stream_id": "session:s_fixture-0001",
+      "seq": 3,
+      "prev_hash": "0e58f52776db1cfb2a337d3627252a4d188e17db0220fe82c9a7e709ee679a15",
+      "occurred_at": "2026-11-24T13:00:03.200Z",
+      "t_mono_ms": 3200,
+      "actor": {
+        "role": "participant",
+        "id": "p_fixture-0001"
+      },
+      "scope": {
+        "org_id": "o_fixture-0001",
+        "participant_id": "p_fixture-0001",
+        "session_id": "s_fixture-0001",
+        "prescription_id": "rx_fixture-0001",
+        "prescription_revision": 1,
+        "exercise_id": "organizar-a-mesa"
+      },
+      "source": {
+        "type": "camera",
+        "algorithm_version": "c05-hand-2",
+        "device_hint": "desktop-chrome"
+      },
+      "data_origin": "synthetic_fixture",
+      "payload": {
+        "attempt": 2,
+        "posture": "closed",
+        "n_samples": 33,
+        "median": 0.8131,
+        "mad": 0.017,
+        "accepted": true,
+        "reason": null
+      },
+      "hash": "96931a434b75a6d0f5d4f539e7c4dfa78dfc9db1f8e93708a7d5dd8e08f551db"
+    },
+    {
+      "event_id": "eb6a2bdbca639483fa57257597a6eaa5b8cfd6dabd37e2822b95b1aa7bef3217",
+      "schema_version": 2,
+      "type": "calibration.applied",
+      "stream_id": "session:s_fixture-0001",
+      "seq": 4,
+      "prev_hash": "96931a434b75a6d0f5d4f539e7c4dfa78dfc9db1f8e93708a7d5dd8e08f551db",
+      "occurred_at": "2026-11-24T13:00:03.210Z",
+      "t_mono_ms": 3210,
+      "actor": {
+        "role": "participant",
+        "id": "p_fixture-0001"
+      },
+      "scope": {
+        "org_id": "o_fixture-0001",
+        "participant_id": "p_fixture-0001",
+        "session_id": "s_fixture-0001",
+        "prescription_id": "rx_fixture-0001",
+        "prescription_revision": 1,
+        "exercise_id": "organizar-a-mesa"
+      },
+      "source": {
+        "type": "camera",
+        "algorithm_version": "c05-hand-2",
+        "device_hint": "desktop-chrome"
+      },
+      "data_origin": "synthetic_fixture",
+      "payload": {
+        "calibration_id": "cal_fixture-0001",
+        "open": 1.9144,
+        "closed": 0.8131,
+        "span": 1.1013000000000002,
+        "open_samples": 33,
+        "closed_samples": 33,
+        "attempt_refs": [
+          "066ade845a3a3bb32e5f8132576b6f8e4cb6ee4b363710acabafe462950f43fa",
+          "c702e98be4d63851c089389fd47c686ba5e63434b38913964778808925f3f0de"
+        ],
+        "min_span_required": null
+      },
+      "hash": "58138473ded4111d99d2a992d4fc0e2ac3e11c66989556a9c735bdb36ff6939a"
+    },
+    {
+      "event_id": "7948586333a5c21e720c43cecacccc7cc892115545ba94243052a244abe19265",
+      "schema_version": 2,
+      "type": "session.control",
+      "stream_id": "session:s_fixture-0001",
+      "seq": 5,
+      "prev_hash": "58138473ded4111d99d2a992d4fc0e2ac3e11c66989556a9c735bdb36ff6939a",
+      "occurred_at": "2026-11-24T13:00:05.000Z",
+      "t_mono_ms": 5000,
+      "actor": {
+        "role": "participant",
+        "id": "p_fixture-0001"
+      },
+      "scope": {
+        "org_id": "o_fixture-0001",
+        "participant_id": "p_fixture-0001",
+        "session_id": "s_fixture-0001",
+        "prescription_id": "rx_fixture-0001",
+        "prescription_revision": 1,
+        "exercise_id": "organizar-a-mesa"
+      },
+      "source": {
+        "type": "camera",
+        "algorithm_version": "c05-hand-2",
+        "device_hint": "desktop-chrome"
+      },
+      "data_origin": "synthetic_fixture",
+      "payload": {
+        "action": "start",
+        "interrupt_reason": null
+      },
+      "hash": "15fdf2a29e73fae9f721cdd545ee720e8f4dade7e268a29987e02faae4ec7b69"
+    },
+    {
+      "event_id": "da5c7d4685ceaf8d970aa38aa667857ce384d5b29c7d528afef62ea7db60aa2f",
+      "schema_version": 2,
+      "type": "observation.recorded",
+      "stream_id": "session:s_fixture-0001",
+      "seq": 6,
+      "prev_hash": "15fdf2a29e73fae9f721cdd545ee720e8f4dade7e268a29987e02faae4ec7b69",
+      "occurred_at": "2026-11-24T13:00:06.000Z",
+      "t_mono_ms": 6000,
+      "actor": {
+        "role": "participant",
+        "id": "p_fixture-0001"
+      },
+      "scope": {
+        "org_id": "o_fixture-0001",
+        "participant_id": "p_fixture-0001",
+        "session_id": "s_fixture-0001",
+        "prescription_id": "rx_fixture-0001",
+        "prescription_revision": 1,
+        "exercise_id": "organizar-a-mesa"
+      },
+      "source": {
+        "type": "camera",
+        "algorithm_version": "c05-hand-2",
+        "device_hint": "desktop-chrome"
+      },
+      "data_origin": "synthetic_fixture",
+      "payload": {
+        "calibration_id": "cal_fixture-0001",
+        "metric": 1.79,
+        "metric_unit": "1",
+        "quality": "usable",
+        "quality_reason": null,
+        "handedness": {
+          "label": "right",
+          "score": 0.97
+        },
+        "fps_window": 24.5
+      },
+      "hash": "d7470fd9b9dfca1e64e1168673337d4b7346f2198c74c21a4a36eb4fe681d4cf"
+    },
+    {
+      "event_id": "105f57bfe229ef9a13e8f09f586307f878b11381bcdaaed4363ce34c405eefb0",
+      "schema_version": 2,
+      "type": "cycle.accepted",
+      "stream_id": "session:s_fixture-0001",
+      "seq": 7,
+      "prev_hash": "d7470fd9b9dfca1e64e1168673337d4b7346f2198c74c21a4a36eb4fe681d4cf",
+      "occurred_at": "2026-11-24T13:00:07.000Z",
+      "t_mono_ms": 7000,
+      "actor": {
+        "role": "participant",
+        "id": "p_fixture-0001"
+      },
+      "scope": {
+        "org_id": "o_fixture-0001",
+        "participant_id": "p_fixture-0001",
+        "session_id": "s_fixture-0001",
+        "prescription_id": "rx_fixture-0001",
+        "prescription_revision": 1,
+        "exercise_id": "organizar-a-mesa"
+      },
+      "source": {
+        "type": "camera",
+        "algorithm_version": "c05-hand-2",
+        "device_hint": "desktop-chrome"
+      },
+      "data_origin": "synthetic_fixture",
+      "payload": {
+        "cycle_index": 1,
+        "calibration_id": "cal_fixture-0001",
+        "open_peak_n": 0.9,
+        "closed_trough_n": 0.03,
+        "armed_to_close_ms": 620,
+        "frames": 30,
+        "usable_frames": 30,
+        "handedness": {
+          "label": "right",
+          "score": 0.95
+        }
+      },
+      "hash": "df95fab751c220e6e6e4fdc081f5d33b269ffb512a0dd1bd241ae973e31cfe7b"
+    },
+    {
+      "event_id": "a64a73be3ed5e567d07664f50c21e36e563f92cf5d9b9966551205f048ca5e5b",
+      "schema_version": 2,
+      "type": "cycle.accepted",
+      "stream_id": "session:s_fixture-0001",
+      "seq": 8,
+      "prev_hash": "df95fab751c220e6e6e4fdc081f5d33b269ffb512a0dd1bd241ae973e31cfe7b",
+      "occurred_at": "2026-11-24T13:00:09.000Z",
+      "t_mono_ms": 9000,
+      "actor": {
+        "role": "participant",
+        "id": "p_fixture-0001"
+      },
+      "scope": {
+        "org_id": "o_fixture-0001",
+        "participant_id": "p_fixture-0001",
+        "session_id": "s_fixture-0001",
+        "prescription_id": "rx_fixture-0001",
+        "prescription_revision": 1,
+        "exercise_id": "organizar-a-mesa"
+      },
+      "source": {
+        "type": "camera",
+        "algorithm_version": "c05-hand-2",
+        "device_hint": "desktop-chrome"
+      },
+      "data_origin": "synthetic_fixture",
+      "payload": {
+        "cycle_index": 2,
+        "calibration_id": "cal_fixture-0001",
+        "open_peak_n": 0.88,
+        "closed_trough_n": 0.05,
+        "armed_to_close_ms": 620,
+        "frames": 30,
+        "usable_frames": 30,
+        "handedness": {
+          "label": "right",
+          "score": 0.95
+        }
+      },
+      "hash": "13175984ada12edd75e66d22602d0bb3da8172ab44861172d5c8f1143480a141"
+    },
+    {
+      "event_id": "b41e4450f398b3fb2cfa25c1a0639a5fd36d33ed60f0f50ddec15c7fece0561e",
+      "schema_version": 2,
+      "type": "observation.recorded",
+      "stream_id": "session:s_fixture-0001",
+      "seq": 9,
+      "prev_hash": "13175984ada12edd75e66d22602d0bb3da8172ab44861172d5c8f1143480a141",
+      "occurred_at": "2026-11-24T13:00:10.000Z",
+      "t_mono_ms": 10000,
+      "actor": {
+        "role": "participant",
+        "id": "p_fixture-0001"
+      },
+      "scope": {
+        "org_id": "o_fixture-0001",
+        "participant_id": "p_fixture-0001",
+        "session_id": "s_fixture-0001",
+        "prescription_id": "rx_fixture-0001",
+        "prescription_revision": 1,
+        "exercise_id": "organizar-a-mesa"
+      },
+      "source": {
+        "type": "camera",
+        "algorithm_version": "c05-hand-2",
+        "device_hint": "desktop-chrome"
+      },
+      "data_origin": "synthetic_fixture",
+      "payload": {
+        "calibration_id": "cal_fixture-0001",
+        "metric": null,
+        "metric_unit": "1",
+        "quality": "insufficient",
+        "quality_reason": "edge",
+        "handedness": {
+          "label": "right",
+          "score": 0.91
+        },
+        "fps_window": 23
+      },
+      "hash": "503929798bf9010647768a8cd348da582296776e6a560ca9907372e86b0d46be"
+    },
+    {
+      "event_id": "01fed9d271dfee74ae6aeac80f2ba04fa4116a9ed659545e56e4d3e48e26adde",
+      "schema_version": 2,
+      "type": "cycle.rejected",
+      "stream_id": "session:s_fixture-0001",
+      "seq": 10,
+      "prev_hash": "503929798bf9010647768a8cd348da582296776e6a560ca9907372e86b0d46be",
+      "occurred_at": "2026-11-24T13:00:11.000Z",
+      "t_mono_ms": 11000,
+      "actor": {
+        "role": "participant",
+        "id": "p_fixture-0001"
+      },
+      "scope": {
+        "org_id": "o_fixture-0001",
+        "participant_id": "p_fixture-0001",
+        "session_id": "s_fixture-0001",
+        "prescription_id": "rx_fixture-0001",
+        "prescription_revision": 1,
+        "exercise_id": "organizar-a-mesa"
+      },
+      "source": {
+        "type": "camera",
+        "algorithm_version": "c05-hand-2",
+        "device_hint": "desktop-chrome"
+      },
+      "data_origin": "synthetic_fixture",
+      "payload": {
+        "cycle_index": 3,
+        "calibration_id": "cal_fixture-0001",
+        "open_peak_n": 0.86,
+        "closed_trough_n": 0.06,
+        "armed_to_close_ms": 620,
+        "frames": 28,
+        "usable_frames": 20,
+        "handedness": {
+          "label": "right",
+          "score": 0.95
+        },
+        "reason": "low_quality"
+      },
+      "hash": "effb42c2ad701ab8dd412c56d8bf3b890be3f8dc3fe927d48c69981c109bf191"
+    },
+    {
+      "event_id": "d35ba1a6af7402da6d3febf02055dc853d98ffa7c9d9952fd0fe577e3553d85c",
+      "schema_version": 2,
+      "type": "cycle.accepted",
+      "stream_id": "session:s_fixture-0001",
+      "seq": 11,
+      "prev_hash": "effb42c2ad701ab8dd412c56d8bf3b890be3f8dc3fe927d48c69981c109bf191",
+      "occurred_at": "2026-11-24T13:00:13.000Z",
+      "t_mono_ms": 13000,
+      "actor": {
+        "role": "participant",
+        "id": "p_fixture-0001"
+      },
+      "scope": {
+        "org_id": "o_fixture-0001",
+        "participant_id": "p_fixture-0001",
+        "session_id": "s_fixture-0001",
+        "prescription_id": "rx_fixture-0001",
+        "prescription_revision": 1,
+        "exercise_id": "organizar-a-mesa"
+      },
+      "source": {
+        "type": "camera",
+        "algorithm_version": "c05-hand-2",
+        "device_hint": "desktop-chrome"
+      },
+      "data_origin": "synthetic_fixture",
+      "payload": {
+        "cycle_index": 4,
+        "calibration_id": "cal_fixture-0001",
+        "open_peak_n": 0.91,
+        "closed_trough_n": 0.04,
+        "armed_to_close_ms": 620,
+        "frames": 30,
+        "usable_frames": 30,
+        "handedness": {
+          "label": "left",
+          "score": 0.95
+        }
+      },
+      "hash": "ca0b2ff60141026b1eb4d0e58c31cd593cd91f2ef11162a322db1428bcfb8308"
+    },
+    {
+      "event_id": "afc4b553d9ce80d84f4681428683b615ce7ab35592c3cbfd9b7c38b939eaac75",
+      "schema_version": 2,
+      "type": "session.control",
+      "stream_id": "session:s_fixture-0001",
+      "seq": 12,
+      "prev_hash": "ca0b2ff60141026b1eb4d0e58c31cd593cd91f2ef11162a322db1428bcfb8308",
+      "occurred_at": "2026-11-24T13:00:15.000Z",
+      "t_mono_ms": 15000,
+      "actor": {
+        "role": "participant",
+        "id": "p_fixture-0001"
+      },
+      "scope": {
+        "org_id": "o_fixture-0001",
+        "participant_id": "p_fixture-0001",
+        "session_id": "s_fixture-0001",
+        "prescription_id": "rx_fixture-0001",
+        "prescription_revision": 1,
+        "exercise_id": "organizar-a-mesa"
+      },
+      "source": {
+        "type": "camera",
+        "algorithm_version": "c05-hand-2",
+        "device_hint": "desktop-chrome"
+      },
+      "data_origin": "synthetic_fixture",
+      "payload": {
+        "action": "fatigue",
+        "interrupt_reason": null
+      },
+      "hash": "2b3a390ae9ba3aadc1f2fd1e5cf30fe38cff60574fe225509b5d856a4d6074a6"
+    },
+    {
+      "event_id": "7497dd83fff560d5be306e9872fe2e7fcce71e86202dd6f600e2e269964abb39",
+      "schema_version": 2,
+      "type": "session.capture_summary",
+      "stream_id": "session:s_fixture-0001",
+      "seq": 13,
+      "prev_hash": "2b3a390ae9ba3aadc1f2fd1e5cf30fe38cff60574fe225509b5d856a4d6074a6",
+      "occurred_at": "2026-11-24T13:00:15.010Z",
+      "t_mono_ms": 15010,
+      "actor": {
+        "role": "participant",
+        "id": "p_fixture-0001"
+      },
+      "scope": {
+        "org_id": "o_fixture-0001",
+        "participant_id": "p_fixture-0001",
+        "session_id": "s_fixture-0001",
+        "prescription_id": "rx_fixture-0001",
+        "prescription_revision": 1,
+        "exercise_id": "organizar-a-mesa"
+      },
+      "source": {
+        "type": "camera",
+        "algorithm_version": "c05-hand-2",
+        "device_hint": "desktop-chrome"
+      },
+      "data_origin": "synthetic_fixture",
+      "payload": {
+        "frames_total": 360,
+        "fps_mean": 24.1,
+        "fps_min": 11.2,
+        "usable_fraction": 0.87,
+        "lost_events": 1
+      },
+      "hash": "0eca366040e649992075efee5ccbe6c9dfcca133c9a5d1fd5a1483b8af56012a"
+    },
+    {
+      "event_id": "da4642d377f403a239d9869bf16ace35ab3dfa504eb1f9296af6901e282f925f",
+      "schema_version": 2,
+      "type": "report.submitted",
+      "stream_id": "session:s_fixture-0001",
+      "seq": 14,
+      "prev_hash": "0eca366040e649992075efee5ccbe6c9dfcca133c9a5d1fd5a1483b8af56012a",
+      "occurred_at": "2026-11-24T13:00:25.000Z",
+      "actor": {
+        "role": "participant",
+        "id": "p_fixture-0001"
+      },
+      "scope": {
+        "org_id": "o_fixture-0001",
+        "participant_id": "p_fixture-0001",
+        "session_id": "s_fixture-0001",
+        "prescription_id": "rx_fixture-0001",
+        "prescription_revision": 1,
+        "exercise_id": "organizar-a-mesa"
+      },
+      "source": {
+        "type": "participant_report"
+      },
+      "data_origin": "synthetic_fixture",
+      "payload": {
+        "execution": "complete",
+        "assistance": "none",
+        "reporter_role": "participant"
+      },
+      "hash": "f1a6449c239418c0a9fea6c39387f226620c7238db3fb4656bdf705c22d7449d"
+    },
+    {
+      "event_id": "ab31356995ab75d24f67218b8f866d76e094fb2cab89453510e657369d714ac8",
+      "schema_version": 2,
+      "type": "report.submitted",
+      "stream_id": "session:s_fixture-0001",
+      "seq": 15,
+      "prev_hash": "f1a6449c239418c0a9fea6c39387f226620c7238db3fb4656bdf705c22d7449d",
+      "occurred_at": "2026-11-24T13:00:30.000Z",
+      "actor": {
+        "role": "participant",
+        "id": "p_fixture-0001"
+      },
+      "scope": {
+        "org_id": "o_fixture-0001",
+        "participant_id": "p_fixture-0001",
+        "session_id": "s_fixture-0001",
+        "prescription_id": "rx_fixture-0001",
+        "prescription_revision": 1,
+        "exercise_id": "organizar-a-mesa"
+      },
+      "source": {
+        "type": "participant_report"
+      },
+      "data_origin": "synthetic_fixture",
+      "payload": {
+        "execution": "complete",
+        "assistance": "some",
+        "reporter_role": "participant"
+      },
+      "hash": "97d8279a37a77d5b1e7691034d0a4bef83bae4ed2f83d0d7d3da80efa94ba411"
+    },
+    {
+      "event_id": "6ec1327b1cdcabd3152dba4e635bcc85c8b125c353750c63362e508979b4dd64",
+      "schema_version": 2,
+      "type": "session.started",
+      "stream_id": "session:s_fixture-0002",
+      "seq": 1,
+      "prev_hash": null,
+      "occurred_at": "2026-11-26T01:30:00.000Z",
+      "actor": {
+        "role": "participant",
+        "id": "p_fixture-0001"
+      },
+      "scope": {
+        "org_id": "o_fixture-0001",
+        "participant_id": "p_fixture-0001",
+        "session_id": "s_fixture-0002",
+        "prescription_id": "rx_fixture-0001",
+        "prescription_revision": 1,
+        "exercise_id": "organizar-a-mesa"
+      },
+      "source": {
+        "type": "participant_report"
+      },
+      "data_origin": "synthetic_fixture",
+      "payload": {
+        "source_mode": "report_only",
+        "prescription_id": "rx_fixture-0001",
+        "prescription_revision": 1,
+        "capture_context": null
+      },
+      "hash": "fa84b71d30b50ab24b49ed60e5cc01dfc39021a4a141a1c01f3952ae881a899a"
+    },
+    {
+      "event_id": "2f3ea0518097fc461c9f8002c4c4617a6e4fb3f0d74af4a8d51e388fee2f7c8c",
+      "schema_version": 2,
+      "type": "session.control",
+      "stream_id": "session:s_fixture-0002",
+      "seq": 2,
+      "prev_hash": "fa84b71d30b50ab24b49ed60e5cc01dfc39021a4a141a1c01f3952ae881a899a",
+      "occurred_at": "2026-11-26T01:30:01.000Z",
+      "actor": {
+        "role": "participant",
+        "id": "p_fixture-0001"
+      },
+      "scope": {
+        "org_id": "o_fixture-0001",
+        "participant_id": "p_fixture-0001",
+        "session_id": "s_fixture-0002",
+        "prescription_id": "rx_fixture-0001",
+        "prescription_revision": 1,
+        "exercise_id": "organizar-a-mesa"
+      },
+      "source": {
+        "type": "participant_report"
+      },
+      "data_origin": "synthetic_fixture",
+      "payload": {
+        "action": "start",
+        "interrupt_reason": null
+      },
+      "hash": "bc3371c2bc15ed927fd041db9cc6df9540741c7cb0554bb9e68e0614eae5df4a"
+    },
+    {
+      "event_id": "9e6b1f69869596113aff8b8dce52f289ef1932f6975019ecf6b0b9c7dbe63e01",
+      "schema_version": 2,
+      "type": "session.control",
+      "stream_id": "session:s_fixture-0002",
+      "seq": 3,
+      "prev_hash": "bc3371c2bc15ed927fd041db9cc6df9540741c7cb0554bb9e68e0614eae5df4a",
+      "occurred_at": "2026-11-26T01:40:00.000Z",
+      "actor": {
+        "role": "participant",
+        "id": "p_fixture-0001"
+      },
+      "scope": {
+        "org_id": "o_fixture-0001",
+        "participant_id": "p_fixture-0001",
+        "session_id": "s_fixture-0002",
+        "prescription_id": "rx_fixture-0001",
+        "prescription_revision": 1,
+        "exercise_id": "organizar-a-mesa"
+      },
+      "source": {
+        "type": "participant_report"
+      },
+      "data_origin": "synthetic_fixture",
+      "payload": {
+        "action": "end",
+        "interrupt_reason": null
+      },
+      "hash": "50f7ca32f858d115e28906e50ec24c850e3367e10a12d0ceb3099374ab110031"
+    },
+    {
+      "event_id": "bcc1ce349633329a92dba0d99f17b323e3c77a0f6f5bce087e40eedc95a3d425",
+      "schema_version": 2,
+      "type": "report.submitted",
+      "stream_id": "session:s_fixture-0002",
+      "seq": 4,
+      "prev_hash": "50f7ca32f858d115e28906e50ec24c850e3367e10a12d0ceb3099374ab110031",
+      "occurred_at": "2026-11-26T01:40:10.000Z",
+      "actor": {
+        "role": "participant",
+        "id": "p_fixture-0001"
+      },
+      "scope": {
+        "org_id": "o_fixture-0001",
+        "participant_id": "p_fixture-0001",
+        "session_id": "s_fixture-0002",
+        "prescription_id": "rx_fixture-0001",
+        "prescription_revision": 1,
+        "exercise_id": "organizar-a-mesa"
+      },
+      "source": {
+        "type": "participant_report"
+      },
+      "data_origin": "synthetic_fixture",
+      "payload": {
+        "execution": "partial",
+        "assistance": "unreported",
+        "reporter_role": "participant"
+      },
+      "hash": "30494ebecd805c2938c6c44aef2a29b58a6d4e4163ce52e22c2e9607619150a3"
+    }
+  ]
+}

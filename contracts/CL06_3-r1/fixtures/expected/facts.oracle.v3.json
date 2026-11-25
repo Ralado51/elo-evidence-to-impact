@@ -1,0 +1,73 @@
+{
+ "description": "HAND-WRITTEN expectations for the FUTURE verifier (CL06.2+). SHAPE/ID/HASH ONLY: nothing here was produced or checked by a verifier. fact_id/content_hash are computed with the reference canonicalizer.",
+ "status": "NOT_VERIFIED_BY_ANY_VERIFIER",
+ "facts": [
+  {
+   "fact_id": "f_ce574e6046d4becb45fca8ced15adc079a3afbc427cbcfa874d32f4348dc4abf",
+   "type": "F01",
+   "catalog_version": "2",
+   "params": {
+    "session_id": "s_fixture-0001",
+    "session_date_local": "2026-11-24",
+    "accepted": 4,
+    "target": 4,
+    "capture_source": "camera",
+    "algorithm_version": "c05-hand-2",
+    "calibration_id": "cal_fixture-0001",
+    "handedness_mismatch_cycles": 1,
+    "handedness_unknown_cycles": 0,
+    "incomplete_upload": false
+   },
+   "evidence_refs": [
+    "01fed9d271dfee74ae6aeac80f2ba04fa4116a9ed659545e56e4d3e48e26adde",
+    "1028ede6a89e5b622e337928c08c96c845a4e57c675186643be1bbb5d97a823b",
+    "105f57bfe229ef9a13e8f09f586307f878b11381bcdaaed4363ce34c405eefb0",
+    "80c2996856fa66aa99450340f14848bf6e4ac0c3a248e629eaf6d2404c917d37",
+    "a64a73be3ed5e567d07664f50c21e36e563f92cf5d9b9966551205f048ca5e5b",
+    "b41e4450f398b3fb2cfa25c1a0639a5fd36d33ed60f0f50ddec15c7fece0561e",
+    "d35ba1a6af7402da6d3febf02055dc853d98ffa7c9d9952fd0fe577e3553d85c",
+    "da5c7d4685ceaf8d970aa38aa667857ce384d5b29c7d528afef62ea7db60aa2f",
+    "eb6a2bdbca639483fa57257597a6eaa5b8cfd6dabd37e2822b95b1aa7bef3217"
+   ],
+   "scope": {
+    "org_id": "o_fixture-0001",
+    "participant_id": "p_fixture-0001",
+    "session_id": "s_fixture-0001",
+    "prescription_id": "rx_fixture-0001",
+    "prescription_revision": 1,
+    "exercise_id": "organizar-a-mesa"
+   },
+   "data_origin": "synthetic_fixture",
+   "versions": {
+    "catalog": "2",
+    "verifier": "0.0.0",
+    "algorithm": "c05-hand-2",
+    "definition": 2
+   },
+   "limitations": [
+    "L01",
+    "L02",
+    "L03",
+    "L11",
+    "L17"
+   ],
+   "rendered": {
+    "text_ptbr": "[Dados sintéticos] Na sessão de 24/11/2026, a câmera contou 4 de 4 ciclos de abrir e fechar a mão prescrita.",
+    "limitations_ptbr": [
+     "Contagem automática experimental, não validada clinicamente.",
+     "O ciclo é medido em relação à calibração feita no próprio dia.",
+     "A câmera não identifica quem fez o movimento nem se houve ajuda.",
+     "Dados sintéticos de demonstração; não se referem a uma pessoa real.",
+     "Ciclos com lateralidade incompatível com a prescrição não são contados como cumprimento."
+    ]
+   },
+   "flags": {
+    "highlight": true,
+    "summary_eligible": true
+   }
+  }
+ ],
+ "content_hashes": {
+  "f_ce574e6046d4becb45fca8ced15adc079a3afbc427cbcfa874d32f4348dc4abf": "24e65a4351c5101b0f5eec75bf9b1aa2196a59b497198104d8cd8cbd6a8c40e9"
+ }
+}

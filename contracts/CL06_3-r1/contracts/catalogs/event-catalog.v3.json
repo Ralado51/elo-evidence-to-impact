@@ -1,0 +1,462 @@
+{
+ "catalog_version": "3",
+ "schema_version": 3,
+ "types": {
+  "prescription.published": {
+   "stream": "prescription",
+   "authored": "server",
+   "actors": [
+    "therapist"
+   ],
+   "sources": [
+    "therapist"
+   ],
+   "algorithm": "forbidden",
+   "mono": "forbidden",
+   "scope": {
+    "required": [
+     "prescription_id",
+     "prescription_revision",
+     "exercise_id"
+    ],
+    "forbidden": [
+     "session_id"
+    ]
+   }
+  },
+  "consent.accepted": {
+   "stream": "consent",
+   "authored": "client",
+   "actors": [
+    "participant"
+   ],
+   "sources": [
+    "participant_report"
+   ],
+   "algorithm": "forbidden",
+   "mono": "forbidden",
+   "scope": {
+    "required": [],
+    "forbidden": [
+     "session_id",
+     "prescription_id",
+     "prescription_revision",
+     "exercise_id"
+    ]
+   }
+  },
+  "consent.revoked": {
+   "stream": "consent",
+   "authored": "client",
+   "actors": [
+    "participant"
+   ],
+   "sources": [
+    "participant_report"
+   ],
+   "algorithm": "forbidden",
+   "mono": "forbidden",
+   "scope": {
+    "required": [],
+    "forbidden": [
+     "session_id",
+     "prescription_id",
+     "prescription_revision",
+     "exercise_id"
+    ]
+   }
+  },
+  "session.started": {
+   "stream": "session",
+   "authored": "client",
+   "actors": [
+    "participant"
+   ],
+   "sources": [
+    "camera",
+    "simulation",
+    "participant_report"
+   ],
+   "algorithm": "capture-only",
+   "mono": "optional",
+   "scope": {
+    "required": [
+     "session_id",
+     "prescription_id",
+     "prescription_revision",
+     "exercise_id"
+    ],
+    "forbidden": []
+   }
+  },
+  "calibration.attempted": {
+   "stream": "session",
+   "authored": "client",
+   "actors": [
+    "participant"
+   ],
+   "sources": [
+    "camera",
+    "simulation"
+   ],
+   "algorithm": "required",
+   "mono": "required",
+   "scope": {
+    "required": [
+     "session_id",
+     "prescription_id",
+     "prescription_revision",
+     "exercise_id"
+    ],
+    "forbidden": []
+   }
+  },
+  "calibration.applied": {
+   "stream": "session",
+   "authored": "client",
+   "actors": [
+    "participant"
+   ],
+   "sources": [
+    "camera",
+    "simulation"
+   ],
+   "algorithm": "required",
+   "mono": "required",
+   "scope": {
+    "required": [
+     "session_id",
+     "prescription_id",
+     "prescription_revision",
+     "exercise_id"
+    ],
+    "forbidden": []
+   }
+  },
+  "calibration.failed": {
+   "stream": "session",
+   "authored": "client",
+   "actors": [
+    "participant"
+   ],
+   "sources": [
+    "camera",
+    "simulation"
+   ],
+   "algorithm": "required",
+   "mono": "required",
+   "scope": {
+    "required": [
+     "session_id",
+     "prescription_id",
+     "prescription_revision",
+     "exercise_id"
+    ],
+    "forbidden": []
+   }
+  },
+  "observation.recorded": {
+   "stream": "session",
+   "authored": "client",
+   "actors": [
+    "participant"
+   ],
+   "sources": [
+    "camera",
+    "simulation"
+   ],
+   "algorithm": "required",
+   "mono": "required",
+   "scope": {
+    "required": [
+     "session_id",
+     "prescription_id",
+     "prescription_revision",
+     "exercise_id"
+    ],
+    "forbidden": []
+   }
+  },
+  "cycle.accepted": {
+   "stream": "session",
+   "authored": "client",
+   "actors": [
+    "participant"
+   ],
+   "sources": [
+    "camera",
+    "simulation"
+   ],
+   "algorithm": "required",
+   "mono": "required",
+   "scope": {
+    "required": [
+     "session_id",
+     "prescription_id",
+     "prescription_revision",
+     "exercise_id"
+    ],
+    "forbidden": []
+   }
+  },
+  "cycle.rejected": {
+   "stream": "session",
+   "authored": "client",
+   "actors": [
+    "participant"
+   ],
+   "sources": [
+    "camera",
+    "simulation"
+   ],
+   "algorithm": "required",
+   "mono": "required",
+   "scope": {
+    "required": [
+     "session_id",
+     "prescription_id",
+     "prescription_revision",
+     "exercise_id"
+    ],
+    "forbidden": []
+   }
+  },
+  "session.control": {
+   "stream": "session",
+   "authored": "client",
+   "actors": [
+    "participant"
+   ],
+   "sources": [
+    "camera",
+    "simulation",
+    "participant_report"
+   ],
+   "algorithm": "capture-only",
+   "mono": "optional",
+   "scope": {
+    "required": [
+     "session_id",
+     "prescription_id",
+     "prescription_revision",
+     "exercise_id"
+    ],
+    "forbidden": []
+   }
+  },
+  "session.completed": {
+   "stream": "session",
+   "authored": "client",
+   "actors": [
+    "participant"
+   ],
+   "sources": [
+    "camera",
+    "simulation"
+   ],
+   "algorithm": "required",
+   "mono": "optional",
+   "scope": {
+    "required": [
+     "session_id",
+     "prescription_id",
+     "prescription_revision",
+     "exercise_id"
+    ],
+    "forbidden": []
+   }
+  },
+  "session.capture_summary": {
+   "stream": "session",
+   "authored": "client",
+   "actors": [
+    "participant"
+   ],
+   "sources": [
+    "camera",
+    "simulation"
+   ],
+   "algorithm": "required",
+   "mono": "optional",
+   "scope": {
+    "required": [
+     "session_id",
+     "prescription_id",
+     "prescription_revision",
+     "exercise_id"
+    ],
+    "forbidden": []
+   }
+  },
+  "measurement.recorded": {
+   "stream": "session",
+   "authored": "client",
+   "actors": [
+    "participant"
+   ],
+   "sources": [
+    "camera",
+    "simulation"
+   ],
+   "algorithm": "required",
+   "mono": "optional",
+   "scope": {
+    "required": [
+     "session_id",
+     "prescription_id",
+     "prescription_revision",
+     "exercise_id"
+    ],
+    "forbidden": []
+   }
+  },
+  "report.submitted": {
+   "stream": "session",
+   "authored": "client",
+   "actors": [
+    "participant"
+   ],
+   "sources": [
+    "participant_report"
+   ],
+   "algorithm": "forbidden",
+   "mono": "optional",
+   "scope": {
+    "required": [
+     "session_id",
+     "prescription_id",
+     "prescription_revision",
+     "exercise_id"
+    ],
+    "forbidden": []
+   }
+  },
+  "review.recorded": {
+   "stream": "review",
+   "authored": "server",
+   "actors": [
+    "therapist"
+   ],
+   "sources": [
+    "therapist"
+   ],
+   "algorithm": "forbidden",
+   "mono": "forbidden",
+   "scope": {
+    "required": [],
+    "forbidden": [
+     "session_id",
+     "prescription_id",
+     "prescription_revision",
+     "exercise_id"
+    ]
+   }
+  },
+  "summary.published": {
+   "stream": "review",
+   "authored": "server",
+   "actors": [
+    "therapist"
+   ],
+   "sources": [
+    "therapist"
+   ],
+   "algorithm": "forbidden",
+   "mono": "forbidden",
+   "scope": {
+    "required": [],
+    "forbidden": [
+     "session_id",
+     "prescription_id",
+     "prescription_revision",
+     "exercise_id"
+    ]
+   }
+  },
+  "evolution.published": {
+   "stream": "review",
+   "authored": "server",
+   "actors": [
+    "therapist"
+   ],
+   "sources": [
+    "therapist"
+   ],
+   "algorithm": "forbidden",
+   "mono": "forbidden",
+   "scope": {
+    "required": [],
+    "forbidden": [
+     "session_id",
+     "prescription_id",
+     "prescription_revision",
+     "exercise_id"
+    ]
+   }
+  },
+  "privacy.erasure": {
+   "stream": "privacy",
+   "authored": "server",
+   "actors": [
+    "system"
+   ],
+   "sources": [
+    "system"
+   ],
+   "algorithm": "forbidden",
+   "mono": "forbidden",
+   "scope": {
+    "required": [],
+    "forbidden": [
+     "session_id",
+     "prescription_id",
+     "prescription_revision",
+     "exercise_id"
+    ]
+   }
+  }
+ },
+ "exec_source_pairs": {
+  "description": "Applies ONLY to capture-only event types (those whose catalog sources are [camera, simulation]) and to session.started. For these, source.type must equal the stream execution_mode (camera or simulation); for session.started with report_only, source.type is participant_report. participant_report events (report.submitted, session.control by participant, etc.) are allowed in a session of ANY execution_mode.",
+  "session_started": {
+   "camera": [
+    "camera"
+   ],
+   "simulation": [
+    "simulation"
+   ],
+   "report_only": [
+    "participant_report"
+   ],
+   "not_applicable": [
+    "therapist",
+    "system",
+    "participant_report"
+   ]
+  }
+ },
+ "rules": {
+  "session_started_seq": 1,
+  "session_started_mode_equals_envelope_execution_mode": true,
+  "non_session_streams_execution_mode": "not_applicable",
+  "origin_ref_required_for": [
+   "experimental_capture",
+   "imported_v1"
+  ],
+  "handedness": "cycle.accepted with handedness.label != prescription.side is a stream-rule violation (HANDEDNESS_INCOMPATIBLE_ACCEPTED); such a cycle MUST be emitted as cycle.rejected with reason handedness_incompatible (PD-04). handedness == null is not incompatible.",
+  "live_origin_gate": "data_origin=live is RESERVED: accepted only after the real-data gate (PD-05) is opened by the deployment; contracts alone do not open it.",
+  "legacy": "schema_version 2 events (CL06.1) are READ-ONLY legacy; no v3 event may chain onto a v2 stream."
+ },
+ "added_in_v3": [
+  "measurement.recorded",
+  "evolution.published"
+ ],
+ "removed_in_v3": [],
+ "changed_in_v3": {
+  "prescription.published": "payload.limits_version added (required)",
+  "consent.accepted": "payload.scopes added (required)",
+  "consent.revoked": "payload.scopes added (required)",
+  "cycle.rejected": "reason enum += handedness_incompatible",
+  "*": "envelope: schema_version 3; execution_mode added (required); data_origin enum += experimental_capture; origin_ref optional"
+ }
+}

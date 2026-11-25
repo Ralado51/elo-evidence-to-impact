@@ -1,0 +1,36 @@
+{
+ "catalog_version": "2",
+ "texts_ptbr": {
+  "L01": "Contagem automática experimental, não validada clinicamente.",
+  "L02": "O ciclo é medido em relação à calibração feita no próprio dia.",
+  "L03": "A câmera não identifica quem fez o movimento nem se houve ajuda.",
+  "L04": "Relatos são declarações e não foram verificados.",
+  "L05": "Dias sem registro não indicam necessariamente ausência de prática.",
+  "L06": "Envio de dados incompleto: parte dos registros desta sessão não chegou ao servidor.",
+  "L07": "Em parte dos ciclos, a mão detectada não correspondeu ao lado prescrito.",
+  "L08": "O sistema não determina qual fonte está correta.",
+  "L09": "Sinalização da pessoa; requer avaliação do terapeuta.",
+  "L10": "Não é medida de amplitude articular; não é comparável entre câmeras ou posições.",
+  "L11": "Dados sintéticos de demonstração; não se referem a uma pessoa real.",
+  "L12": "Dados importados de versão anterior, com proveniência reduzida.",
+  "L13": "Registro gerado em modo de simulação, sem câmera.",
+  "L14": "Qualidade de captura baixa: menos da metade do tempo com a mão visível o suficiente.",
+  "L15": "Assistência não é observável pela câmera.",
+  "L16": "Captura experimental com câmera real, fora de uso clínico; não é registro clínico.",
+  "L17": "Ciclos com lateralidade incompatível com a prescrição não são contados como cumprimento.",
+  "L18": "Medida experimental: método e valores ainda em validação.",
+  "L19": "Ciclos sem leitura de lateralidade foram contados e estão sinalizados."
+ },
+ "origin_prefix": {
+  "live": "",
+  "synthetic_fixture": "[Dados sintéticos] ",
+  "experimental_capture": "[Captura experimental] ",
+  "imported_v1": "[Importado de versão anterior] "
+ },
+ "origin_limitation": {
+  "live": null,
+  "synthetic_fixture": "L11",
+  "experimental_capture": "L16",
+  "imported_v1": "L12"
+ }
+}

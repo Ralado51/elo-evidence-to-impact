@@ -1,0 +1,251 @@
+{
+ "description": "Hand-written expected canonical strings. sha256 computed with hashlib/node:crypto, independent of the canonicalizers. Inherits C01-C05 from CL06.1.",
+ "vectors": [
+  {
+   "id": "C01-key-order",
+   "value": {
+    "b": 1,
+    "a": [
+     3,
+     2,
+     1
+    ],
+    "c": {
+     "z": null,
+     "y": true
+    }
+   },
+   "canonical": "{\"a\":[3,2,1],\"b\":1,\"c\":{\"y\":true,\"z\":null}}",
+   "sha256": "abebfca918a9c06d400778d9ef17e4f437dcee8676e2d9ab95561c8202191bea"
+  },
+  {
+   "id": "C02-numbers-cl061",
+   "value": {
+    "int": 4,
+    "dec": 0.87,
+    "small": 1e-07,
+    "big": 1e+21,
+    "neg": -2.5
+   },
+   "canonical": "{\"big\":1e+21,\"dec\":0.87,\"int\":4,\"neg\":-2.5,\"small\":1e-7}",
+   "sha256": "9f9bb7679c793672046e6d6bde30343ad1068e0385529604379738f316e1a980"
+  },
+  {
+   "id": "C03-unicode",
+   "value": {
+    "texto": "Cansaço é sinalização",
+    "é": 1,
+    "e": 2
+   },
+   "canonical": "{\"e\":2,\"texto\":\"Cansaço é sinalização\",\"é\":1}",
+   "sha256": "8a673f5b9038d3ac3f05be6cdf09b3f3e19b65eeb0b606eb928df579936c7171"
+  },
+  {
+   "id": "C04-escapes",
+   "value": {
+    "q": "a\"b\\c\nd"
+   },
+   "canonical": "{\"q\":\"a\\\"b\\\\c\\nd\"}",
+   "sha256": "721dcaba5e897d89f8f883729d7f60c2e3fe5dccd00b7794c71f3c3994e8eced"
+  },
+  {
+   "id": "C05-event-id-slot",
+   "value": {
+    "stream_id": "session:s_fixture-0001",
+    "seq": 1
+   },
+   "canonical": "{\"seq\":1,\"stream_id\":\"session:s_fixture-0001\"}",
+   "sha256": "1028ede6a89e5b622e337928c08c96c845a4e57c675186643be1bbb5d97a823b"
+  },
+  {
+   "id": "N01-zero-and-negzero",
+   "value": [
+    0,
+    -0.0
+   ],
+   "canonical": "[0,0]",
+   "sha256": "3d5812abc84c11768aa73a732c85d75dbed439188f5bb3239e9b762ea31d9862"
+  },
+  {
+   "id": "N02-rfc8785-333333333.33333329",
+   "value": [
+    333333333.3333333
+   ],
+   "canonical": "[333333333.3333333]",
+   "sha256": "6306a5403f1f03f73c3592163aeff1fbbecb9ac8ae3f9652d89fc09eabfbd335"
+  },
+  {
+   "id": "N03-1e30",
+   "value": [
+    1e+30
+   ],
+   "canonical": "[1e+30]",
+   "sha256": "d19b62c7e65de4b9e9e71df1d88776094576c6c8535f893ae1b91ca125515927"
+  },
+  {
+   "id": "N04-4.50",
+   "value": [
+    4.5
+   ],
+   "canonical": "[4.5]",
+   "sha256": "ae8e886586d3023e5df97848de2a4cdff1e53eb611fb52c19bab99a6859deac0"
+  },
+  {
+   "id": "N05-2e-3",
+   "value": [
+    0.002
+   ],
+   "canonical": "[0.002]",
+   "sha256": "a37388b78a22b454c242076edee08d2e82f966a4227a9be1ca8512ae6e16fc2d"
+  },
+  {
+   "id": "N06-1e-27",
+   "value": [
+    1e-27
+   ],
+   "canonical": "[1e-27]",
+   "sha256": "39288a87fdc8dd5ef064ed396e61dd74ea6fafde92c538a12e3bf5056c0a6ee5"
+  },
+  {
+   "id": "N07-1e20-boundary",
+   "value": [
+    1e+20,
+    1e+21
+   ],
+   "canonical": "[100000000000000000000,1e+21]",
+   "sha256": "332eadb51b3cac1f7914f89802b13d83d82fa56407373a80ad30613dd98dd72a"
+  },
+  {
+   "id": "N08-small-boundary",
+   "value": [
+    1e-06,
+    1e-07
+   ],
+   "canonical": "[0.000001,1e-7]",
+   "sha256": "19ca01c5d07894d9ce68294ad32b64d9c2a851c244ae8010e0a2b8a26f3734a0"
+  },
+  {
+   "id": "N09-max-double",
+   "value": [
+    1.7976931348623157e+308
+   ],
+   "canonical": "[1.7976931348623157e+308]",
+   "sha256": "dabeb6b2980d2d512888b69d2576387da2a30109b9308eb6674ea6c24fbc8dad"
+  },
+  {
+   "id": "N10-min-subnormal",
+   "value": [
+    5e-324
+   ],
+   "canonical": "[5e-324]",
+   "sha256": "36ae31cf02ccda095c0e10f6eb921c5c76dc4a045971112fdffbb8bf72329e47"
+  },
+  {
+   "id": "N11-safe-int",
+   "value": [
+    9007199254740991,
+    -9007199254740991
+   ],
+   "canonical": "[9007199254740991,-9007199254740991]",
+   "sha256": "84bad60c1793654a7cdca854230af90af531ecc8f7656e2c7b2bd91890017b37"
+  },
+  {
+   "id": "N12-0.1+0.2",
+   "value": [
+    0.30000000000000004
+   ],
+   "canonical": "[0.30000000000000004]",
+   "sha256": "e54ec050d935c92d92de7fb92c3c071820ac2482daad8fc6e9fe7404ee3af41c"
+  },
+  {
+   "id": "N13-float-int",
+   "value": [
+    1.0,
+    100.0,
+    12345.0
+   ],
+   "canonical": "[1,100,12345]",
+   "sha256": "e3f09f6aad6cf8bdb42b5dc7d6b16ac51177242f51676005f01d66ee02b6142c"
+  },
+  {
+   "id": "N14-int-beyond-safe-parsed-as-double",
+   "value": [
+    1152921504606846976
+   ],
+   "canonical": "[1152921504606847000]",
+   "sha256": "455b392aeac7f09425b74498fa18333da73fa78fb058966a262318b5257d968f"
+  },
+  {
+   "id": "S01-astral-key-order",
+   "value": {
+    "～": 1,
+    "😀": 2
+   },
+   "canonical": "{\"😀\":2,\"～\":1}",
+   "sha256": "c44a324298283d910e4120a2ff3c2d7746b4a5c9f2d9625c67f6abb58748cf31"
+  },
+  {
+   "id": "S02-control-chars",
+   "value": {
+    "c": "\u0001\u001f\b\f\t\r"
+   },
+   "canonical": "{\"c\":\"\\u0001\\u001f\\b\\f\\t\\r\"}",
+   "sha256": "468dbb2da60df6d5d3cf3196f14316221a8c7a8bdf8ec307983caf54ee6aaa3f"
+  },
+  {
+   "id": "S03-slash-and-nonascii",
+   "value": {
+    "a": "/é "
+   },
+   "canonical": "{\"a\":\"/é \"}",
+   "sha256": "95256c216d22d22e83913dd188c524bad579222bdd535bdcc3e2ddcd210581a2"
+  },
+  {
+   "id": "S04-empty",
+   "value": [
+    {},
+    [],
+    "",
+    null,
+    true,
+    false
+   ],
+   "canonical": "[{},[],\"\",null,true,false]",
+   "sha256": "f2f9449864f57499d00042d8e33d1f74aeb5e160bd2256dfb45ed9207a76b9e8"
+  },
+  {
+   "id": "S05-nested-order",
+   "value": {
+    "z": {
+     "b": [
+      {
+       "d": 1,
+       "c": 2
+      }
+     ],
+     "a": {}
+    },
+    "a": 0
+   },
+   "canonical": "{\"a\":0,\"z\":{\"a\":{},\"b\":[{\"c\":2,\"d\":1}]}}",
+   "sha256": "21d8d2d316727b4e91405768c9246030f6457b49309ef5e6b3dd3ed508e6a51f"
+  }
+ ],
+ "must_reject": [
+  {
+   "id": "X01-nan",
+   "kind": "non-finite",
+   "note": "NaN"
+  },
+  {
+   "id": "X02-infinity",
+   "kind": "non-finite",
+   "note": "Infinity"
+  },
+  {
+   "id": "X03-lone-surrogate",
+   "kind": "string",
+   "note": "U+D800 alone"
+  }
+ ]
+}

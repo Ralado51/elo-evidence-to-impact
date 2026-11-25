@@ -1,0 +1,34 @@
+{
+ "cases": [
+  {
+   "id": "ok-1x100",
+   "target_sets": 1,
+   "target_repetitions": 100,
+   "valid": true
+  },
+  {
+   "id": "ok-10x10",
+   "target_sets": 10,
+   "target_repetitions": 10,
+   "valid": true
+  },
+  {
+   "id": "bad-11x1",
+   "target_sets": 11,
+   "target_repetitions": 1,
+   "valid": false
+  },
+  {
+   "id": "bad-1x101",
+   "target_sets": 1,
+   "target_repetitions": 101,
+   "valid": false
+  },
+  {
+   "id": "bad-product-2x51",
+   "target_sets": 2,
+   "target_repetitions": 51,
+   "valid": false
+  }
+ ]
+}

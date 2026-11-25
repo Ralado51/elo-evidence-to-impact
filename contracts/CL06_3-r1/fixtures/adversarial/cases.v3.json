@@ -1,0 +1,409 @@
+{
+ "description": "Adversarial cases. EXECUTABLE_NOW cases are run against the contract layer in Python and JavaScript. PENDING_IMPLEMENTATION cases have no implementation to run against; they are conformance data for CL06.2+ and are reported as PENDING, never as passed.",
+ "cases": [
+  {
+   "id": "P1",
+   "layer": "contract",
+   "description": "F01 proposal with free-text field `statement` (diagnosis)",
+   "expect": {
+    "code": "UNKNOWN_FIELD",
+    "step": "SHAPE"
+   },
+   "status": "EXECUTABLE_NOW",
+   "kind": "proposal_schema",
+   "fact": "F01",
+   "mutate": "add_unknown:statement"
+  },
+  {
+   "id": "P1b",
+   "layer": "contract",
+   "description": "Diagnostic text inside params.algorithm_version",
+   "expect": {
+    "code": "PATTERN",
+    "step": "PARAMS"
+   },
+   "status": "EXECUTABLE_NOW",
+   "kind": "proposal_schema",
+   "fact": "F01",
+   "mutate": "set:params.algorithm_version=diagnostico grave"
+  },
+  {
+   "id": "P2",
+   "layer": "contract",
+   "description": "type prognosis",
+   "expect": {
+    "code": "UNKNOWN_TYPE",
+    "step": "TYPE"
+   },
+   "status": "EXECUTABLE_NOW",
+   "kind": "proposal_type",
+   "type": "prognosis"
+  },
+  {
+   "id": "P2b",
+   "layer": "contract",
+   "description": "type clinical_improvement",
+   "expect": {
+    "code": "UNKNOWN_TYPE",
+    "step": "TYPE"
+   },
+   "status": "EXECUTABLE_NOW",
+   "kind": "proposal_type",
+   "type": "clinical_improvement"
+  },
+  {
+   "id": "P3",
+   "layer": "contract",
+   "description": "type longitudinal_comparison (no such fact: comparisons live in evolution, not in facts)",
+   "expect": {
+    "code": "UNKNOWN_TYPE",
+    "step": "TYPE"
+   },
+   "status": "EXECUTABLE_NOW",
+   "kind": "proposal_type",
+   "type": "longitudinal_comparison"
+  },
+  {
+   "id": "P4",
+   "layer": "contract",
+   "description": "generated_by_llm flag",
+   "expect": {
+    "code": "UNKNOWN_FIELD",
+    "step": "SHAPE"
+   },
+   "status": "EXECUTABLE_NOW",
+   "kind": "proposal_schema",
+   "fact": "F01",
+   "mutate": "add_unknown:generated_by_llm"
+  },
+  {
+   "id": "P7",
+   "layer": "contract",
+   "description": "scope without prescription_id",
+   "expect": {
+    "code": "MISSING_FIELD",
+    "step": "SHAPE"
+   },
+   "status": "EXECUTABLE_NOW",
+   "kind": "proposal_schema",
+   "fact": "F01",
+   "mutate": "drop:scope.prescription_id"
+  },
+  {
+   "id": "P8",
+   "layer": "contract",
+   "description": "tracking_quality float in F06",
+   "expect": {
+    "code": "UNKNOWN_FIELD",
+    "step": "PARAMS"
+   },
+   "status": "EXECUTABLE_NOW",
+   "kind": "proposal_schema",
+   "fact": "F06",
+   "mutate": "add_unknown:params.tracking_quality"
+  },
+  {
+   "id": "P10",
+   "layer": "contract",
+   "description": "params.incomplete_upload null",
+   "expect": {
+    "code": "NULL_NOT_ALLOWED",
+    "step": "PARAMS"
+   },
+   "status": "EXECUTABLE_NOW",
+   "kind": "proposal_schema",
+   "fact": "F01",
+   "mutate": "set:params.incomplete_upload=null"
+  },
+  {
+   "id": "V3-A1",
+   "layer": "contract",
+   "description": "F10 params.experimental=false",
+   "expect": {
+    "code": "LITERAL"
+   },
+   "status": "EXECUTABLE_NOW",
+   "kind": "proposal_schema",
+   "fact": "F10",
+   "mutate": "set:params.experimental=false"
+  },
+  {
+   "id": "V3-A2",
+   "layer": "contract",
+   "description": "F10 params.unit=deg (opening index is dimensionless)",
+   "expect": {
+    "code": "LITERAL"
+   },
+   "status": "EXECUTABLE_NOW",
+   "kind": "proposal_schema",
+   "fact": "F10",
+   "mutate": "set:params.unit=deg"
+  },
+  {
+   "id": "V3-A3",
+   "layer": "contract",
+   "description": "F01 v2 proposal using catalog_version 1",
+   "expect": {
+    "code": "LITERAL"
+   },
+   "status": "EXECUTABLE_NOW",
+   "kind": "proposal_schema",
+   "fact": "F01",
+   "mutate": "set:catalog_version=1"
+  },
+  {
+   "id": "V3-A4",
+   "layer": "contract",
+   "description": "F01 v2 proposal missing handedness_unknown_cycles",
+   "expect": {
+    "code": "MISSING_FIELD"
+   },
+   "status": "EXECUTABLE_NOW",
+   "kind": "proposal_schema",
+   "fact": "F01",
+   "mutate": "drop:params.handedness_unknown_cycles"
+  },
+  {
+   "id": "V3-A5",
+   "layer": "contract",
+   "description": "role caregiver anywhere",
+   "expect": {
+    "code": "ENUM"
+   },
+   "status": "EXECUTABLE_NOW",
+   "kind": "see_invalid",
+   "ref": "old_role_caregiver"
+  },
+  {
+   "id": "V3-A6",
+   "layer": "contract",
+   "description": "incompatible-handedness cycle emitted as cycle.accepted",
+   "expect": {
+    "code": "HANDEDNESS_INCOMPATIBLE_ACCEPTED"
+   },
+   "status": "EXECUTABLE_NOW",
+   "kind": "see_stream_rule",
+   "ref": "incompatible_handedness_accepted"
+  },
+  {
+   "id": "V3-A7",
+   "layer": "contract",
+   "description": "prescription 11 sets / 101 reps / product 101",
+   "expect": {
+    "code": "LIMITS_EXCEEDED"
+   },
+   "status": "EXECUTABLE_NOW",
+   "kind": "see_invalid",
+   "ref": "limits_sets_11"
+  },
+  {
+   "id": "V3-A8",
+   "layer": "contract",
+   "description": "draft with audio_retained=true",
+   "expect": {
+    "code": "ONEOF"
+   },
+   "status": "EXECUTABLE_NOW",
+   "kind": "see_invalid_entity",
+   "ref": "draft_audio_retained"
+  },
+  {
+   "id": "P3-scope",
+   "layer": "verifier",
+   "description": "Fact scoped to S2 citing S1 evidence",
+   "expect": {
+    "code": "REF_OUT_OF_SCOPE",
+    "step": "REFS_SCOPE"
+   },
+   "status": "PENDING_IMPLEMENTATION",
+   "note": "REFS_* need a ledger-backed implementation; in CL06.1 it was checkEvidenceRefs (JS), not ported to the neutral reference libraries."
+  },
+  {
+   "id": "P7b",
+   "layer": "verifier",
+   "description": "Scope with revision 2 (not published)",
+   "expect": {
+    "code": "REF_OUT_OF_SCOPE",
+    "step": "REFS_SCOPE"
+   },
+   "status": "PENDING_IMPLEMENTATION"
+  },
+  {
+   "id": "P3b",
+   "layer": "verifier",
+   "description": "F06 with altered usable_fraction",
+   "expect": {
+    "code": "RECOMPUTE_MISMATCH",
+    "step": "RECOMPUTE"
+   },
+   "status": "PENDING_IMPLEMENTATION"
+  },
+  {
+   "id": "P5",
+   "layer": "verifier",
+   "description": "REGRESSION: F01 omits one accepted-cycle event (count adjusted to match)",
+   "expect": {
+    "code": "EVIDENCE_SET_MISMATCH",
+    "step": "EVIDENCE_SET"
+   },
+   "status": "PENDING_IMPLEMENTATION",
+   "regression_of": "Python E2I verifier accepted this as supported (VERIFIER_COMPARISON §3)",
+   "ledger": "valid/ledger.v3.json",
+   "fact": "F01",
+   "session": "s_fixture-0001",
+   "mutation": "drop evidence_ref of cycle seq 9 and set params.accepted=3"
+  },
+  {
+   "id": "P5b",
+   "layer": "verifier",
+   "description": "F01 accepted inflated with full evidence",
+   "expect": {
+    "code": "RECOMPUTE_MISMATCH",
+    "step": "RECOMPUTE"
+   },
+   "status": "PENDING_IMPLEMENTATION",
+   "ledger": "valid/ledger.v3.json",
+   "fact": "F01",
+   "mutation": "params.accepted=5"
+  },
+  {
+   "id": "P6",
+   "layer": "verifier",
+   "description": "REGRESSION: F04 cites the superseded report (needs a ledger with two reports in one session)",
+   "expect": {
+    "code": "EVIDENCE_SET_MISMATCH",
+    "step": "EVIDENCE_SET"
+   },
+   "status": "PENDING_IMPLEMENTATION",
+   "regression_of": "Python E2I verifier accepted this as supported (VERIFIER_COMPARISON §3)",
+   "note": "The v3 valid ledger has ONE report per session; the conformance harness must append a second report.submitted to session A to build this case (CL06.1 ledger already contains one: S1 seq 14/15)."
+  },
+  {
+   "id": "P9",
+   "layer": "verifier",
+   "description": "F05 claimed for a report-only session",
+   "expect": {
+    "code": "PRECONDITION_FAILED",
+    "step": "PRECONDITIONS"
+   },
+   "status": "PENDING_IMPLEMENTATION"
+  },
+  {
+   "id": "V3-V1",
+   "layer": "verifier",
+   "description": "F01 v2 where a handedness_incompatible rejection is omitted from evidence",
+   "expect": {
+    "code": "EVIDENCE_SET_MISMATCH"
+   },
+   "status": "PENDING_IMPLEMENTATION"
+  },
+  {
+   "id": "V3-V2",
+   "layer": "verifier",
+   "description": "F01 v2 mismatch count computed from accepted cycles (v1 semantics)",
+   "expect": {
+    "code": "RECOMPUTE_MISMATCH"
+   },
+   "status": "PENDING_IMPLEMENTATION"
+  },
+  {
+   "id": "V3-V3",
+   "layer": "verifier",
+   "description": "F10 for a session without measurement.recorded",
+   "expect": {
+    "code": "PRECONDITION_FAILED"
+   },
+   "status": "PENDING_IMPLEMENTATION"
+  },
+  {
+   "id": "V3-S1",
+   "layer": "service",
+   "description": "evolution.publish citing a fact not approved",
+   "expect": {
+    "code": "UNREVIEWED_FACT_IN_EVOLUTION"
+   },
+   "status": "PENDING_IMPLEMENTATION"
+  },
+  {
+   "id": "V3-S2",
+   "layer": "service",
+   "description": "evolution.publish citing an approval with a stale content_hash",
+   "expect": {
+    "code": "CONTENT_HASH_STALE"
+   },
+   "status": "PENDING_IMPLEMENTATION"
+  },
+  {
+   "id": "V3-S3",
+   "layer": "service",
+   "description": "series mixing F01 definition 1 and 2, or camera and simulation, or experimental_capture and live",
+   "expect": {
+    "code": "COMPARABILITY_VIOLATION"
+   },
+   "status": "PENDING_IMPLEMENTATION"
+  },
+  {
+   "id": "V3-S4",
+   "layer": "service",
+   "description": "assistance transition across a session whose assistance is unreported",
+   "expect": {
+    "code": "NO_TRANSITION_PRODUCED"
+   },
+   "status": "PENDING_IMPLEMENTATION"
+  },
+  {
+   "id": "V3-S5",
+   "layer": "service",
+   "description": "voice_to_text draft submitted without active microphone consent",
+   "expect": {
+    "code": "MICROPHONE_CONSENT_REQUIRED"
+   },
+   "status": "PENDING_IMPLEMENTATION"
+  },
+  {
+   "id": "V3-S6",
+   "layer": "service",
+   "description": "draft published as record without confirmation",
+   "expect": {
+    "code": "DRAFT_NOT_CONFIRMED"
+   },
+   "status": "PENDING_IMPLEMENTATION"
+  },
+  {
+   "id": "V3-S7",
+   "layer": "service",
+   "description": "participant principal calls a therapist-only route; principal with role caregiver/supervisor",
+   "expect": {
+    "code": "FORBIDDEN / ROLE_NOT_ALLOWED"
+   },
+   "status": "PENDING_IMPLEMENTATION"
+  },
+  {
+   "id": "V3-S8",
+   "layer": "service",
+   "description": "therapist reads participant without active care_link",
+   "expect": {
+    "code": "SCOPE_VIOLATION"
+   },
+   "status": "PENDING_IMPLEMENTATION"
+  },
+  {
+   "id": "V3-S9",
+   "layer": "service",
+   "description": "events.batch with data_origin=live while the real-data gate is closed",
+   "expect": {
+    "code": "REAL_DATA_GATE_CLOSED"
+   },
+   "status": "PENDING_IMPLEMENTATION"
+  },
+  {
+   "id": "V3-S10",
+   "layer": "service",
+   "description": "append v3 event to a legacy schema_version 2 stream",
+   "expect": {
+    "code": "LEGACY_STREAM_READ_ONLY"
+   },
+   "status": "PENDING_IMPLEMENTATION"
+  }
+ ]
+}
