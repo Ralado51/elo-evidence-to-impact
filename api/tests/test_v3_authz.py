@@ -52,6 +52,9 @@ S0_02_ROUTE_IDS = {
     "encounters.list",
     "reassessments.create",
     "instrumental.create",
+    "prescriptions.publish",
+    "prescriptions.current",
+    "prescriptions.history",
 }
 
 

@@ -1,4 +1,4 @@
-"""CL06.3 v3 FastAPI router exposing the S0-02, S0-04, S1a-01, S1a-02, and S1a-03 endpoints under /api/v3.
+"""CL06.3 v3 FastAPI router exposing the S0-02, S0-04, S1a-01, S1a-02, S1a-03, and S1a-04 endpoints under /api/v3.
 
 Endpoints (api-contract.v3.json):
   1.  GET  /api/v3/health                                          (id: health, roles: anonymous)
@@ -19,6 +19,9 @@ Endpoints (api-contract.v3.json):
   16. GET  /api/v3/participants/{participant_id}/encounters        (id: encounters.list, roles: therapist)
   17. POST /api/v3/participants/{participant_id}/reassessments     (id: reassessments.create, roles: therapist)
   18. POST /api/v3/participants/{participant_id}/instrumental-measurements (id: instrumental.create, roles: therapist)
+  19. POST /api/v3/prescriptions                                   (id: prescriptions.publish, roles: therapist)
+  20. GET  /api/v3/participants/{participant_id}/prescription/current (id: prescriptions.current, roles: participant, therapist)
+  21. GET  /api/v3/participants/{participant_id}/prescriptions     (id: prescriptions.history, roles: therapist)
 """
 
 from __future__ import annotations
@@ -37,6 +40,7 @@ from .authz import AuthzScope, authorize
 from .clinical import ClinicalEntityService, extract_entity_payload
 from .entities import build_entity, new_id, utc_now_ms
 from .errors import V3Error
+from .prescriptions import PrescriptionService
 from .store import V3Store
 from .validation import check_real_data_gate, is_real_data_gate_open
 
@@ -98,6 +102,7 @@ def create_v3_router(
     store = V3Store(db_path, data_origin=resolved_origin, real_data_gate_open=resolved_gate)
     auth = AuthService(store)
     clinical = ClinicalEntityService(store)
+    prescriptions = PrescriptionService(store)
     router = APIRouter(prefix="/api/v3")
 
     # 1. health
@@ -462,5 +467,28 @@ def create_v3_router(
         payload = extract_entity_payload(body)
         ent = clinical.create("instrumental_measurement", participant_id, payload, principal)
         return JSONResponse(ent, status_code=201)
+
+    # 19. prescriptions.publish (S1a-04, D-S1a-04-1)
+    @router.post("/prescriptions", status_code=201)
+    async def prescriptions_publish(request: Request):
+        principal = auth.require_principal(request)
+        prescriptions.authorize_publish_role(principal)
+        body = await _read_json_object(request)
+        result = prescriptions.publish(body, principal)
+        return JSONResponse(result, status_code=201)
+
+    # 20. prescriptions.current (S1a-04)
+    @router.get("/participants/{participant_id}/prescription/current")
+    def prescriptions_current(participant_id: str, request: Request):
+        principal = auth.require_principal(request)
+        latest = prescriptions.current(participant_id, principal)
+        return JSONResponse(latest, status_code=200)
+
+    # 21. prescriptions.history (S1a-04)
+    @router.get("/participants/{participant_id}/prescriptions")
+    def prescriptions_history(participant_id: str, request: Request):
+        principal = auth.require_principal(request)
+        items = prescriptions.history(participant_id, principal)
+        return JSONResponse(items, status_code=200)
 
     return router, store, auth
