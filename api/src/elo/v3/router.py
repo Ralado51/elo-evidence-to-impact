@@ -1,4 +1,4 @@
-"""CL06.3 v3 FastAPI router exposing exactly the six S0-02 endpoints under /api/v3.
+"""CL06.3 v3 FastAPI router exposing the S0-02 and S0-04 endpoints under /api/v3.
 
 Endpoints (api-contract.v3.json):
   1. GET  /api/v3/health                          (id: health, roles: anonymous)
@@ -7,6 +7,8 @@ Endpoints (api-contract.v3.json):
   4. POST /api/v3/auth/invite                     (id: auth.invite, roles: anonymous)
   5. POST /api/v3/participants                    (id: participants.create, roles: therapist)
   6. POST /api/v3/care-links/{entity_id}:revoke   (id: care_links.revoke, roles: therapist)
+  7. POST /api/v3/events:batch                    (id: events.batch, roles: participant)
+  8. GET  /api/v3/entities/{entity_id}/versions   (id: entities.versions, roles: therapist)
 """
 
 from __future__ import annotations
@@ -29,6 +31,8 @@ from .validation import check_real_data_gate, is_real_data_gate_open
 
 _PARTICIPANT_ID_RE = re.compile(r"^p_[A-Za-z0-9-]{8,64}$")
 _CARE_LINK_ID_RE = re.compile(r"^cl_[A-Za-z0-9-]{8,64}$")
+BATCH_MAX_EVENTS = 500
+BODY_MAX_BYTES = 2097152  # 2 MiB (api-contract.v3.json limits.body_max_bytes)
 
 
 async def _read_json_object(request: Request, *, allow_empty: bool = False) -> dict[str, Any]:
@@ -275,5 +279,77 @@ def create_v3_router(
         )
         store.save_entities_atomic([(v2, versions)])
         return JSONResponse(v2, status_code=200)
+
+    # 7. events.batch (S0-04, D-S0-04-1, D-S0-04-2)
+    @router.post("/events:batch")
+    async def events_batch(request: Request):
+        principal = auth.require_principal(request)
+        if principal.role != "participant":
+            raise V3Error("FORBIDDEN", "Only participant may append client-authored event batches.")
+
+        raw = await request.body()
+        if len(raw) > BODY_MAX_BYTES:
+            raise V3Error("BATCH_TOO_LARGE", f"Request body exceeds {BODY_MAX_BYTES} bytes.")
+        if not raw.strip():
+            raise V3Error("TYPE", "Request body must be a JSON object.")
+        try:
+            body = json.loads(raw.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise V3Error("TYPE", "Malformed JSON request body.") from exc
+        if not isinstance(body, dict):
+            raise V3Error("TYPE", "Request body must be a JSON object.")
+        if "events" not in body:
+            raise V3Error("MISSING_FIELD", "Missing required field 'events'.")
+        events = body["events"]
+        if not isinstance(events, list):
+            raise V3Error("TYPE", "Field 'events' must be an array.")
+        if len(events) == 0:
+            raise V3Error("LENGTH", "Batch must contain at least 1 event.")
+        if len(events) > BATCH_MAX_EVENTS:
+            raise V3Error("BATCH_TOO_LARGE", f"Batch exceeds maximum of {BATCH_MAX_EVENTS} events.")
+
+        # Batch-level ordering check: sorted by (stream_id, seq) ascending
+        prev_key: tuple[str, int] | None = None
+        for ev in events:
+            if isinstance(ev, dict):
+                sid = ev.get("stream_id")
+                seq = ev.get("seq")
+                if isinstance(sid, str) and isinstance(seq, int) and not isinstance(seq, bool):
+                    key = (sid, seq)
+                    if prev_key is not None and key < prev_key:
+                        raise V3Error("BATCH_UNORDERED", "Batch is not sorted by (stream_id, seq) ascending.")
+                    prev_key = key
+
+        results = store.append(events, principal=principal, map_http_codes=True)
+        return JSONResponse({"results": results}, status_code=200)
+
+    # 8. entities.versions (S0-04)
+    @router.get("/entities/{entity_id}/versions")
+    def entities_versions(entity_id: str, request: Request):
+        principal = auth.require_principal(request)
+        if principal.role != "therapist":
+            raise V3Error("FORBIDDEN", "Only therapist may read entity version trails.")
+
+        versions = store.get_entity_versions(entity_id)
+        if not versions:
+            raise V3Error("NOT_FOUND", "Entity not found.")
+
+        latest = versions[-1]
+        participant_id = latest.get("participant_id")
+        if participant_id is not None:
+            links = store.latest_care_links(participant_id=participant_id)
+            decision = authorize(
+                principal,
+                "participant (entity)",
+                "read",
+                AuthzScope(participant_id=participant_id, org_id=latest["org_id"], is_read_by_id=True),
+                links=links,
+            )
+            _enforce(decision)
+        else:
+            if latest["entity_id"] != principal.id or latest["org_id"] != principal.org_id:
+                raise V3Error("NOT_FOUND", "Entity not found.")
+
+        return JSONResponse(versions, status_code=200)
 
     return router, store, auth

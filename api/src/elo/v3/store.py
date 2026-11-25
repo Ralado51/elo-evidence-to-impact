@@ -16,6 +16,7 @@ from .entities import (
     utc_now_ms,
 )
 from .errors import to_http_error
+from .ledger import EventLedger
 from .validation import check_real_data_gate, validate_entity, validate_entity_chain
 
 V3_SCHEMA = """
@@ -112,6 +113,29 @@ class V3Store:
         self.db.executescript(V3_SCHEMA)
         self.data_origin = data_origin
         self.real_data_gate_open = real_data_gate_open
+        self.ledger = EventLedger(self.db, real_data_gate_open=real_data_gate_open)
+
+    # --- CL06.3 append-only event ledger delegation ---
+    def append(
+        self,
+        events,
+        *,
+        principal: Principal | None = None,
+        map_http_codes: bool = False,
+    ) -> list[dict[str, Any]]:
+        return self.ledger.append(events, principal=principal, map_http_codes=map_http_codes)
+
+    def import_legacy_events(self, events) -> int:
+        return self.ledger.import_legacy_events(events)
+
+    def get_stream_events(self, stream_id: str) -> list[dict[str, Any]]:
+        return self.ledger.get_stream_events(stream_id)
+
+    def get_all_events(self) -> list[dict[str, Any]]:
+        return self.ledger.get_all_events()
+
+    def is_stream_incomplete(self, stream_id: str) -> bool:
+        return self.ledger.is_stream_incomplete(stream_id)
 
     # --- credentials (synthetic seeds only; stdlib scrypt with per-credential salt) ---
     def seed_therapist(
