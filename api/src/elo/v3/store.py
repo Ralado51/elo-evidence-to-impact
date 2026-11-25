@@ -174,6 +174,35 @@ class V3Store:
     def get_summary_record(self, summary_id: str) -> tuple[dict[str, Any], list[dict[str, Any]] | None] | None:
         return self.ledger.get_summary_record(summary_id)
 
+    def publish_evolution_event(
+        self,
+        *,
+        stream_id: str,
+        evolution_id: str,
+        org_id: str,
+        participant_id: str,
+        content_hash: str,
+        request_fingerprint: str,
+        snapshot: dict[str, Any],
+        build_event_fn: Any,
+    ) -> tuple[dict[str, Any], bool]:
+        return self.ledger.publish_evolution_event(
+            stream_id=stream_id,
+            evolution_id=evolution_id,
+            org_id=org_id,
+            participant_id=participant_id,
+            content_hash=content_hash,
+            request_fingerprint=request_fingerprint,
+            snapshot=snapshot,
+            build_event_fn=build_event_fn,
+        )
+
+    def get_evolution_record(
+        self,
+        evolution_id: str,
+    ) -> tuple[dict[str, Any], str, dict[str, Any] | None] | None:
+        return self.ledger.get_evolution_record(evolution_id)
+
     def has_events_for_participant(self, participant_id: str) -> bool:
         return self.ledger.has_events_for_participant(participant_id)
 
@@ -452,6 +481,27 @@ class V3Store:
                 "SELECT data FROM v3_entities WHERE entity_id=? ORDER BY version ASC",
                 (entity_id,),
             ).fetchall()
+        return [json.loads(r[0]) for r in rows]
+
+    def list_participant_entity_versions(
+        self,
+        participant_id: str,
+        entity_types: tuple[str, ...],
+        *,
+        org_id: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """Return every stored version of entities of ``entity_types`` for ``participant_id`` (S1-01 R3)."""
+        if not entity_types:
+            return []
+        placeholders = ",".join("?" for _ in entity_types)
+        params: list[Any] = [participant_id, *entity_types]
+        sql = f"SELECT data FROM v3_entities WHERE participant_id = ? AND entity_type IN ({placeholders})"
+        if org_id is not None:
+            sql += " AND org_id = ?"
+            params.append(org_id)
+        sql += " ORDER BY entity_id ASC, version ASC"
+        with self._tx_lock:
+            rows = self.db.execute(sql, tuple(params)).fetchall()
         return [json.loads(r[0]) for r in rows]
 
     def get_latest_entity(self, entity_id: str, entity_type: str | None = None) -> dict[str, Any] | None:
