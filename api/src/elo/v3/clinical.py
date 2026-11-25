@@ -112,12 +112,18 @@ def _require_same_participant_assessment(store: V3Store, participant_id: str, re
 
 
 def _validate_encounter_references(store: V3Store, participant_id: str, payload: dict[str, Any]) -> None:
-    """Enforce D-S1a-03-1 reference rules on encounter payloads."""
-    if payload.get("prescription_ref") is not None:
-        raise V3Error(
-            "RULE_VIOLATION",
-            "encounter.prescription_ref must be null until prescriptions are enabled (S1a-04).",
-        )
+    """Enforce D-S1a-03-1 / D-S1a-04-1 reference rules on encounter payloads."""
+    rx_ref = payload.get("prescription_ref")
+    if rx_ref is not None:
+        rx_id = rx_ref["prescription_id"]
+        rx_rev = rx_ref["revision"]
+        participant = store.get_latest_entity(participant_id, entity_type="participant")
+        org_id = participant["org_id"] if participant is not None else None
+        if store.get_prescription(rx_id, rx_rev, org_id=org_id, participant_id=participant_id) is None:
+            raise V3Error(
+                "RULE_VIOLATION",
+                f"encounter.prescription_ref ({rx_id!r}, rev {rx_rev}) does not name a published prescription of this participant.",
+            )
     assessment_ref = payload.get("assessment_ref")
     if assessment_ref is not None:
         _require_same_participant_assessment(store, participant_id, assessment_ref, "assessment_ref")

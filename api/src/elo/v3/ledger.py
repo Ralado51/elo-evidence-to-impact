@@ -19,7 +19,7 @@ from typing import Any
 from elo.canonical import canonicalize, check_event_integrity
 from elo.v3.authz import Principal
 from elo.v3.entities import load_event_catalog
-from elo.v3.errors import map_validation_code
+from elo.v3.errors import V3Error, map_validation_code, to_http_error
 from elo.v3.validation import check_session_stream, consent_state, require_consent, validate_event
 
 LEDGER_SCHEMA = """
@@ -46,6 +46,12 @@ CREATE TABLE IF NOT EXISTS v3_stream_state (
     stream_id TEXT PRIMARY KEY,
     schema_version INTEGER NOT NULL,
     incomplete INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS v3_prescription_streams (
+    participant_id TEXT NOT NULL,
+    exercise_id TEXT NOT NULL,
+    prescription_id TEXT NOT NULL UNIQUE,
+    PRIMARY KEY (participant_id, exercise_id)
 );
 """
 
@@ -137,6 +143,119 @@ class EventLedger:
         if participant_id is not None and ent.get("scope", {}).get("participant_id") != participant_id:
             return None
         return ent
+
+    def list_prescriptions(self, participant_id: str) -> list[dict[str, Any]]:
+        """Return all published prescription events for ``participant_id`` ordered by (stream_id, seq)."""
+        with self._lock:
+            rows = self.db.execute(
+                """SELECT data FROM v3_events
+                   WHERE participant_id = ? AND type = 'prescription.published'
+                   ORDER BY stream_id ASC, seq ASC""",
+                (participant_id,),
+            ).fetchall()
+        return [json.loads(r[0]) for r in rows]
+
+    def get_latest_prescription_for_exercise(
+        self,
+        participant_id: str,
+        exercise_id: str,
+    ) -> dict[str, Any] | None:
+        """Return the latest published prescription event for ``(participant_id, exercise_id)``."""
+        events = [
+            ev
+            for ev in self.list_prescriptions(participant_id)
+            if ev.get("payload", {}).get("exercise_id") == exercise_id
+        ]
+        if not events:
+            return None
+        events.sort(key=lambda ev: (ev["seq"], ev["occurred_at"], ev["stream_id"]))
+        return events[-1]
+
+    def get_current_prescription(self, participant_id: str) -> dict[str, Any] | None:
+        """Return the latest published prescription event for ``participant_id``, or None."""
+        events = self.list_prescriptions(participant_id)
+        if not events:
+            return None
+        latest_by_stream: dict[str, dict[str, Any]] = {}
+        for ev in events:
+            sid = ev["stream_id"]
+            if sid not in latest_by_stream or ev["seq"] > latest_by_stream[sid]["seq"]:
+                latest_by_stream[sid] = ev
+        candidates = list(latest_by_stream.values())
+        candidates.sort(key=lambda ev: (ev["occurred_at"], ev["seq"], ev["stream_id"]))
+        return candidates[-1]
+
+    def insert_prescription_revision(self, event: dict[str, Any], *, is_new_stream: bool) -> None:
+        """Atomically append one server-authored ``prescription.published`` event (D-S1a-04-1).
+
+        Enforces one prescription stream per ``(participant_id, exercise_id)`` via
+        ``v3_prescription_streams`` and immutable contiguous revisions via
+        ``UNIQUE (stream_id, seq)`` on ``v3_events``. Any concurrent losing writer
+        hitting a uniqueness conflict rolls back and receives ``409 CONFLICT_IMMUTABLE``.
+        """
+        errs = validate_event(event, gate_open=self.real_data_gate_open)
+        if errs:
+            code = "LIMITS_EXCEEDED" if "LIMITS_EXCEEDED" in errs else errs[0]
+            raise to_http_error(code, f"Prescription event validation failed: {', '.join(errs)}", details=errs)
+
+        scope = event["scope"]
+        payload = event["payload"]
+        stream_id = event["stream_id"]
+        seq = int(event["seq"])
+        participant_id = scope["participant_id"]
+        exercise_id = payload["exercise_id"]
+        prescription_id = payload["prescription_id"]
+        canonical_json = canonicalize(event)
+
+        with self._lock:
+            try:
+                if not self.db.in_transaction:
+                    self.db.execute("BEGIN IMMEDIATE")
+                if is_new_stream:
+                    self.db.execute(
+                        """INSERT INTO v3_prescription_streams (participant_id, exercise_id, prescription_id)
+                           VALUES (?, ?, ?)""",
+                        (participant_id, exercise_id, prescription_id),
+                    )
+                else:
+                    self.db.execute(
+                        """INSERT OR IGNORE INTO v3_prescription_streams (participant_id, exercise_id, prescription_id)
+                           VALUES (?, ?, ?)""",
+                        (participant_id, exercise_id, prescription_id),
+                    )
+                self.db.execute(
+                    """INSERT INTO v3_events
+                       (event_id, stream_id, seq, schema_version, type, org_id, participant_id, hash, prev_hash, data)
+                       VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                    (
+                        event["event_id"],
+                        stream_id,
+                        seq,
+                        int(event["schema_version"]),
+                        event["type"],
+                        scope["org_id"],
+                        participant_id,
+                        event["hash"],
+                        event["prev_hash"],
+                        canonical_json,
+                    ),
+                )
+                self.db.execute(
+                    """INSERT INTO v3_stream_state (stream_id, schema_version, incomplete)
+                       VALUES (?, ?, 0)
+                       ON CONFLICT(stream_id) DO NOTHING""",
+                    (stream_id, int(event["schema_version"])),
+                )
+                self.db.commit()
+            except sqlite3.IntegrityError as exc:
+                self.db.rollback()
+                raise V3Error(
+                    "CONFLICT_IMMUTABLE",
+                    f"Concurrent or conflicting publish for prescription stream {stream_id!r} revision {seq}.",
+                ) from exc
+            except Exception:
+                self.db.rollback()
+                raise
 
     def import_legacy_events(self, events: Sequence[dict[str, Any]]) -> int:
         """Store-level import of read-only CL06.1 (schema_version 2) legacy events."""

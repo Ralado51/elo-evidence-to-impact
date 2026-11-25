@@ -141,6 +141,37 @@ class V3Store:
     def is_stream_incomplete(self, stream_id: str) -> bool:
         return self.ledger.is_stream_incomplete(stream_id)
 
+    def get_prescription(
+        self,
+        prescription_id: str,
+        revision: int,
+        *,
+        org_id: str | None = None,
+        participant_id: str | None = None,
+    ) -> dict[str, Any] | None:
+        return self.ledger.get_prescription(
+            prescription_id,
+            revision,
+            org_id=org_id,
+            participant_id=participant_id,
+        )
+
+    def list_prescriptions(self, participant_id: str) -> list[dict[str, Any]]:
+        return self.ledger.list_prescriptions(participant_id)
+
+    def get_latest_prescription_for_exercise(
+        self,
+        participant_id: str,
+        exercise_id: str,
+    ) -> dict[str, Any] | None:
+        return self.ledger.get_latest_prescription_for_exercise(participant_id, exercise_id)
+
+    def get_current_prescription(self, participant_id: str) -> dict[str, Any] | None:
+        return self.ledger.get_current_prescription(participant_id)
+
+    def insert_prescription_revision(self, event: dict[str, Any], *, is_new_stream: bool) -> None:
+        self.ledger.insert_prescription_revision(event, is_new_stream=is_new_stream)
+
     # --- credentials (synthetic seeds only; stdlib scrypt with per-credential salt) ---
     def seed_therapist(
         self,
