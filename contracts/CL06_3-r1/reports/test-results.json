@@ -4,8 +4,8 @@
   "exit_code": 0
  },
  "javascript": {
-  "tests": 0,
-  "pass": 0,
+  "tests": 18,
+  "pass": 18,
   "fail": 0,
   "exit_code": 0
  },

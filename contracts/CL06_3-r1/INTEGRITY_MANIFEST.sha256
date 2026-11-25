@@ -1,4 +1,5 @@
-bf82cd023b9f430df5846c26efa827999a5512ebfde904840cf388205a718c34  ./00_START_HERE.md
+1f0cada3b54c8d5eeaaf04be65cfea52b737645aa6c895b6ff4feed4aa6e01a3  ./00_START_HERE.md
+79b96e1698e0820acb55842113d1442eada15f059c05e44daf73c78dbc64b300  ./RELEASE_NOTE.md
 f552b149961f4660ab531e3559751ab1d88127d23d02e34e4f214fb3a40cc9b4  ./contracts/VERSIONS.json
 c2f16e671897b10fb740759da239685c199670055d055f615bcab9f599411e47  ./contracts/api/api-contract.v3.json
 780eb72e99c3f9cb8d61c702878525f627a4d6fcd277d1341dc79342edfe89b3  ./contracts/api/authorization-matrix.v3.json
@@ -83,7 +84,7 @@ c7153f88b5b9240023b0cde8217b66a76dfed604f4e4a2eaaf1db469e542a9a0  ./legacy_cl06_
 70d4ad27309e3ffd84e2a606265d0425ab8e9f42bd80809849879bc0f362e5f6  ./reference/js/elo_ref.mjs
 a88f324099523f4cc66f24cf5c9ecdcc5b8f69ec5999418d9a1635955d3439a0  ./reference/python/elo_ref.py
 3da189706d3eedbd0b504d5ca80b4dbd9b5b531c0fbb68d30db5c926e440c20f  ./reports/test-results.json
-d928deb43f348cfc8fa4994a3845808b931fbaa98a5edc5e8d5d421ef2974adb  ./run_all.sh
+56352fde6b4900d3776a86e3d86e409c888a430ed05200ff41b602ab7bd9a4a4  ./run_all.sh
 5360e40be271f543f44898bf7976f657944711e3681e52eb01c5b7998d241698  ./tests/js/contracts.test.mjs
 458d7067dda3d5828e358911a84bec042a1810ed3831af78abe36c0c1e2f8018  ./tests/python/test_contracts.py
 321f26cd0755b002a695b1a7421bd405ad18c5bbcc5ffc2627635d0f8edb344a  ./tests/python/test_pending.py

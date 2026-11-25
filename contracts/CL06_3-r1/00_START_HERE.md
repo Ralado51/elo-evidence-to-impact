@@ -17,7 +17,7 @@
 | `legacy_cl06_1_reference/` | read-only copies of CL06.1 vectors/ledger used for cross-reproduction |
 | `tools/` | builders that regenerate contracts, fixtures, traceability and docs deterministically |
 
-## Validate (needs Python 3.10+ and Node 18+; no installs; `jsonschema` is optional for the cross-check)
+## Validate (needs Python 3.10+ and Node 18+; no installs; `jsonschema` is required for PASS)
 ```
 ./run_all.sh                     # Python + JS tests, writes reports/test-results.json
 sha256sum -c INTEGRITY_MANIFEST.sha256
