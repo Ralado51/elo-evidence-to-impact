@@ -31,6 +31,8 @@ from .privacy import PrivacyBlocked, PrivacyGate
 from .registry_store import PersistentRegistry
 from .review import ReviewError, ReviewService
 from .summary import build_family_summary
+from .v3.errors import V3Error, error_response
+from .v3.router import create_v3_router
 
 MAX_NOTE_CHARS = 4000
 RATE_LIMIT = (120, 60.0)  # requests per window (seconds) per client
@@ -129,10 +131,11 @@ class HomeVerifyIn(BaseModel):
 def create_app(data_dir: str | None = None, client=None, mode: str | None = None) -> FastAPI:
     data_dir = data_dir or os.environ.get("ELO_DATA_DIR", ":memory:")
     if data_dir == ":memory:":
-        reg_path = svc_path = ":memory:"
+        reg_path = svc_path = v3_path = ":memory:"
     else:
         os.makedirs(data_dir, exist_ok=True)
         reg_path, svc_path = os.path.join(data_dir, "registry.db"), os.path.join(data_dir, "elo.db")
+        v3_path = os.path.join(data_dir, "v3.db")
     registry = PersistentRegistry(reg_path)
     svc = ReviewService(svc_path)
     gate = PrivacyGate(registry)
@@ -147,9 +150,9 @@ def create_app(data_dir: str | None = None, client=None, mode: str | None = None
 
     @app.middleware("http")
     async def guard(request: Request, call_next):
-        """Optional shared access token for a public deployment. Health and meta stay open."""
+        """Optional shared access token for a public deployment. Health, meta, and /api/v3 (bearer auth) stay open."""
         path = request.url.path
-        if token and path.startswith("/api") and path not in ("/api/health", "/api/meta"):
+        if token and path.startswith("/api") and not path.startswith("/api/v3") and path not in ("/api/health", "/api/meta"):
             given = request.headers.get("x-access-token", "")
             if not hmac.compare_digest(given.encode(), token.encode()):
                 return JSONResponse({"detail": "access token required"}, status_code=401)
@@ -169,6 +172,10 @@ def create_app(data_dir: str | None = None, client=None, mode: str | None = None
     @app.exception_handler(ReviewError)
     async def _review_error(_, exc: ReviewError):
         return JSONResponse({"detail": str(exc)}, status_code=409)
+
+    @app.exception_handler(V3Error)
+    async def _v3_error(_, exc: V3Error):
+        return error_response(exc)
 
     api = APIRouter(prefix="/api")
 
@@ -441,6 +448,8 @@ def create_app(data_dir: str | None = None, client=None, mode: str | None = None
         }
 
     app.include_router(api)
+    v3_router, v3_store, v3_auth = create_v3_router(v3_path)
+    app.include_router(v3_router)
     web_dir = os.environ.get("ELO_WEB_DIR", "")
     if web_dir and os.path.isdir(web_dir):  # optional: serve the static app from the API process (dev / single container)
         from fastapi.staticfiles import StaticFiles
@@ -448,6 +457,7 @@ def create_app(data_dir: str | None = None, client=None, mode: str | None = None
         app.mount("/app", StaticFiles(directory=web_dir, html=True), name="web")
     app.state.svc, app.state.registry, app.state.pack, app.state.gate = svc, registry, pack, gate
     app.state.llm, app.state.mode = llm, mode
+    app.state.v3_store, app.state.v3_auth = v3_store, v3_auth
     return app
 
 
