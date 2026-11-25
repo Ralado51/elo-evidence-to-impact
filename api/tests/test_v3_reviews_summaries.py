@@ -1376,3 +1376,169 @@ def test_seeded_review_publish_sequences_against_oracle(tmp_path: Path, monkeypa
                 assert resp.json()["error"]["code"] == expected_err
             else:
                 published[resp.json()["summary_id"]] = set(chosen)
+
+
+# ---------------------------------------------------------------------------
+# D-S1b-03-3 / F1: Dual representations (period vs period_from/to, items vs fact_ids)
+# ---------------------------------------------------------------------------
+
+
+def test_dual_representation_contradictions_rejected_and_identical_accepted(tmp_path: Path):
+    w = _setup_world(tmp_path)
+    client = w["client"]
+    store = w["store"]
+
+    f01_id, f01_hash = w["facts_by_type"]["F01"]["fact_id"], w["hashes_by_type"]["F01"]
+    f02_id, f02_hash = w["facts_by_type"]["F02"]["fact_id"], w["hashes_by_type"]["F02"]
+
+    for fid, fh in [(f01_id, f01_hash), (f02_id, f02_hash)]:
+        r = client.post(
+            "/api/v3/reviews",
+            headers=_headers(w["t1_tok"]),
+            json={"fact_id": fid, "content_hash": fh, "decision": "approve", "note": "ok"},
+        )
+        assert r.status_code == 201
+
+    def _summary_count() -> int:
+        return sum(1 for e in store.get_participant_events(w["p1_id"]) if e["type"] == "summary.published")
+
+    # 1. Exact F1 pattern: contradictory period vs flat period_from/period_to -> 400 RULE_VIOLATION, nothing stored
+    r_conflict_period = client.post(
+        "/api/v3/summaries",
+        headers=_headers(w["t1_tok"]),
+        json={
+            "participant_id": w["p1_id"],
+            "summary_id": "sum_conflicting-period-0001",
+            "period_from": "2026-11-23",
+            "period_to": "2026-11-30",
+            "period": {"from": "1900-01-01", "to": "1900-01-02"},
+            "items": [{"fact_id": f01_id, "content_hash": f01_hash}],
+            "note_refs": [],
+        },
+    )
+    assert r_conflict_period.status_code == 400
+    assert r_conflict_period.json()["error"]["code"] == "RULE_VIOLATION"
+    assert _summary_count() == 0
+    assert store.get_summary_record("sum_conflicting-period-0001") is None
+
+    # Single-bound contradiction (only period_to differs) -> 400 RULE_VIOLATION, nothing stored
+    r_conflict_to = client.post(
+        "/api/v3/summaries",
+        headers=_headers(w["t1_tok"]),
+        json={
+            "participant_id": w["p1_id"],
+            "period_from": "2026-11-23",
+            "period_to": "2026-11-30",
+            "period": {"from": "2026-11-23", "to": "2026-11-29"},
+            "items": [{"fact_id": f01_id, "content_hash": f01_hash}],
+        },
+    )
+    assert r_conflict_to.status_code == 400 and r_conflict_to.json()["error"]["code"] == "RULE_VIOLATION"
+    assert _summary_count() == 0
+
+    # Identical period + flat period_from/period_to -> 201 ACCEPTED
+    r_same_period = client.post(
+        "/api/v3/summaries",
+        headers=_headers(w["t1_tok"]),
+        json={
+            "participant_id": w["p1_id"],
+            "summary_id": "sum_identical-period-0001",
+            "period_from": "2026-11-23",
+            "period_to": "2026-11-30",
+            "period": {"from": "2026-11-23", "to": "2026-11-30"},
+            "items": [{"fact_id": f01_id, "content_hash": f01_hash}],
+            "note_refs": [],
+        },
+    )
+    assert r_same_period.status_code == 201, r_same_period.text
+    assert _summary_count() == 1
+
+    # 2. Contradictory items vs fact_ids -> 400 RULE_VIOLATION, nothing stored
+    r_conflict_items = client.post(
+        "/api/v3/summaries",
+        headers=_headers(w["t1_tok"]),
+        json={
+            "participant_id": w["p1_id"],
+            "summary_id": "sum_conflicting-items-0001",
+            "items": [{"fact_id": f01_id, "content_hash": f01_hash}],
+            "fact_ids": [f02_id],
+        },
+    )
+    assert r_conflict_items.status_code == 400
+    assert r_conflict_items.json()["error"]["code"] == "RULE_VIOLATION"
+    assert _summary_count() == 1
+    assert store.get_summary_record("sum_conflicting-items-0001") is None
+
+    # Superset/subset contradiction between items and fact_ids -> 400 RULE_VIOLATION, nothing stored
+    r_conflict_subset = client.post(
+        "/api/v3/summaries",
+        headers=_headers(w["t1_tok"]),
+        json={
+            "participant_id": w["p1_id"],
+            "items": [{"fact_id": f01_id, "content_hash": f01_hash}],
+            "fact_ids": [f01_id, f02_id],
+        },
+    )
+    assert r_conflict_subset.status_code == 400 and r_conflict_subset.json()["error"]["code"] == "RULE_VIOLATION"
+    assert _summary_count() == 1
+
+    # Identical items + fact_ids -> 201 ACCEPTED (and item content_hash gate still applies)
+    r_same_items = client.post(
+        "/api/v3/summaries",
+        headers=_headers(w["t1_tok"]),
+        json={
+            "participant_id": w["p1_id"],
+            "summary_id": "sum_identical-items-0001",
+            "items": [
+                {"fact_id": f01_id, "content_hash": f01_hash},
+                {"fact_id": f02_id, "content_hash": f02_hash},
+            ],
+            "fact_ids": [f02_id, f01_id],
+        },
+    )
+    assert r_same_items.status_code == 201, r_same_items.text
+    assert _summary_count() == 2
+
+    # Identical items + fact_ids with stale item hash still rejected with 409 CONTENT_HASH_STALE
+    r_same_items_stale = client.post(
+        "/api/v3/summaries",
+        headers=_headers(w["t1_tok"]),
+        json={
+            "participant_id": w["p1_id"],
+            "items": [{"fact_id": f01_id, "content_hash": "0" * 64}],
+            "fact_ids": [f01_id],
+        },
+    )
+    assert r_same_items_stale.status_code == 409
+    assert r_same_items_stale.json()["error"]["code"] == "CONTENT_HASH_STALE"
+    assert _summary_count() == 2
+
+    # 3. Contradictory wrapped payload vs top-level participant_id / summary_id -> 400 RULE_VIOLATION
+    r_conflict_pid = client.post(
+        "/api/v3/reviews",
+        headers=_headers(w["t1_tok"]),
+        json={
+            "participant_id": w["p1_id"],
+            "payload": {
+                "participant_id": w["p2_id"],
+                "fact_id": f01_id,
+                "content_hash": f01_hash,
+                "decision": "approve",
+            },
+        },
+    )
+    assert r_conflict_pid.status_code == 400 and r_conflict_pid.json()["error"]["code"] == "RULE_VIOLATION"
+    r_conflict_sid = client.post(
+        "/api/v3/summaries",
+        headers=_headers(w["t1_tok"]),
+        json={
+            "participant_id": w["p1_id"],
+            "summary_id": "sum_top-0001",
+            "payload": {
+                "summary_id": "sum_inner-0002",
+                "items": [{"fact_id": f01_id, "content_hash": f01_hash}],
+            },
+        },
+    )
+    assert r_conflict_sid.status_code == 400 and r_conflict_sid.json()["error"]["code"] == "RULE_VIOLATION"
+    assert _summary_count() == 2

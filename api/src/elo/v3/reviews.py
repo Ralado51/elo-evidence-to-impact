@@ -181,12 +181,14 @@ def _extract_review_payload(body: dict[str, Any]) -> tuple[dict[str, Any], str |
     for key in source:
         if key not in _REVIEW_ALLOWED_FIELDS:
             raise V3Error("UNKNOWN_FIELD", f"Unknown review field: {key!r}.")
-    if "participant_id" in source and participant_id is None:
-        pid_raw = source["participant_id"]
-        if pid_raw is not None:
-            if not isinstance(pid_raw, str):
+    if "participant_id" in source:
+        pid_inner = source["participant_id"]
+        if pid_inner is not None:
+            if not isinstance(pid_inner, str):
                 raise V3Error("TYPE", "Field 'participant_id' must be a string.")
-            participant_id = pid_raw
+            if participant_id is not None and pid_inner != participant_id:
+                raise V3Error("RULE_VIOLATION", "Contradictory 'participant_id' values in request.")
+            participant_id = pid_inner
     source.pop("participant_id", None)
     return source, participant_id
 
@@ -203,10 +205,13 @@ def _extract_summary_body(body: dict[str, Any]) -> dict[str, Any]:
             if key not in ("payload", "participant_id", "summary_id") and key not in _SERVER_OWNED_ENVELOPE_FIELDS:
                 raise V3Error("UNKNOWN_FIELD", f"Unknown request field: {key!r}.")
         out = {k: v for k, v in raw_payload.items() if k != "content_hash"}
-        if "participant_id" in body and "participant_id" not in out:
-            out["participant_id"] = body["participant_id"]
-        if "summary_id" in body and "summary_id" not in out:
-            out["summary_id"] = body["summary_id"]
+        for shared_key in ("participant_id", "summary_id"):
+            if shared_key in body:
+                top_val = body[shared_key]
+                if shared_key in out and out[shared_key] is not None and top_val is not None and out[shared_key] != top_val:
+                    raise V3Error("RULE_VIOLATION", f"Contradictory {shared_key!r} values in request.")
+                if shared_key not in out or out[shared_key] is None:
+                    out[shared_key] = top_val
     else:
         out = {k: v for k, v in body.items() if k not in _SERVER_OWNED_ENVELOPE_FIELDS and k != "content_hash"}
 
@@ -444,11 +449,12 @@ class ReviewSummaryService:
         clean_body = _extract_summary_body(body)
 
         # Parse requested items: support both D-S1b-03-2 ``items: [{fact_id, content_hash}]``
-        # and D-S1b-03-1 ``fact_ids: [fact_id]``.
-        requested_items: list[tuple[str, str | None]] = []
+        # and D-S1b-03-1 ``fact_ids: [fact_id]``. Per D-S1b-03-3, if both are supplied they
+        # must name the exact same set of fact_ids (else 400 RULE_VIOLATION, nothing published).
+        parsed_items: list[tuple[str, str | None]] | None = None
+        parsed_fact_ids: list[str] | None = None
+
         if "items" in clean_body:
-            if "fact_ids" in clean_body:
-                raise V3Error("RULE_VIOLATION", "Specify either 'items' or 'fact_ids', not both.")
             raw_items = clean_body["items"]
             if raw_items is None:
                 raise V3Error("NULL_NOT_ALLOWED", "Field 'items' must not be null.")
@@ -457,6 +463,7 @@ class ReviewSummaryService:
             if len(raw_items) < 1 or len(raw_items) > 500:
                 raise V3Error("LENGTH", "Field 'items' must contain between 1 and 500 entries.")
             seen_req_fids: set[str] = set()
+            parsed_items = []
             for entry in raw_items:
                 if entry is None:
                     raise V3Error("NULL_NOT_ALLOWED", "Entries in 'items' must not be null.")
@@ -478,8 +485,9 @@ class ReviewSummaryService:
                 if fid in seen_req_fids:
                     raise V3Error("DUPLICATE_ITEM", f"Duplicate fact_id in 'items': {fid!r}.")
                 seen_req_fids.add(fid)
-                requested_items.append((fid, ch))
-        elif "fact_ids" in clean_body:
+                parsed_items.append((fid, ch))
+
+        if "fact_ids" in clean_body:
             fact_ids = clean_body["fact_ids"]
             if fact_ids is None:
                 raise V3Error("NULL_NOT_ALLOWED", "Field 'fact_ids' must not be null.")
@@ -494,9 +502,19 @@ class ReviewSummaryService:
                     raise V3Error("TYPE", "Items in 'fact_ids' must be strings.")
             if len(set(fact_ids)) != len(fact_ids):
                 raise V3Error("DUPLICATE_ITEM", "Field 'fact_ids' must not contain duplicate items.")
-            requested_items = [(fid, None) for fid in fact_ids]
-        else:
+            parsed_fact_ids = list(fact_ids)
+
+        if parsed_items is None and parsed_fact_ids is None:
             raise V3Error("MISSING_FIELD", "Missing required field 'items' (or 'fact_ids').")
+
+        items_vs_fact_ids_conflict = (
+            parsed_items is not None
+            and parsed_fact_ids is not None
+            and {fid for fid, _ in parsed_items} != set(parsed_fact_ids)
+        )
+        requested_items: list[tuple[str, str | None]] = (
+            parsed_items if parsed_items is not None else [(fid, None) for fid in (parsed_fact_ids or ())]
+        )
 
         # Resolve participant_id (from request if supplied, else from requested facts) & authorize
         participant_id: str | None = None
@@ -512,11 +530,20 @@ class ReviewSummaryService:
             if org_id is None:
                 raise V3Error("NOT_FOUND", "Participant not found.")
         else:
-            participant_id, org_id = self._resolve_participant_from_fact_ids([fid for fid, _ in requested_items])
+            lookup_fids = [fid for fid, _ in requested_items]
+            if parsed_fact_ids is not None:
+                lookup_fids.extend(fid for fid in parsed_fact_ids if fid not in lookup_fids)
+            participant_id, org_id = self._resolve_participant_from_fact_ids(lookup_fids)
             if participant_id is None or org_id is None:
                 raise V3Error("NOT_FOUND", "Fact not found.")
 
         self._authorize_participant_action(caller, "summary", "publish", participant_id, org_id)
+
+        if items_vs_fact_ids_conflict:
+            raise V3Error(
+                "RULE_VIOLATION",
+                "Contradictory 'items' and 'fact_ids' in summary publish request.",
+            )
 
         req_summary_id = clean_body.get("summary_id")
         if req_summary_id is not None:
@@ -528,32 +555,77 @@ class ReviewSummaryService:
         else:
             summary_id = new_id("sum")
 
-        # Optional period_from / period_to or period: {from, to}
-        req_period_from = clean_body.get("period_from")
-        req_period_to = clean_body.get("period_to")
-        if "period" in clean_body and clean_body["period"] is not None:
+        # Optional period_from / period_to or period: {from, to}; per D-S1b-03-3 any
+        # contradictory dual representation is rejected with 400 RULE_VIOLATION.
+        flat_period_from: str | None = None
+        if "period_from" in clean_body:
+            raw_pf = clean_body["period_from"]
+            if raw_pf is None:
+                raise V3Error("NULL_NOT_ALLOWED", "Field 'period_from' must not be null.")
+            if not isinstance(raw_pf, str):
+                raise V3Error("TYPE", "Field 'period_from' must be a string.")
+            if not _is_valid_date_str(raw_pf):
+                raise V3Error("PATTERN", "Field 'period_from' must be a valid YYYY-MM-DD date.")
+            flat_period_from = raw_pf
+
+        flat_period_to: str | None = None
+        if "period_to" in clean_body:
+            raw_pt = clean_body["period_to"]
+            if raw_pt is None:
+                raise V3Error("NULL_NOT_ALLOWED", "Field 'period_to' must not be null.")
+            if not isinstance(raw_pt, str):
+                raise V3Error("TYPE", "Field 'period_to' must be a string.")
+            if not _is_valid_date_str(raw_pt):
+                raise V3Error("PATTERN", "Field 'period_to' must be a valid YYYY-MM-DD date.")
+            flat_period_to = raw_pt
+
+        nested_period_from: str | None = None
+        nested_period_to: str | None = None
+        if "period" in clean_body:
             period_obj = clean_body["period"]
+            if period_obj is None:
+                raise V3Error("NULL_NOT_ALLOWED", "Field 'period' must not be null.")
             if not isinstance(period_obj, dict):
                 raise V3Error("TYPE", "Field 'period' must be a JSON object.")
             for pk in period_obj:
                 if pk not in ("from", "to", "period_from", "period_to"):
                     raise V3Error("UNKNOWN_FIELD", f"Unknown field in 'period': {pk!r}.")
-            if req_period_from is None:
-                req_period_from = period_obj.get("from", period_obj.get("period_from"))
-            if req_period_to is None:
-                req_period_to = period_obj.get("to", period_obj.get("period_to"))
 
-        if req_period_from is not None:
-            if not isinstance(req_period_from, str):
-                raise V3Error("TYPE", "Field 'period_from' must be a string.")
-            if not _is_valid_date_str(req_period_from):
-                raise V3Error("PATTERN", "Field 'period_from' must be a valid YYYY-MM-DD date.")
+            def _read_period_bound(primary_key: str, alias_key: str) -> str | None:
+                vals: list[str] = []
+                for key in (primary_key, alias_key):
+                    if key in period_obj:
+                        val = period_obj[key]
+                        if val is None:
+                            raise V3Error("NULL_NOT_ALLOWED", f"Field 'period.{key}' must not be null.")
+                        if not isinstance(val, str):
+                            raise V3Error("TYPE", f"Field 'period.{key}' must be a string.")
+                        if not _is_valid_date_str(val):
+                            raise V3Error("PATTERN", f"Field 'period.{key}' must be a valid YYYY-MM-DD date.")
+                        vals.append(val)
+                if len(vals) == 2 and vals[0] != vals[1]:
+                    raise V3Error(
+                        "RULE_VIOLATION",
+                        f"Contradictory 'period.{primary_key}' and 'period.{alias_key}' values.",
+                    )
+                return vals[0] if vals else None
 
-        if req_period_to is not None:
-            if not isinstance(req_period_to, str):
-                raise V3Error("TYPE", "Field 'period_to' must be a string.")
-            if not _is_valid_date_str(req_period_to):
-                raise V3Error("PATTERN", "Field 'period_to' must be a valid YYYY-MM-DD date.")
+            nested_period_from = _read_period_bound("from", "period_from")
+            nested_period_to = _read_period_bound("to", "period_to")
+
+        if flat_period_from is not None and nested_period_from is not None and flat_period_from != nested_period_from:
+            raise V3Error(
+                "RULE_VIOLATION",
+                "Contradictory 'period_from' and 'period.from' in summary publish request.",
+            )
+        if flat_period_to is not None and nested_period_to is not None and flat_period_to != nested_period_to:
+            raise V3Error(
+                "RULE_VIOLATION",
+                "Contradictory 'period_to' and 'period.to' in summary publish request.",
+            )
+
+        req_period_from = flat_period_from if flat_period_from is not None else nested_period_from
+        req_period_to = flat_period_to if flat_period_to is not None else nested_period_to
 
         # Validate note_refs per D-S1b-03-2: sorted strictly ascending (else NOT_SORTED) and must cite
         # existing review.recorded events of this participant.
