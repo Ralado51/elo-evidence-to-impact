@@ -594,6 +594,24 @@ test("Row 13: single live region in shell and announce() clears/re-sets polite a
   assert.equal(liveStub.textContent, "Sessão interrompida.");
   assert.deepEqual(writes.slice(-2), ["", "Sessão interrompida."]);
 
+  // Passing a non-live region option cannot redirect announcements or mutate that element (D-S0-05-2)
+  const nonLiveAttrs = new Map();
+  const nonLiveWrites = [];
+  const nonLiveStub = {
+    id: "other-non-live-element",
+    set textContent(v) {
+      nonLiveWrites.push(v);
+    },
+    setAttribute(k, v) {
+      nonLiveAttrs.set(k, v);
+    },
+  };
+  announce("Mensagem protegida.", { politeness: "assertive", region: nonLiveStub, doc: docStub });
+  assert.deepEqual(nonLiveWrites, []);
+  assert.equal(nonLiveAttrs.size, 0);
+  assert.equal(liveStub.textContent, "Mensagem protegida.");
+  assert.equal(attrs.get("aria-live"), "assertive");
+
   // Only the live region was written to
   assert.deepEqual(otherElementWrites, []);
 
