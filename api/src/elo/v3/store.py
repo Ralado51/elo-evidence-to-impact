@@ -141,6 +141,39 @@ class V3Store:
     def get_participant_events(self, participant_id: str) -> list[dict[str, Any]]:
         return self.ledger.get_participant_events(participant_id)
 
+    def get_participant_reviews(self, participant_id: str) -> list[dict[str, Any]]:
+        return self.ledger.get_participant_reviews(participant_id)
+
+    def get_all_reviews(self) -> list[dict[str, Any]]:
+        return self.ledger.get_all_reviews()
+
+    def append_review_event(self, stream_id: str, build_event_fn: Any) -> dict[str, Any]:
+        return self.ledger.append_review_event(stream_id, build_event_fn)
+
+    def publish_summary_event(
+        self,
+        *,
+        stream_id: str,
+        summary_id: str,
+        org_id: str,
+        participant_id: str,
+        content_hash: str,
+        rendered_items: list[dict[str, Any]],
+        build_event_fn: Any,
+    ) -> tuple[dict[str, Any], bool]:
+        return self.ledger.publish_summary_event(
+            stream_id=stream_id,
+            summary_id=summary_id,
+            org_id=org_id,
+            participant_id=participant_id,
+            content_hash=content_hash,
+            rendered_items=rendered_items,
+            build_event_fn=build_event_fn,
+        )
+
+    def get_summary_record(self, summary_id: str) -> tuple[dict[str, Any], list[dict[str, Any]] | None] | None:
+        return self.ledger.get_summary_record(summary_id)
+
     def has_events_for_participant(self, participant_id: str) -> bool:
         return self.ledger.has_events_for_participant(participant_id)
 

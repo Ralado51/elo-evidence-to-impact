@@ -58,6 +58,9 @@ S0_02_ROUTE_IDS = {
     "facts.list",
     "facts.evidence",
     "facts.verify",
+    "reviews.record",
+    "summaries.publish",
+    "summaries.get",
 }
 
 

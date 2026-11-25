@@ -58,6 +58,18 @@ CREATE TABLE IF NOT EXISTS v3_prescription_streams (
     prescription_id TEXT NOT NULL UNIQUE,
     PRIMARY KEY (participant_id, exercise_id)
 );
+CREATE TABLE IF NOT EXISTS v3_summaries (
+    summary_id TEXT PRIMARY KEY,
+    event_id TEXT NOT NULL UNIQUE,
+    org_id TEXT NOT NULL,
+    participant_id TEXT NOT NULL,
+    content_hash TEXT NOT NULL,
+    rendered_items TEXT NOT NULL
+);
+CREATE TRIGGER IF NOT EXISTS v3_summaries_no_update BEFORE UPDATE ON v3_summaries
+    BEGIN SELECT RAISE(ABORT, 'v3_summaries is immutable'); END;
+CREATE TRIGGER IF NOT EXISTS v3_summaries_no_delete BEFORE DELETE ON v3_summaries
+    BEGIN SELECT RAISE(ABORT, 'v3_summaries is immutable'); END;
 """
 
 _WARNING_INFO_CODES = frozenset({"SEQ_GAP", "DUPLICATE", "CLOCK_REGRESSION"})
@@ -101,6 +113,204 @@ class EventLedger:
                 (participant_id,),
             ).fetchall()
         return [json.loads(r[0]) for r in rows]
+
+    def get_participant_reviews(self, participant_id: str) -> list[dict[str, Any]]:
+        """Return all ``review.recorded`` events for ``participant_id`` in exact server append order."""
+        with self._lock:
+            rows = self.db.execute(
+                """SELECT data FROM v3_events
+                   WHERE participant_id = ? AND type = 'review.recorded'
+                   ORDER BY rowid ASC""",
+                (participant_id,),
+            ).fetchall()
+        return [json.loads(r[0]) for r in rows]
+
+    def get_all_reviews(self) -> list[dict[str, Any]]:
+        """Return all ``review.recorded`` events across the ledger in exact server append order."""
+        with self._lock:
+            rows = self.db.execute(
+                """SELECT data FROM v3_events
+                   WHERE type = 'review.recorded'
+                   ORDER BY rowid ASC"""
+            ).fetchall()
+        return [json.loads(r[0]) for r in rows]
+
+    def append_review_event(self, stream_id: str, build_event_fn: Any) -> dict[str, Any]:
+        """Atomically build, validate, and append one server-authored ``review.recorded`` event."""
+        with self._lock:
+            try:
+                if not self.db.in_transaction:
+                    self.db.execute("BEGIN IMMEDIATE")
+                prev_row = self.db.execute(
+                    "SELECT seq, hash FROM v3_events WHERE stream_id = ? ORDER BY seq DESC LIMIT 1",
+                    (stream_id,),
+                ).fetchone()
+                next_seq = int(prev_row[0]) + 1 if prev_row is not None else 1
+                prev_hash = str(prev_row[1]) if prev_row is not None else None
+                event = build_event_fn(next_seq, prev_hash)
+
+                errs = validate_event(event, gate_open=self.real_data_gate_open)
+                if errs:
+                    raise to_http_error(errs[0], f"Review event validation failed: {', '.join(errs)}", details=errs)
+
+                scope = event["scope"]
+                canonical_json = canonicalize(event)
+                self.db.execute(
+                    """INSERT INTO v3_events
+                       (event_id, stream_id, seq, schema_version, type, org_id, participant_id, hash, prev_hash, data)
+                       VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                    (
+                        event["event_id"],
+                        stream_id,
+                        int(event["seq"]),
+                        int(event["schema_version"]),
+                        event["type"],
+                        scope["org_id"],
+                        scope["participant_id"],
+                        event["hash"],
+                        event["prev_hash"],
+                        canonical_json,
+                    ),
+                )
+                self.db.execute(
+                    """INSERT INTO v3_stream_state (stream_id, schema_version, incomplete)
+                       VALUES (?, ?, 0)
+                       ON CONFLICT(stream_id) DO NOTHING""",
+                    (stream_id, int(event["schema_version"])),
+                )
+                self.db.commit()
+                return event
+            except Exception:
+                self.db.rollback()
+                raise
+
+    def publish_summary_event(
+        self,
+        *,
+        stream_id: str,
+        summary_id: str,
+        org_id: str,
+        participant_id: str,
+        content_hash: str,
+        rendered_items: list[dict[str, Any]],
+        build_event_fn: Any,
+    ) -> tuple[dict[str, Any], bool]:
+        """Atomically publish one immutable ``summary.published`` event (D-S1b-03-1).
+
+        Returns ``(event, created)``:
+        - If ``summary_id`` already exists with identical ``(org_id, participant_id, content_hash)``:
+          returns ``(existing_event, False)`` (idempotent 200).
+        - If ``summary_id`` already exists with different content or owner:
+          raises ``409 CONFLICT_IMMUTABLE``.
+        - Otherwise appends a new ``summary.published`` event and immutable ``v3_summaries`` row,
+          returning ``(new_event, True)`` (created 201).
+        """
+        with self._lock:
+            try:
+                if not self.db.in_transaction:
+                    self.db.execute("BEGIN IMMEDIATE")
+
+                existing_row = self.db.execute(
+                    """SELECT s.event_id, s.org_id, s.participant_id, s.content_hash, e.data
+                       FROM v3_summaries s
+                       JOIN v3_events e ON e.event_id = s.event_id
+                       WHERE s.summary_id = ?""",
+                    (summary_id,),
+                ).fetchone()
+                if existing_row is not None:
+                    _, ex_org, ex_pid, ex_hash, ex_data = existing_row
+                    if ex_org == org_id and ex_pid == participant_id and ex_hash == content_hash:
+                        self.db.commit()
+                        return json.loads(ex_data), False
+                    self.db.rollback()
+                    raise V3Error(
+                        "CONFLICT_IMMUTABLE",
+                        f"Summary {summary_id!r} is already published with different content.",
+                    )
+
+                prev_row = self.db.execute(
+                    "SELECT seq, hash FROM v3_events WHERE stream_id = ? ORDER BY seq DESC LIMIT 1",
+                    (stream_id,),
+                ).fetchone()
+                next_seq = int(prev_row[0]) + 1 if prev_row is not None else 1
+                prev_hash = str(prev_row[1]) if prev_row is not None else None
+                event = build_event_fn(next_seq, prev_hash)
+
+                errs = validate_event(event, gate_open=self.real_data_gate_open)
+                if errs:
+                    raise to_http_error(errs[0], f"Summary event validation failed: {', '.join(errs)}", details=errs)
+
+                scope = event["scope"]
+                canonical_json = canonicalize(event)
+                self.db.execute(
+                    """INSERT INTO v3_events
+                       (event_id, stream_id, seq, schema_version, type, org_id, participant_id, hash, prev_hash, data)
+                       VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                    (
+                        event["event_id"],
+                        stream_id,
+                        int(event["seq"]),
+                        int(event["schema_version"]),
+                        event["type"],
+                        scope["org_id"],
+                        scope["participant_id"],
+                        event["hash"],
+                        event["prev_hash"],
+                        canonical_json,
+                    ),
+                )
+                self.db.execute(
+                    """INSERT INTO v3_stream_state (stream_id, schema_version, incomplete)
+                       VALUES (?, ?, 0)
+                       ON CONFLICT(stream_id) DO NOTHING""",
+                    (stream_id, int(event["schema_version"])),
+                )
+                self.db.execute(
+                    """INSERT INTO v3_summaries
+                       (summary_id, event_id, org_id, participant_id, content_hash, rendered_items)
+                       VALUES (?,?,?,?,?,?)""",
+                    (
+                        summary_id,
+                        event["event_id"],
+                        org_id,
+                        participant_id,
+                        content_hash,
+                        json.dumps(rendered_items, ensure_ascii=False),
+                    ),
+                )
+                self.db.commit()
+                return event, True
+            except sqlite3.IntegrityError as exc:
+                self.db.rollback()
+                raise V3Error(
+                    "CONFLICT_IMMUTABLE",
+                    f"Summary {summary_id!r} cannot be overwritten.",
+                ) from exc
+            except Exception:
+                self.db.rollback()
+                raise
+
+    def get_summary_record(self, summary_id: str) -> tuple[dict[str, Any], list[dict[str, Any]] | None] | None:
+        """Return ``(summary_event, rendered_items)`` for ``summary_id``, or None if not found."""
+        with self._lock:
+            row = self.db.execute(
+                """SELECT e.data, s.rendered_items
+                   FROM v3_summaries s
+                   JOIN v3_events e ON e.event_id = s.event_id
+                   WHERE s.summary_id = ?""",
+                (summary_id,),
+            ).fetchone()
+            if row is not None:
+                return json.loads(row[0]), json.loads(row[1])
+            # Fallback if a summary.published event exists directly in v3_events
+            ev_rows = self.db.execute(
+                "SELECT data FROM v3_events WHERE type = 'summary.published' ORDER BY rowid ASC"
+            ).fetchall()
+        for (raw,) in ev_rows:
+            ev = json.loads(raw)
+            if ev.get("payload", {}).get("summary_id") == summary_id:
+                return ev, None
+        return None
 
     def has_events_for_participant(self, participant_id: str) -> bool:
         with self._lock:
