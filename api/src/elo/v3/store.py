@@ -7,6 +7,7 @@ import hmac
 import json
 import secrets
 import sqlite3
+import threading
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -15,7 +16,7 @@ from .entities import (
     build_entity,
     utc_now_ms,
 )
-from .errors import to_http_error
+from .errors import V3Error, to_http_error
 from .ledger import EventLedger
 from .validation import check_real_data_gate, validate_entity, validate_entity_chain
 
@@ -110,7 +111,9 @@ class V3Store:
         real_data_gate_open: bool = False,
     ) -> None:
         self.db = sqlite3.connect(path, check_same_thread=False)
+        self.db.execute("PRAGMA busy_timeout = 5000")
         self.db.executescript(V3_SCHEMA)
+        self._tx_lock = threading.RLock()
         self.data_origin = data_origin
         self.real_data_gate_open = real_data_gate_open
         self.ledger = EventLedger(self.db, real_data_gate_open=real_data_gate_open)
@@ -288,57 +291,109 @@ class V3Store:
         )
 
     def save_entities_atomic(self, items: list[tuple[dict[str, Any], list[dict[str, Any]]]]) -> None:
-        try:
-            for ent, existing in items:
+        with self._tx_lock:
+            try:
+                for ent, existing in items:
+                    self._validate_and_insert_entity(ent, existing=existing)
+                self.db.commit()
+            except sqlite3.IntegrityError as exc:
+                self.db.rollback()
+                raise V3Error(
+                    "ENTITY_VERSION_CONFLICT",
+                    f"Entity version conflict: {exc}",
+                ) from exc
+            except Exception:
+                self.db.rollback()
+                raise
+
+    def insert_entity_version(self, ent: dict[str, Any], *, existing: list[dict[str, Any]]) -> None:
+        """Validate and insert one entity version inside one transaction (D-S1a-01-1).
+
+        Relies on the ``PRIMARY KEY (entity_id, version)`` uniqueness constraint on
+        ``v3_entities``; a concurrent losing writer hitting a duplicate ``(entity_id, version)``
+        rolls back and receives ``409 ENTITY_VERSION_CONFLICT``.
+        """
+        with self._tx_lock:
+            try:
+                if not self.db.in_transaction:
+                    self.db.execute("BEGIN IMMEDIATE")
                 self._validate_and_insert_entity(ent, existing=existing)
-            self.db.commit()
-        except Exception:
-            self.db.rollback()
-            raise
+                self.db.commit()
+            except sqlite3.IntegrityError as exc:
+                self.db.rollback()
+                raise V3Error(
+                    "ENTITY_VERSION_CONFLICT",
+                    f"Concurrent or conflicting version {ent['version']} for entity {ent['entity_id']}.",
+                ) from exc
+            except Exception:
+                self.db.rollback()
+                raise
+
+    def list_latest_entities(self, entity_type: str, participant_id: str) -> list[dict[str, Any]]:
+        """Return the latest version of each entity of ``entity_type`` for ``participant_id``,
+        ordered by ``created_at`` ascending then ``entity_id`` ascending.
+        """
+        with self._tx_lock:
+            rows = self.db.execute(
+                """SELECT e.data FROM v3_entities e
+                   INNER JOIN (
+                       SELECT entity_id, MAX(version) AS max_v
+                       FROM v3_entities
+                       WHERE entity_type = ? AND participant_id = ?
+                       GROUP BY entity_id
+                   ) latest ON e.entity_id = latest.entity_id AND e.version = latest.max_v""",
+                (entity_type, participant_id),
+            ).fetchall()
+        entities = [json.loads(r[0]) for r in rows]
+        entities.sort(key=lambda ent: (ent["created_at"], ent["entity_id"]))
+        return entities
 
     def get_entity_versions(self, entity_id: str) -> list[dict[str, Any]]:
-        rows = self.db.execute(
-            "SELECT data FROM v3_entities WHERE entity_id=? ORDER BY version ASC",
-            (entity_id,),
-        ).fetchall()
+        with self._tx_lock:
+            rows = self.db.execute(
+                "SELECT data FROM v3_entities WHERE entity_id=? ORDER BY version ASC",
+                (entity_id,),
+            ).fetchall()
         return [json.loads(r[0]) for r in rows]
 
     def get_latest_entity(self, entity_id: str, entity_type: str | None = None) -> dict[str, Any] | None:
-        if entity_type is not None:
-            row = self.db.execute(
-                "SELECT data FROM v3_entities WHERE entity_id=? AND entity_type=? ORDER BY version DESC LIMIT 1",
-                (entity_id, entity_type),
-            ).fetchone()
-        else:
-            row = self.db.execute(
-                "SELECT data FROM v3_entities WHERE entity_id=? ORDER BY version DESC LIMIT 1",
-                (entity_id,),
-            ).fetchone()
+        with self._tx_lock:
+            if entity_type is not None:
+                row = self.db.execute(
+                    "SELECT data FROM v3_entities WHERE entity_id=? AND entity_type=? ORDER BY version DESC LIMIT 1",
+                    (entity_id, entity_type),
+                ).fetchone()
+            else:
+                row = self.db.execute(
+                    "SELECT data FROM v3_entities WHERE entity_id=? ORDER BY version DESC LIMIT 1",
+                    (entity_id,),
+                ).fetchone()
         return json.loads(row[0]) if row else None
 
     def latest_care_links(self, participant_id: str | None = None) -> list[CareLinkView]:
         """Return the latest version of every care_link (optionally filtered by participant_id)."""
-        if participant_id is not None:
-            rows = self.db.execute(
-                """SELECT e.data FROM v3_entities e
-                   INNER JOIN (
-                       SELECT entity_id, MAX(version) AS max_v
-                       FROM v3_entities
-                       WHERE entity_type = 'care_link' AND participant_id = ?
-                       GROUP BY entity_id
-                   ) latest ON e.entity_id = latest.entity_id AND e.version = latest.max_v""",
-                (participant_id,),
-            ).fetchall()
-        else:
-            rows = self.db.execute(
-                """SELECT e.data FROM v3_entities e
-                   INNER JOIN (
-                       SELECT entity_id, MAX(version) AS max_v
-                       FROM v3_entities
-                       WHERE entity_type = 'care_link'
-                       GROUP BY entity_id
-                   ) latest ON e.entity_id = latest.entity_id AND e.version = latest.max_v"""
-            ).fetchall()
+        with self._tx_lock:
+            if participant_id is not None:
+                rows = self.db.execute(
+                    """SELECT e.data FROM v3_entities e
+                       INNER JOIN (
+                           SELECT entity_id, MAX(version) AS max_v
+                           FROM v3_entities
+                           WHERE entity_type = 'care_link' AND participant_id = ?
+                           GROUP BY entity_id
+                       ) latest ON e.entity_id = latest.entity_id AND e.version = latest.max_v""",
+                    (participant_id,),
+                ).fetchall()
+            else:
+                rows = self.db.execute(
+                    """SELECT e.data FROM v3_entities e
+                       INNER JOIN (
+                           SELECT entity_id, MAX(version) AS max_v
+                           FROM v3_entities
+                           WHERE entity_type = 'care_link'
+                           GROUP BY entity_id
+                       ) latest ON e.entity_id = latest.entity_id AND e.version = latest.max_v"""
+                ).fetchall()
         views: list[CareLinkView] = []
         for (raw,) in rows:
             ent = json.loads(raw)

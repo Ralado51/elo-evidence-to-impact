@@ -2,6 +2,13 @@
 
 from .auth import AuthService
 from .authz import ALLOWED_ROLES, POLICY_MATRIX, AuthzScope, CareLinkView, Decision, Principal, authorize
+from .clinical import (
+    DEFAULT_CLINICAL_REGISTRY,
+    SERVER_OWNED_ENVELOPE_FIELDS,
+    ClinicalEntityService,
+    ClinicalEntitySpec,
+    extract_entity_payload,
+)
 from .errors import EMITTABLE_ERROR_CODES, V3Error, error_response, map_validation_code, to_http_error
 from .ledger import EventLedger
 from .router import create_v3_router
@@ -24,12 +31,16 @@ __all__ = [
     "AuthService",
     "AuthzScope",
     "CareLinkView",
+    "ClinicalEntityService",
+    "ClinicalEntitySpec",
+    "DEFAULT_CLINICAL_REGISTRY",
     "Decision",
     "EMITTABLE_ERROR_CODES",
     "EventLedger",
     "POLICY_MATRIX",
     "Principal",
     "REAL_DATA_GATE_ENV",
+    "SERVER_OWNED_ENVELOPE_FIELDS",
     "V3Error",
     "V3Store",
     "authorize",
@@ -39,6 +50,7 @@ __all__ = [
     "consent_state",
     "create_v3_router",
     "error_response",
+    "extract_entity_payload",
     "is_real_data_gate_open",
     "map_validation_code",
     "require_consent",
