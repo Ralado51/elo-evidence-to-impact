@@ -1,0 +1,327 @@
+/* Elo v3 accessibility base stylesheet (ACC01, ACC02, ACC03, ACC08, ACC10, ACC15). */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--elo-font-family);
+  font-size: var(--elo-font-size-base);
+  line-height: var(--elo-line-height-base);
+  color: var(--elo-color-text);
+  background-color: var(--elo-bg-page);
+}
+
+/* Visible focus ring on keyboard navigation */
+:focus-visible {
+  outline: var(--elo-focus-width) solid var(--elo-color-focus);
+  outline-offset: var(--elo-focus-offset);
+}
+
+/* Skip link: first focusable element */
+.skip-link {
+  position: absolute;
+  left: -999rem;
+  top: var(--elo-space-2);
+  display: inline-flex;
+  align-items: center;
+  padding: var(--elo-space-2) var(--elo-space-4);
+  font-size: var(--elo-font-size-base);
+  font-weight: 700;
+  color: var(--elo-color-on-primary);
+  background-color: var(--elo-bg-primary);
+  border-radius: var(--elo-radius-sm);
+  text-decoration: underline;
+  z-index: 100;
+}
+
+.skip-link:focus-visible,
+.skip-link:focus {
+  left: var(--elo-space-4);
+}
+
+/* Layout shell — zoom-friendly reflow with readable line-length max-width */
+.elo-shell {
+  width: 100%;
+  max-width: var(--elo-measure-max);
+  margin: 0 auto;
+  padding: var(--elo-space-4);
+}
+
+.elo-header {
+  background-color: var(--elo-bg-surface);
+  color: var(--elo-color-text);
+  border-bottom: var(--elo-border-width) solid var(--elo-color-border);
+  padding: var(--elo-space-4);
+}
+
+.elo-brand {
+  margin: 0 0 var(--elo-space-3) 0;
+  font-size: var(--elo-font-size-md);
+  font-weight: 700;
+  color: var(--elo-color-text);
+  background-color: var(--elo-bg-surface);
+}
+
+.elo-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--elo-space-2);
+}
+
+.elo-nav a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--elo-space-2);
+  padding: var(--elo-space-2) var(--elo-space-3);
+  color: var(--elo-color-link);
+  background-color: var(--elo-bg-subtle);
+  border: var(--elo-border-width) solid var(--elo-color-border);
+  border-radius: var(--elo-radius-sm);
+  font-size: var(--elo-font-size-base);
+  font-weight: 600;
+  text-decoration: underline;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+/* Typography — large-text accent used strictly on h1 (>= 1.5rem) */
+h1 {
+  margin: 0 0 var(--elo-space-4) 0;
+  font-size: var(--elo-font-size-xl);
+  line-height: var(--elo-line-height-heading);
+  font-weight: 700;
+  color: var(--elo-color-heading-accent);
+  background-color: var(--elo-bg-page);
+}
+
+h2 {
+  margin: var(--elo-space-6) 0 var(--elo-space-3) 0;
+  font-size: var(--elo-font-size-lg);
+  line-height: var(--elo-line-height-heading);
+  font-weight: 700;
+  color: var(--elo-color-text);
+  background-color: var(--elo-bg-surface);
+}
+
+h3 {
+  margin: var(--elo-space-4) 0 var(--elo-space-2) 0;
+  font-size: var(--elo-font-size-md);
+  line-height: var(--elo-line-height-heading);
+  font-weight: 700;
+  color: var(--elo-color-text);
+  background-color: var(--elo-bg-surface);
+}
+
+.elo-muted {
+  color: var(--elo-color-text-muted);
+  background-color: var(--elo-bg-surface);
+  font-size: var(--elo-font-size-sm);
+}
+
+.elo-card {
+  background-color: var(--elo-bg-surface);
+  color: var(--elo-color-text);
+  border: var(--elo-border-width) solid var(--elo-color-border);
+  border-radius: var(--elo-radius-md);
+  padding: var(--elo-space-4);
+  margin-bottom: var(--elo-space-4);
+}
+
+/* Enlarged touch/pointer targets: >= 3rem (48x48 CSS px) */
+button,
+a.button,
+input:not([type="hidden"]),
+select,
+textarea,
+[role="button"],
+label:has(input[type="checkbox"]),
+label:has(input[type="radio"]),
+label.choice-target,
+.target {
+  min-height: var(--elo-target-min);
+  min-width: var(--elo-target-min);
+}
+
+button,
+a.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--elo-space-2);
+  padding: var(--elo-space-2) var(--elo-space-4);
+  font-family: inherit;
+  font-size: var(--elo-font-size-base);
+  font-weight: 600;
+  color: var(--elo-color-text);
+  background-color: var(--elo-bg-subtle);
+  border: var(--elo-border-width) solid var(--elo-color-border);
+  border-radius: var(--elo-radius-sm);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+button.elo-btn-primary,
+a.button.elo-btn-primary {
+  color: var(--elo-color-on-primary);
+  background-color: var(--elo-bg-primary);
+  border: 0;
+}
+
+button.elo-btn-primary:hover,
+a.button.elo-btn-primary:hover {
+  color: var(--elo-color-on-primary);
+  background-color: var(--elo-bg-primary-hover);
+}
+
+.elo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--elo-space-3);
+}
+
+.elo-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--elo-space-2);
+  margin-bottom: var(--elo-space-4);
+}
+
+label {
+  font-size: var(--elo-font-size-base);
+  font-weight: 600;
+  color: var(--elo-color-text);
+  background-color: var(--elo-bg-surface);
+}
+
+label.choice-target {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--elo-space-2);
+  padding: var(--elo-space-2) var(--elo-space-3);
+  border: var(--elo-border-width) solid var(--elo-color-border);
+  border-radius: var(--elo-radius-sm);
+  background-color: var(--elo-bg-surface);
+  color: var(--elo-color-text);
+}
+
+input:not([type="hidden"]),
+select,
+textarea {
+  font-family: inherit;
+  font-size: var(--elo-font-size-base);
+  padding: var(--elo-space-2) var(--elo-space-3);
+  color: var(--elo-color-text);
+  background-color: var(--elo-bg-surface);
+  border: var(--elo-border-width) solid var(--elo-color-border);
+  border-radius: var(--elo-radius-sm);
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  flex-shrink: 0;
+}
+
+fieldset {
+  border: var(--elo-border-width) solid var(--elo-color-border);
+  border-radius: var(--elo-radius-sm);
+  padding: var(--elo-space-3);
+  margin: 0 0 var(--elo-space-4) 0;
+  background-color: var(--elo-bg-surface);
+  color: var(--elo-color-text);
+}
+
+legend {
+  font-size: var(--elo-font-size-base);
+  font-weight: 700;
+  padding: 0 var(--elo-space-2);
+  color: var(--elo-color-text);
+  background-color: var(--elo-bg-surface);
+}
+
+/* Status pattern: colour + icon + explicit text label */
+.elo-status-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--elo-space-3);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.elo-status {
+  display: flex;
+  align-items: center;
+  gap: var(--elo-space-3);
+  padding: var(--elo-space-3) var(--elo-space-4);
+  border-radius: var(--elo-radius-sm);
+  font-size: var(--elo-font-size-base);
+  font-weight: 600;
+}
+
+.elo-status--info {
+  color: var(--elo-color-info);
+  background-color: var(--elo-bg-info);
+  border: var(--elo-border-width) solid var(--elo-color-info-border);
+}
+
+.elo-status--success {
+  color: var(--elo-color-success);
+  background-color: var(--elo-bg-success);
+  border: var(--elo-border-width) solid var(--elo-color-success-border);
+}
+
+.elo-status--warning {
+  color: var(--elo-color-warning);
+  background-color: var(--elo-bg-warning);
+  border: var(--elo-border-width) solid var(--elo-color-warning-border);
+}
+
+.elo-status--error {
+  color: var(--elo-color-error);
+  background-color: var(--elo-bg-error);
+  border: var(--elo-border-width) solid var(--elo-color-error-border);
+}
+
+.elo-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--elo-font-size-md);
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.elo-live-region {
+  margin-top: var(--elo-space-4);
+  padding: var(--elo-space-3) var(--elo-space-4);
+  min-height: var(--elo-target-min);
+  color: var(--elo-color-text);
+  background-color: var(--elo-bg-subtle);
+  border: var(--elo-border-width) solid var(--elo-color-border);
+  border-radius: var(--elo-radius-sm);
+  font-size: var(--elo-font-size-base);
+}
+
+.elo-footer {
+  padding: var(--elo-space-4);
+  color: var(--elo-color-text-muted);
+  background-color: var(--elo-bg-page);
+  border-top: var(--elo-border-width) solid var(--elo-color-border);
+  font-size: var(--elo-font-size-sm);
+}
+
+/* Reduced motion (ACC15) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
