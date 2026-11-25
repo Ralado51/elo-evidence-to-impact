@@ -167,7 +167,7 @@ def check_entity_chain(versions: list[dict[str, Any]]) -> list[str]:
             errs.append("ENTITY_VERSION_CONFLICT")
         if i > 0 and v["prev_hash"] != vs[i - 1]["hash"]:
             errs.append("ENTITY_CHAIN_BROKEN")
-    return errs
+    return sorted(set(errs))
 
 
 @lru_cache(maxsize=16)
