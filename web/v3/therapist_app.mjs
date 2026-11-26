@@ -12,6 +12,9 @@ import { createCommandController } from "./command_controller.mjs";
 import { hashCanonical } from "./canonical.mjs";
 import { renderErrorTechnical } from "./ui_messages.mjs";
 import { validateDateFields } from "./date_field.mjs";
+import { setFieldError } from "./field_error.mjs";
+import { violationFromApiError } from "./validation_registry.mjs";
+import { loadCatalogs, goalTargetSpec, buildGoalTarget, goalTargetViolations, FIELD_FOR_PATH } from "./domain_fields.mjs";
 import { applyI18n, initI18n, t, tm, lref, bindText, label, formatDate, formatDateTime, formatIsoDate } from "./i18n.mjs";
 import {
   canPublishEvolution,
@@ -272,6 +275,8 @@ export function initTherapistApp() {
     }
     handleApiError(out.error);
   }
+  const domainCatalogs = { goalRules: null };
+
   function handleApiError(err) {
     const apiErr =
       err instanceof V3ApiError
@@ -282,6 +287,9 @@ export function initTherapistApp() {
             message: err instanceof Error ? err.message : String(err),
           });
     const info = describeApiError(apiErr);
+    const viol = violationFromApiError(apiErr);
+    const fieldId = viol && FIELD_FOR_PATH[viol.path];
+    if (fieldId && document.getElementById(fieldId)) setFieldError(document.getElementById(fieldId), tm(`rule.${viol.rule}`));
     if (apiErr.code === "UNAUTHENTICATED") {
       redirectToSignIn(info.msg, info.technical);
       return;
@@ -1136,17 +1144,22 @@ export function initTherapistApp() {
   el("form-goal").addEventListener("submit", async (event) => {
     event.preventDefault();
     if (!requireParticipant()) return;
+    if (!domainCatalogs.goalRules) Object.assign(domainCatalogs, await loadCatalogs());
     const kind = el("goal-target-kind").value;
-    const rawVal = el("goal-target-value").value.trim();
-    const rawUnit = el("goal-target-unit").value.trim();
+    const target = buildGoalTarget(domainCatalogs.goalRules, kind, el("goal-target-value").value);
+    const problems = goalTargetViolations(domainCatalogs.goalRules, target);
+    if (problems.length) {
+      const first = problems[0];
+      const input = el(FIELD_FOR_PATH[first.path]);
+      setFieldError(input, tm(`rule.${first.rule}`));
+      input.focus();
+      announce(tm(`rule.${first.rule}`), { politeness: "assertive" });
+      return;
+    }
     const payload = {
       goal_text: el("goal-text").value.trim(),
       body_segment: el("goal-segment").value,
-      target: {
-        kind,
-        value: kind === "descriptive_text" || rawVal === "" ? null : Number(rawVal),
-        unit: kind === "descriptive_text" || rawUnit === "" ? null : rawUnit,
-      },
+      target,
       status: el("goal-status").value,
       confirmed_by: null,
       confirmed_at: null,
@@ -1410,6 +1423,19 @@ export function initTherapistApp() {
   });
 
   initI18n();
+  // GoalTargetField: kind drives value/unit availability; the unit is derived and read-only (A2-02).
+  function applyGoalKind() {
+    const spec = goalTargetSpec(domainCatalogs.goalRules, el("goal-target-kind").value);
+    if (!spec) return;
+    const v = el("goal-target-value"), u = el("goal-target-unit");
+    v.disabled = !spec.numeric;
+    u.value = spec.unit || "";
+    if (!spec.numeric) v.value = "";
+    else if (v.value === "") v.value = "3";
+    v.min = String(spec.min ?? 0);
+  }
+  loadCatalogs().then((c) => { Object.assign(domainCatalogs, c); applyGoalKind(); }).catch(() => {});
+  el("goal-target-kind").addEventListener("change", applyGoalKind);
   document.addEventListener("elo:lang", () => {
     // Re-render dynamic content in the new language without touching what the user typed.
     updateSessionBar();

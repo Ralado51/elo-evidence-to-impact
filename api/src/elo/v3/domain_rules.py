@@ -67,3 +67,36 @@ class RuleRegistry:
 
 
 DOMAIN_RULES = RuleRegistry()
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# A2-02 goal target rules (goal-target-rules.v1). Write-only; ``measure_value`` has no new rule (D-04).
+# ---------------------------------------------------------------------------------------------------------------------
+_TV = "$.payload.target.value"
+_TU = "$.payload.target.unit"
+
+
+def goal_target_rules(entity: dict[str, Any]) -> list[Violation]:
+    target = (entity.get("payload") or {}).get("target") or {}
+    kind, value, unit = target.get("kind"), target.get("value"), target.get("unit")
+    spec = load_a2_catalog("catalogs/goal-target-rules.v1.json")["kinds"].get(kind)
+    if spec is None or "unit" not in spec:
+        return []  # measure_value (or unknown kind, left to the schema): no A2 rule
+    if kind == "descriptive_text":
+        if value is not None or unit is not None:
+            return [Violation("goal.descriptive_no_numeric", _TV if value is not None else _TU, "A descriptive goal carries no numeric value or unit.")]
+        return []
+    vs = spec["value"]
+    if value is None:
+        return [Violation("goal.count_value_required", _TV, f"A {kind} goal requires a value.")]
+    is_int = isinstance(value, int) and not isinstance(value, bool) or (isinstance(value, float) and value.is_integer())
+    if isinstance(value, bool) or not is_int:
+        return [Violation("goal.count_integer", _TV, f"A {kind} goal value must be a whole number.")]
+    if value < vs["min"]:
+        return [Violation("goal.count_floor", _TV, f"A {kind} goal value must be at least {vs['min']}.")]
+    if unit not in spec["unit"]["allowed"]:
+        return [Violation("goal.count_unit_compatible", _TU, f"The unit of a {kind} goal must be empty or '{spec['unit']['derived']}'.")]
+    return []
+
+
+DOMAIN_RULES.register("goal", goal_target_rules)

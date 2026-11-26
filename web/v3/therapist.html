@@ -226,16 +226,15 @@
 <option data-i18n="th.opt.goal-target-kind.session_count" value="session_count">Número de sessões</option>
 <option data-i18n="th.opt.goal-target-kind.repetitions" value="repetitions">Repetições</option>
 <option data-i18n="th.opt.goal-target-kind.descriptive_text" value="descriptive_text">Texto descritivo</option>
-<option data-i18n="th.opt.goal-target-kind.measure_value" value="measure_value">Valor de medida</option>
 </select>
 </div>
 <div class="field">
 <label data-i18n="th.label.goal-target-value" for="goal-target-value">Valor do alvo</label>
-<input id="goal-target-value" max="100000" min="0" name="target_value" type="number" value="3"/>
+<input id="goal-target-value" max="100000" min="1" name="target_value" step="1" type="number" value="3"/>
 </div>
 <div class="field">
 <label data-i18n="th.label.goal-target-unit" for="goal-target-unit">Unidade do alvo</label>
-<input id="goal-target-unit" name="target_unit" type="text" value="sessions"/>
+<input id="goal-target-unit" name="target_unit" readonly="" type="text" value="sessions"/>
 </div>
 <div class="field">
 <label data-i18n="th.label.goal-status" for="goal-status">Estado da meta</label>
