@@ -29,4 +29,4 @@ Baseline: ab0d753. Dados exclusivamente sintéticos. A2 permanece candidato (3.2
 - Pendente I-01 (opções de unidade não retraduzem na troca de idioma): não tratado aqui, fora do escopo; segue no backlog do ARQ-04.
 
 ## 6. Revisão candidata
-SHA e bundle: ver mensagem de entrega (`elo-arq03-fix01.bundle`).
+SHA e bundle: `4f59ad598f90abb01d0c36dbdb96b32caca8c030` (bundle `elo-arq03-fix01.bundle`, base ab0d753).
