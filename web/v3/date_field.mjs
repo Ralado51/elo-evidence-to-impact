@@ -9,9 +9,11 @@
 
 import { announce } from "./a11y.mjs";
 import { isCivilDate, isRangeInverted } from "./civil_date.mjs";
-import { bindText, tm } from "./i18n.mjs";
+import { tm } from "./i18n.mjs";
+import { setFieldError } from "./field_error.mjs";
 
-const ERROR_CLASS = "field-error";
+export { setFieldError };
+
 
 /** @returns {import("./i18n.mjs").Msg | null} */
 export function dateFieldProblem(input, { required = false, notBefore = null } = {}) {
@@ -20,43 +22,6 @@ export function dateFieldProblem(input, { required = false, notBefore = null } =
   if (!isCivilDate(value)) return tm("date.err.invalid");
   if (notBefore && notBefore.value !== "" && isRangeInverted(notBefore.value, value)) return tm("date.err.range");
   return null;
-}
-
-function errorNode(input) {
-  let node = input.ownerDocument.getElementById(`${input.id}-error`);
-  if (!node) {
-    node = input.ownerDocument.createElement("p");
-    node.id = `${input.id}-error`;
-    node.className = ERROR_CLASS;
-    node.hidden = true;
-    input.insertAdjacentElement("afterend", node);
-    const clear = () => setFieldError(input, null);
-    input.addEventListener("input", clear);
-    input.addEventListener("change", clear);
-    // A native form reset (participant switch, draft discard) invalidates the whole validation state of the field:
-    // message, aria-invalid and the aria-describedby reference (ARQ-02 fix01, S1-08).
-    if (input.form) input.form.addEventListener("reset", clear);
-  }
-  return node;
-}
-
-/** Show (Msg) or clear (null) the error attached to a field: aria-invalid + aria-describedby + visible text. */
-export function setFieldError(input, msg) {
-  const node = errorNode(input);
-  const ids = new Set((input.getAttribute("aria-describedby") || "").split(/\s+/).filter(Boolean));
-  if (msg) {
-    bindText(node, msg);
-    node.hidden = false;
-    input.setAttribute("aria-invalid", "true");
-    ids.add(node.id);
-  } else {
-    bindText(node, "");
-    node.hidden = true;
-    input.removeAttribute("aria-invalid");
-    ids.delete(node.id);
-  }
-  if (ids.size) input.setAttribute("aria-describedby", [...ids].join(" "));
-  else input.removeAttribute("aria-describedby");
 }
 
 /**

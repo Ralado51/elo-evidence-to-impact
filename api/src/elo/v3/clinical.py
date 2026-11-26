@@ -28,6 +28,7 @@ from .entities import (
 )
 from .errors import V3Error, to_http_error
 from .store import V3Store
+from .domain_rules import DOMAIN_RULES
 from .civil_date import REASON_INVERTED, check_entity_civil_dates
 from .validation import validate_entity, validate_entity_chain
 
@@ -478,6 +479,8 @@ class ClinicalEntityService:
                 start = first.field.replace("_to", "_from")
                 raise V3Error("RULE_VIOLATION", f"{first.field} must not be earlier than {start}.", details=[i.path for i in date_issues])
             raise V3Error("RULE_VIOLATION", f"{first.field} is not a valid calendar date.", details=[i.path for i in date_issues])
+
+        DOMAIN_RULES.enforce(entity_type, ent)  # A2 write-only domain rules (no-op until rules are registered)
 
         chain_errs = validate_entity_chain([*existing, ent])
         if chain_errs:
