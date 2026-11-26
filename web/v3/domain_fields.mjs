@@ -111,3 +111,17 @@ export function itemViolations(items) {
 FIELD_FOR_PATH["$.payload.items[0].value"] = "assessment-item-value";
 FIELD_FOR_PATH["$.payload.items[0].unit"] = "assessment-item-unit";
 FIELD_FOR_PATH["$.payload.items[0].item_key"] = "assessment-item-key";
+
+// ---- DoseField (A2-07): front guard derived from limits.v1 and the schema range; the server already enforces it. ----
+// Technical processing limits, not a clinical recommendation. Never adjusts the values: it only reports the problem on the field.
+export const SESSIONS_PER_WEEK = { min: 1, max: 14 };
+
+export function doseViolations(limits, { sets, reps, perWeek }) {
+  const int = (n) => Number.isInteger(n);
+  const out = [];
+  if (!int(sets) || sets < 1 || sets > limits.max_sets) out.push({ rule: "dose.sets_range", field: "rx-sets" });
+  if (!int(reps) || reps < 1 || reps > limits.max_repetitions) out.push({ rule: "dose.reps_range", field: "rx-reps" });
+  if (!out.length && sets * reps > limits.max_product) out.push({ rule: "dose.product_max", field: "rx-reps" });
+  if (!int(perWeek) || perWeek < SESSIONS_PER_WEEK.min || perWeek > SESSIONS_PER_WEEK.max) out.push({ rule: "dose.sessions_week_range", field: "rx-sessions-week" });
+  return out;
+}

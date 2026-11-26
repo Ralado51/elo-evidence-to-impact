@@ -14,7 +14,7 @@ import { renderErrorTechnical } from "./ui_messages.mjs";
 import { validateDateFields } from "./date_field.mjs";
 import { setFieldError } from "./field_error.mjs";
 import { violationFromApiError } from "./validation_registry.mjs";
-import { loadCatalogs, instrumentEntries, instrumentFromSelection, instrumentViolations, buildItem, itemViolations, goalTargetSpec, buildGoalTarget, goalTargetViolations, FIELD_FOR_PATH } from "./domain_fields.mjs";
+import { loadCatalogs, instrumentEntries, instrumentFromSelection, instrumentViolations, doseViolations, buildItem, itemViolations, goalTargetSpec, buildGoalTarget, goalTargetViolations, FIELD_FOR_PATH } from "./domain_fields.mjs";
 import { applyI18n, initI18n, t, tm, lref, bindText, label, formatDate, formatDateTime, formatIsoDate } from "./i18n.mjs";
 import {
   canPublishEvolution,
@@ -275,7 +275,7 @@ export function initTherapistApp() {
     }
     handleApiError(out.error);
   }
-  const domainCatalogs = { goalRules: null, instruments: null, units: null };
+  const domainCatalogs = { goalRules: null, instruments: null, units: null, limits: null };
 
   function handleApiError(err) {
     const apiErr =
@@ -1204,6 +1204,20 @@ export function initTherapistApp() {
     event.preventDefault();
     if (!requireParticipant()) return;
     if (!validateDateFields([{ input: el("rx-valid-from"), required: true }, { input: el("rx-valid-to"), notBefore: el("rx-valid-from") }])) return;
+    if (!domainCatalogs.limits) Object.assign(domainCatalogs, await loadCatalogs());
+    const doseProblems = doseViolations(domainCatalogs.limits, {
+      sets: Number(el("rx-sets").value),
+      reps: Number(el("rx-reps").value),
+      perWeek: Number(el("rx-sessions-week").value),
+    });
+    if (doseProblems.length) {
+      const first = doseProblems[0];
+      const input = el(first.field);
+      setFieldError(input, tm(`rule.${first.rule}`));
+      input.focus();
+      announce(tm(`rule.${first.rule}`), { politeness: "assertive" });
+      return;
+    }
     const validToRaw = el("rx-valid-to").value;
     const draft = {
       participant_id: state.participantId,

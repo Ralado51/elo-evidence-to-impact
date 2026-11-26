@@ -64,3 +64,18 @@ test("JS-A2-07: MeasurementField keeps zero, unknown and not-assessed apart; uni
   assert.equal(itemViolations([buildItem({ ...base, valueType: "integer", rawValue: "2.5" })])[0].rule, "item.value_type_mismatch");
   assert.equal(itemViolations([buildItem({ ...base, valueType: "boolean", rawValue: "talvez" })])[0].rule, "item.value_type_mismatch");
 });
+
+import { doseViolations } from "../v3/domain_fields.mjs";
+const limits = JSON.parse(readFileSync(new URL("../v3/catalogs/limits.v1.json", import.meta.url), "utf8"));
+
+test("JS-A2-08: DoseField guard mirrors limits.v1 (10/100/product 100) and weekly 1..14; never adjusts", () => {
+  const ok = { sets: 2, reps: 10, perWeek: 3 };
+  assert.deepEqual(doseViolations(limits, ok), []);
+  assert.deepEqual(doseViolations(limits, { sets: 10, reps: 10, perWeek: 14 }), []);
+  assert.equal(doseViolations(limits, { ...ok, sets: 11 })[0].rule, "dose.sets_range");
+  assert.equal(doseViolations(limits, { ...ok, reps: 101 })[0].rule, "dose.reps_range");
+  assert.equal(doseViolations(limits, { sets: 10, reps: 11, perWeek: 3 })[0].rule, "dose.product_max");
+  assert.equal(doseViolations(limits, { ...ok, perWeek: 15 })[0].rule, "dose.sessions_week_range");
+  assert.equal(doseViolations(limits, { ...ok, sets: 2.5 })[0].rule, "dose.sets_range");
+  assert.equal(doseViolations(limits, { ...ok, reps: NaN })[0].rule, "dose.reps_range");
+});

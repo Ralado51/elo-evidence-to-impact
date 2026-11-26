@@ -126,6 +126,22 @@ await check("BR-A2-09 item não avaliado é gravado com valor nulo e flag; zero 
   last = (await assessments()).at(-1).payload.items[0];
   assert.deepEqual([last.value, last.not_assessed, last.unit], [0, false, "deg"]);
 });
+
+await check("BR-A2-10 dose: produto acima do limite técnico (10×11) e 15 sessões/semana são bloqueados no campo, sem escrita e sem ajuste automático", async () => {
+  await t.fill("#rx-sets", "10");
+  await t.fill("#rx-reps", "11");
+  const before = count(/prescriptions/);
+  await t.click("#btn-publish-prescription");
+  await t.waitForSelector("#rx-reps-error:not([hidden])");
+  assert.equal(await t.inputValue("#rx-sets"), "10");
+  assert.equal(await t.inputValue("#rx-reps"), "11", "valor não é ajustado");
+  assert.equal(count(/prescriptions/), before);
+  await t.fill("#rx-reps", "10");
+  await t.fill("#rx-sessions-week", "15");
+  await t.click("#btn-publish-prescription");
+  await t.waitForSelector("#rx-sessions-week-error:not([hidden])");
+  assert.equal(count(/prescriptions/), before);
+});
 await browser.close();
 const failed = results.filter((r) => !r.ok);
 console.log(JSON.stringify({ passed: failed.length === 0, results }, null, 2));
