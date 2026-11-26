@@ -1,7 +1,7 @@
 // Hand counter page controller. Camera frames are read in the browser by MediaPipe and
 // only a skeleton is drawn. No MediaRecorder, toDataURL, toBlob or getImageData; nothing
 // of the image is stored or sent. Only derived numbers (reps, duration, amplitude) remain.
-import { announce } from "./a11y.mjs";
+import { announce } from "../v3/a11y.mjs";
 import { syntheticOpenness, summarize, STATE_LABEL_PTBR } from "./contador_model.mjs";
 
 const C = globalThis.EloCounter;

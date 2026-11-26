@@ -40,7 +40,7 @@ node web/tests/browser/seed_demo.mjs --origin http://127.0.0.1:8080     # prints
 4. Run `e2e_journey.mjs`, `therapist_journey.mjs`, `participant_journey.mjs` before any handoff back.
 
 ## S2-01 hand counter (done, synthetic only)
-- Page `web/v3/contador.html` (+ `contador_app.mjs`, `contador_model.mjs`, `contador.css`). `web/v3/counter.js` is a copy of `web/counter.js` (a test enforces parity).
+- Page `web/s2/contador.html` (+ `contador_app.mjs`, `contador_model.mjs`, `contador.css`). `web/s2/counter.js` is a copy of `web/counter.js` (a test enforces parity).
 - Demo button runs a synthetic signal without camera; verified in Chrome (5 reps in 16 s, period 3 s).
-- Camera mode needs `web/v3/vendor/{vision_bundle.mjs,wasm/,hand_landmarker.task}` (see `web/Dockerfile` for the pinned download). NOT tested with a real camera here: PO must test it.
+- Camera mode needs `web/s2/vendor/{vision_bundle.mjs,wasm/,hand_landmarker.task}` (see `web/Dockerfile` for the pinned download). NOT tested with a real camera here: PO must test it.
 - Results stay on screen; nothing is sent to the API (no contract for camera data yet).

@@ -616,6 +616,8 @@ function attachLoopbackGuardAndLog(context, allowedOrigin, browserRequests) {
 function assertParticipantRequestsValid(browserRequests, contractMatchers) {
   const calledRoutes = new Set();
   for (const req of browserRequests) {
+    // Approved read-only index views (docs/PROPOSTA_API_CONSOLE.md): GET only, no record content.
+    if (req.method === "GET" && /^\/api\/console\/v1\/participants(\/[^/]+\/publications)?$/.test(req.pathname)) continue;
     assert.equal(
       req.pathname.startsWith("/api/v1"),
       false,

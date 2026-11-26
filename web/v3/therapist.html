@@ -71,8 +71,8 @@
 
     <!-- Etapa 2: Cadastrar e vincular participante -->
     <section id="sec-participant" class="step-card" aria-labelledby="heading-participant">
-      <h2 id="heading-participant">2. Cadastrar e vincular participante</h2>
-      <p class="step-lead">Cria o registro sintético do participante e o vínculo de cuidado ativo (care_link v1).</p>
+      <h2 id="heading-participant">2. Participante</h2>
+      <p class="step-lead">Cadastre um participante sintético novo ou escolha um da sua lista.</p>
       <form id="form-participant" novalidate>
         <div class="field-grid field-grid-two">
           <div class="field">
@@ -93,18 +93,50 @@
       </form>
 
       <div class="sub-panel">
-        <h3>Selecionar participante existente por identificador</h3>
-        <form id="form-select-participant" novalidate>
+        <h3>Meus participantes</h3>
+        <form id="form-participant-search" novalidate role="search">
           <div class="field-grid">
             <div class="field">
-              <label for="active-participant-id">Identificador do participante (p_...)</label>
-              <input id="active-participant-id" name="participant_id" type="text" placeholder="p_...">
+              <label for="participant-search">Pesquisar pelo apelido</label>
+              <input id="participant-search" name="q" type="search" maxlength="40" autocomplete="off">
             </div>
           </div>
           <div class="actions-row">
-            <button type="submit" id="btn-select-participant" class="btn btn-secondary target">Definir participante ativo</button>
+            <button type="submit" id="btn-search-participants" class="btn btn-secondary target">Pesquisar</button>
           </div>
         </form>
+        <p id="participant-list-status" class="step-lead">Entre como terapeuta para ver seus participantes.</p>
+        <ul id="participant-list" class="card-list" aria-label="Participantes vinculados a você"></ul>
+        <form id="form-select-participant" novalidate>
+          <div class="field-grid">
+            <div class="field">
+              <label for="active-participant-id">Participante ativo (preenchido ao selecionar na lista)</label>
+              <input id="active-participant-id" name="participant_id" type="text" placeholder="Selecione na lista acima" autocomplete="off">
+            </div>
+          </div>
+          <div class="actions-row">
+            <button type="submit" id="btn-select-participant" class="btn btn-secondary target">Confirmar participante ativo</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="sub-panel" id="invite-panel">
+        <h3>Convite para o participante</h3>
+        <p class="step-lead">Gera um código de uso único. Envie o link ao participante: ele abre a tela de prática já com o código preenchido.</p>
+        <div class="field-grid field-grid-two">
+          <div class="field">
+            <label for="invite-ttl">Validade do convite</label>
+            <select id="invite-ttl" name="ttl">
+              <option value="3600" selected>1 hora</option>
+              <option value="86400">24 horas</option>
+              <option value="900">15 minutos</option>
+            </select>
+          </div>
+        </div>
+        <div class="actions-row">
+          <button type="button" id="btn-create-invite" class="btn btn-primary target" disabled>Gerar convite</button>
+        </div>
+        <div id="invite-result" class="result-box" hidden aria-live="off"></div>
       </div>
 
       <div id="participant-result" class="result-box" hidden></div>

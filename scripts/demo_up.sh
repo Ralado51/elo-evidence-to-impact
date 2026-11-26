@@ -8,6 +8,12 @@ PY="${PYTHON:-python3}"
 if [ "${1:-up}" = "down" ]; then
   for f in api gw; do [ -f "$RUN/$f.pid" ] && kill "$(cat "$RUN/$f.pid")" 2>/dev/null || true; done; echo "parado"; exit 0
 fi
+# stop a previous run (pid files) before starting; refuse to start on busy ports instead of silently using an old server
+for f in api gw; do [ -f "$RUN/$f.pid" ] && kill "$(cat "$RUN/$f.pid")" 2>/dev/null || true; done
+sleep 1
+for port in "$PORT_API" "$PORT_WEB"; do
+  if (exec 3<>"/dev/tcp/127.0.0.1/$port") 2>/dev/null; then echo "A porta $port já está em uso por outro processo. Pare-o ou use PORT_WEB/PORT_API."; exit 1; fi
+done
 rm -rf "$RUN"; mkdir -p "$RUN/data"
 PYTHONPATH="$ROOT/api/src" ELO_DATA_DIR="$RUN/data" ELO_V3_DATA_ORIGIN=synthetic_fixture \
 ELO_V3_THERAPIST_SEEDS='[{"therapist_id":"t_localdemo01","username":"terapeuta_demo","password":"senha-sintetica-demo","org_id":"o_localdemo01","display_label":"Terapeuta Sintético Demo"}]' \
@@ -22,7 +28,7 @@ echo "Plataforma no ar. Login da terapeuta: terapeuta_demo / senha-sintetica-dem
 echo "  Landing:      $ORIGIN/"
 echo "  Terapeuta:    $ORIGIN/v3/painel.html"
 echo "  Participante: $ORIGIN/v3/participant.html"
-echo "  Contador:     $ORIGIN/v3/contador.html"
+echo "  Contador:     $ORIGIN/s2/contador.html"
 if [ -n "${ELO_PLAYWRIGHT_DIR:-}" ]; then
   echo "Criando o caso demonstrativo (5 sessões)…"
   node web/tests/browser/seed_demo.mjs --origin "$ORIGIN" | tee "$RUN/seed.json"

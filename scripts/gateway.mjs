@@ -1,4 +1,4 @@
-// Local gateway for manual testing: serves web/v3 at /v3/*, landing at /, proxies /api/v3/* to the API.
+// Local gateway for manual testing: serves web/v3 at /v3/*, web/s2 at /s2/*, landing at /, proxies /api/v3/* and /api/console/v1/* to the API.
 // Usage: node scripts/gateway.mjs <repo-root> <port> [api-port]
 import fs from "node:fs"; import http from "node:http"; import path from "node:path";
 const root = path.resolve(process.argv[2] || "."); const port = +process.argv[3] || 8080; const apiPort = +process.argv[4] || 8000;
@@ -12,7 +12,7 @@ function serve(res, base, rel) {
 }
 http.createServer(async (req, res) => {
   const u = new URL(req.url, "http://x");
-  if (u.pathname.startsWith("/api/v3/")) {
+  if (u.pathname.startsWith("/api/v3/") || u.pathname.startsWith("/api/console/v1/")) {
     try {
       const chunks = []; for await (const c of req) chunks.push(c);
       const headers = {}; for (const [k, v] of Object.entries(req.headers)) if (!["host", "content-length"].includes(k) && typeof v === "string") headers[k] = v;
@@ -22,6 +22,7 @@ http.createServer(async (req, res) => {
     } catch (e) { res.writeHead(502); res.end("API indisponível: " + e.message); }
     return;
   }
+  if (u.pathname.startsWith("/s2/")) return serve(res, path.join(root, "web", "s2"), u.pathname.slice(4));
   if (u.pathname.startsWith("/v3/")) return serve(res, path.join(root, "web", "v3"), u.pathname.slice(4));
   if (u.pathname === "/" || u.pathname === "/index.html") return serve(res, path.join(root, "landing"), "index.html");
   res.writeHead(404); res.end("404");

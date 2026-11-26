@@ -25,8 +25,8 @@ Perfis: **T** = terapeuta, **P** = participante. Login da terapeuta: `terapeuta_
 | UAT-12 | P | Passo 5: colar `summary_id` e `evolution_id` do caso demo; depois um código inexistente. | Resumo e evolução aparecem; código inexistente dá erro claro. | | |
 | UAT-13 | P | Em tela estreita (320 px) e com zoom 200%. | Sem rolagem lateral, textos legíveis, botões tocáveis. | | |
 | UAT-14 | T | Fluxo completo em `/v3/therapist.html`: criar pessoa, avaliação, meta, prescrição, convite, aprovar fatos após a sessão do P, publicar resumo. | Cada etapa confirma sucesso; a pessoa nova aparece no painel (UAT-03). | | |
-| UAT-15 | P | `/v3/contador.html`: "Ver demonstração", esperar 15 s, "Parar". | Contagem sobe (~5 em 15 s), tabela de repetições aparece. | | |
-| UAT-16 | P | Contador com **câmera real** (precisa de `web/v3/vendor/`, veja HANDOFF_DEMO). Abrir e fechar a mão 10 vezes, calibrar uma vez. | Conta perto de 10. Só o esqueleto aparece, nenhuma imagem. Câmera desliga em "Parar". | | |
+| UAT-15 | P (S2, prévia fora do aceite S1) | `/s2/contador.html`: "Ver demonstração", esperar 15 s, "Parar". | Contagem sobe (~5 em 15 s), tabela de repetições aparece. | | |
+| UAT-16 | P (S2, prévia fora do aceite S1) | Contador com **câmera real** (precisa de `web/s2/vendor/`, veja HANDOFF_DEMO). Abrir e fechar a mão 10 vezes, calibrar uma vez. | Conta perto de 10. Só o esqueleto aparece, nenhuma imagem. Câmera desliga em "Parar". | | |
 | UAT-17 | Todos | Procurar dado real em qualquer tela. | Nenhum. Selo "[Dados sintéticos]" presente. | | |
 | UAT-18 | Dev | `node --test web/tests/*.test.mjs`, `node web/test_counter.js`, `node web/tests/browser/run.mjs` | Tudo passa. | | |
 

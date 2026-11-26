@@ -25,8 +25,8 @@
       "inlineLinkExceptions": []
     },
     {
-      "id": "v3-contador",
-      "path": "/v3/contador.html",
+      "id": "s2-contador",
+      "path": "/s2/contador.html",
       "liveRegionModule": "/v3/a11y.mjs",
       "inlineLinkExceptions": []
     }

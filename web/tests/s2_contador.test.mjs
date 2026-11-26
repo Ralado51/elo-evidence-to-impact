@@ -2,11 +2,11 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
-import { syntheticOpenness, summarize } from "../v3/contador_model.mjs";
-const { createCounter, markAtypical } = createRequire(import.meta.url)("../v3/counter.js");
+import { syntheticOpenness, summarize } from "../s2/contador_model.mjs";
+const { createCounter, markAtypical } = createRequire(import.meta.url)("../s2/counter.js");
 
-test("v3/counter.js is identical to web/counter.js", () => {
-  assert.equal(readFileSync(new URL("../v3/counter.js", import.meta.url), "utf8"), readFileSync(new URL("../counter.js", import.meta.url), "utf8"));
+test("s2/counter.js is identical to web/counter.js", () => {
+  assert.equal(readFileSync(new URL("../s2/counter.js", import.meta.url), "utf8"), readFileSync(new URL("../counter.js", import.meta.url), "utf8"));
 });
 test("synthetic 3 s cycle counts 10 reps in ~30 s", () => {
   const c = createCounter(), evs = [];

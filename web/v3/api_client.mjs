@@ -81,7 +81,11 @@ export function createV3Client(options = {}) {
    * @param {{ body?: unknown, auth?: boolean }} [reqOptions]
    */
   async function request(method, path, reqOptions = {}) {
-    const endpointId = assertContractRoute(method, path);
+    // /api/console/v1/* are read-only index views (docs/PROPOSTA_API_CONSOLE.md), outside the contract table.
+    const endpointId =
+      reqOptions.console === true && path.startsWith("/api/console/v1/") && method.toUpperCase() === "GET"
+        ? "console.view"
+        : assertContractRoute(method, path);
     const useAuth = reqOptions.auth !== false;
     const headers = {
       Accept: "application/json",
@@ -162,6 +166,16 @@ export function createV3Client(options = {}) {
         auth: false,
         body: { username, password },
       });
+    },
+    listParticipants(q = "") {
+      const qs = q ? `?q=${encodeURIComponent(q)}` : "";
+      return request("GET", `/api/console/v1/participants${qs}`, { console: true });
+    },
+    listPublications(participantId) {
+      return request("GET", `/api/console/v1/participants/${encodeURIComponent(participantId)}/publications`, { console: true });
+    },
+    createInvite(participantId, ttlSeconds = 3600) {
+      return request("POST", "/api/v3/invites", { body: { participant_id: participantId, ttl_seconds: ttlSeconds } });
     },
     createParticipant(alias, side) {
       return request("POST", "/api/v3/participants", {

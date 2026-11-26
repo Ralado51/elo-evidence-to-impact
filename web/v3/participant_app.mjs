@@ -220,6 +220,50 @@ export function initParticipantApp() {
     }
   }
 
+  const PUB_LABEL_PTBR = { summary: "Resumo", evolution: "Evolução" };
+
+  async function loadPublications() {
+    const status = el("publication-status");
+    const list = el("publication-list");
+    if (!status || !list) return;
+    clearElement(list);
+    if (!state.session?.token) {
+      status.textContent = "Entre para ver o que seu terapeuta liberou.";
+      return;
+    }
+    try {
+      const res = await client.listPublications(state.session.principal.id);
+      const items = res.data.publications || [];
+      status.textContent = items.length
+        ? "Toque para abrir o que seu terapeuta liberou."
+        : "Seu terapeuta ainda não liberou nenhum resumo ou evolução.";
+      for (const it of items) {
+        const li = document.createElement("li");
+        li.className = "data-card";
+        li.dataset.publicationKind = it.kind;
+        li.dataset.publicationId = it.id;
+        const period = it.period_from && it.period_to ? ` (${it.period_from} a ${it.period_to})` : "";
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "btn btn-secondary target";
+        btn.textContent = `Abrir ${PUB_LABEL_PTBR[it.kind] || it.kind}${period}`;
+        btn.addEventListener("click", () => {
+          if (it.kind === "summary") {
+            el("summary-id-input").value = it.id;
+            openSummaryById(it.id);
+          } else {
+            el("evolution-id-input").value = it.id;
+            openEvolutionById(it.id);
+          }
+        });
+        li.appendChild(btn);
+        list.appendChild(li);
+      }
+    } catch {
+      status.textContent = "Não consegui carregar a lista agora. Você ainda pode abrir pelos códigos abaixo.";
+    }
+  }
+
   function updateControlsState() {
     const isActive = state.activeSession?.phase === "active";
     const isEnded = state.activeSession?.phase === "ended";
@@ -611,6 +655,13 @@ export function initParticipantApp() {
     resetReportChoices();
     writeStoredSession(null);
     updateControlsState();
+    loadPublications();
+    for (const id of ["summary-view", "evolution-view"]) {
+      el(id).hidden = true;
+      clearElement(el(id));
+    }
+    el("summary-id-input").value = "";
+    el("evolution-id-input").value = "";
     showSuccess("Sessão encerrada.");
     window.location.hash = "#sec-signin";
     el("invite-token")?.focus();
@@ -633,6 +684,7 @@ export function initParticipantApp() {
       };
       writeStoredSession(state.session);
       updateControlsState();
+      loadPublications();
 
       const box = el("signin-result");
       clearElement(box);
@@ -819,7 +871,19 @@ export function initParticipantApp() {
   if (qSummary && el("summary-id-input")) el("summary-id-input").value = qSummary;
   if (qEvolution && el("evolution-id-input")) el("evolution-id-input").value = qEvolution;
 
+  // Invite link from the therapist: #invite=<token>. Fill the field and remove it from the address bar.
+  const inviteMatch = /^#invite=([A-Za-z0-9_\-%.]+)$/.exec(window.location.hash || "");
+  if (inviteMatch && el("invite-token") && !state.session?.token) {
+    try {
+      el("invite-token").value = decodeURIComponent(inviteMatch[1]);
+    } catch {
+      // Malformed fragment: leave the field empty.
+    }
+    window.history.replaceState(null, "", window.location.pathname + window.location.search);
+  }
+
   updateControlsState();
+  if (state.session?.token) loadPublications();
 
   if (!state.session?.token && PROTECTED_HASHES.has(window.location.hash)) {
     redirectToSignIn(

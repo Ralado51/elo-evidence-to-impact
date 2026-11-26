@@ -24,6 +24,28 @@ import {
 
 const SESSION_STORAGE_KEY = "elo_v3_therapist_session";
 
+const CONTEXT_STORAGE_KEY = "elo_v3_therapist_ctx";
+const SIDE_LABEL_PTBR = { right: "Direito", left: "Esquerdo" };
+
+function readStoredContext() {
+  try {
+    const parsed = JSON.parse(window.sessionStorage.getItem(CONTEXT_STORAGE_KEY) || "null");
+    if (parsed && typeof parsed.participantId === "string" && parsed.participantId) return parsed;
+  } catch {
+    // Ignore storage read errors.
+  }
+  return null;
+}
+
+function writeStoredContext(ctx) {
+  try {
+    if (ctx) window.sessionStorage.setItem(CONTEXT_STORAGE_KEY, JSON.stringify(ctx));
+    else window.sessionStorage.removeItem(CONTEXT_STORAGE_KEY);
+  } catch {
+    // Ignore storage write errors.
+  }
+}
+
 const PROTECTED_HASHES = new Set([
   "#sec-participant",
   "#sec-assessment",
@@ -235,7 +257,35 @@ export function initTherapistApp() {
     renderEvolutionSeries();
   }
 
+  const PARTICIPANT_RESULT_BOXES = [
+    "participant-result",
+    "assessment-result",
+    "goal-result",
+    "prescription-result",
+    "summary-result",
+    "evolution-result",
+    "invite-result",
+  ];
+
   function setActiveParticipant(participantId, alias = "", careLinkId = "", side = "") {
+    const changed = state.participantId !== participantId;
+    if (changed) {
+      // Isolation between participants: nothing from the previous one may stay on screen or in memory.
+      state.participantAlias = "";
+      state.careLinkId = "";
+      state.publishedSummary = null;
+      state.publishedEvolution = null;
+      state.timelineItems = [];
+      for (const id of PARTICIPANT_RESULT_BOXES) {
+        const box = el(id);
+        if (box) {
+          clearElement(box);
+          box.hidden = true;
+        }
+      }
+      const tl = el("timeline-list");
+      if (tl) clearElement(tl);
+    }
     state.participantId = participantId;
     if (alias) state.participantAlias = alias;
     if (careLinkId) state.careLinkId = careLinkId;
@@ -254,6 +304,87 @@ export function initTherapistApp() {
     clearEvolutionSeriesCache();
     updatePublishGates();
     updateSessionBar();
+    const inviteBtn = el("btn-create-invite");
+    if (inviteBtn) inviteBtn.disabled = !participantId;
+    writeStoredContext(
+      participantId
+        ? { participantId, alias: state.participantAlias, careLinkId: state.careLinkId, side: state.side, therapistId: state.session?.principal?.id || "" }
+        : null
+    );
+    highlightSelectedParticipant();
+  }
+
+  // --- Participant list (read-only index view) ---
+
+  function highlightSelectedParticipant() {
+    for (const li of document.querySelectorAll("#participant-list [data-participant-id]")) {
+      const on = li.dataset.participantId === state.participantId;
+      li.dataset.selected = String(on);
+      const b = li.querySelector("button");
+      if (b) b.setAttribute("aria-pressed", String(on));
+    }
+  }
+
+  function renderParticipantList(items) {
+    const list = el("participant-list");
+    clearElement(list);
+    for (const it of items) {
+      const li = document.createElement("li");
+      li.className = "data-card";
+      li.dataset.participantId = it.participant_id;
+      appendParagraph(li, `${it.alias} • lado ${SIDE_LABEL_PTBR[it.side] || it.side || "não informado"}`);
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "btn btn-secondary target";
+      btn.textContent = "Selecionar";
+      btn.setAttribute("aria-label", `Selecionar participante ${it.alias}`);
+      btn.dataset.action = "select-participant";
+      btn.addEventListener("click", () => {
+        setActiveParticipant(it.participant_id, it.alias, it.care_link_id, it.side);
+        showSuccess(`Participante ativo: ${it.alias}.`);
+      });
+      li.appendChild(btn);
+      list.appendChild(li);
+    }
+    highlightSelectedParticipant();
+  }
+
+  async function refreshParticipantList(q = "") {
+    const status = el("participant-list-status");
+    if (!state.session?.token) {
+      status.textContent = "Entre como terapeuta para ver seus participantes.";
+      renderParticipantList([]);
+      return [];
+    }
+    try {
+      const res = await client.listParticipants(q);
+      const items = res.data.participants || [];
+      renderParticipantList(items);
+      status.textContent = items.length
+        ? `${res.data.total} participante(s) ${q ? "encontrado(s)" : "vinculado(s) a você"}.`
+        : q
+          ? "Nenhum participante encontrado para essa pesquisa."
+          : "Você ainda não tem participantes. Cadastre o primeiro acima.";
+      return items;
+    } catch (err) {
+      handleApiError(err);
+      return [];
+    }
+  }
+
+  async function restoreContext() {
+    const items = await refreshParticipantList("");
+    const ctx = readStoredContext();
+    if (!ctx || ctx.therapistId !== (state.session?.principal?.id || "")) {
+      writeStoredContext(null);
+      return;
+    }
+    const hit = items.find((it) => it.participant_id === ctx.participantId);
+    if (!hit) {
+      writeStoredContext(null);
+      return;
+    }
+    setActiveParticipant(hit.participant_id, hit.alias, hit.care_link_id, hit.side);
   }
 
   function updatePublishGates() {
@@ -636,6 +767,10 @@ export function initTherapistApp() {
   btnSignout.addEventListener("click", () => {
     state.session = null;
     writeStoredSession(null);
+    writeStoredContext(null);
+    setActiveParticipant("");
+    renderParticipantList([]);
+    el("participant-list-status").textContent = "Entre como terapeuta para ver seus participantes.";
     updateSessionBar();
     updatePublishGates();
     showSuccess("Sessão encerrada.");
@@ -670,6 +805,7 @@ export function initTherapistApp() {
         `Terapeuta autenticado: ${res.data.principal.id} (organização: ${res.data.principal.org_id}).`
       );
       showSuccess(`Sessão iniciada para ${res.data.principal.id}.`);
+      restoreContext();
     } catch (err) {
       handleApiError(err);
     }
@@ -713,7 +849,8 @@ export function initTherapistApp() {
       );
       appendParagraph(box, `Vínculo de cuidado (care_link): ${careLinkId}`, "mono");
 
-      showSuccess(`Participante ${ent.entity_id} cadastrado e vinculado (${careLinkId}).`);
+      showSuccess(`Participante ${ent.payload.alias} cadastrado e vinculado.`);
+      refreshParticipantList("");
     } catch (err) {
       handleApiError(err);
     }
@@ -730,6 +867,65 @@ export function initTherapistApp() {
     }
     setActiveParticipant(pid);
     showSuccess(`Participante ativo definido para ${pid}.`);
+  });
+
+  el("form-participant-search").addEventListener("submit", (event) => {
+    event.preventDefault();
+    if (!requireAuth()) return;
+    refreshParticipantList(el("participant-search").value.trim());
+  });
+
+  // Invite generation: one click, link ready to share (the code travels in the URL fragment, never in a query string).
+  let inviteBusy = false;
+  el("btn-create-invite").addEventListener("click", async () => {
+    if (!requireAuth() || inviteBusy) return;
+    if (!state.participantId) {
+      showError("MISSING_FIELD", "Selecione um participante antes de gerar o convite.");
+      return;
+    }
+    inviteBusy = true;
+    el("btn-create-invite").disabled = true;
+    try {
+      const ttl = Number(el("invite-ttl").value) || 3600;
+      const res = await client.createInvite(state.participantId, ttl);
+      const link = new URL("participant.html", window.location.href);
+      link.hash = `invite=${encodeURIComponent(res.data.invite_token)}`;
+      const box = el("invite-result");
+      clearElement(box);
+      box.hidden = false;
+      box.dataset.inviteFor = state.participantId;
+      const when = new Date(res.data.expires_at);
+      appendParagraph(box, `Convite gerado para ${state.participantAlias || "o participante"}. Vale até ${when.toLocaleString("pt-BR")} e só pode ser usado uma vez.`);
+      const input = document.createElement("input");
+      input.type = "text";
+      input.readOnly = true;
+      input.id = "invite-link";
+      input.value = link.toString();
+      input.setAttribute("aria-label", "Link do convite para enviar ao participante");
+      box.appendChild(input);
+      const copy = document.createElement("button");
+      copy.type = "button";
+      copy.id = "btn-copy-invite";
+      copy.className = "btn btn-secondary target";
+      copy.textContent = "Copiar link";
+      copy.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(input.value);
+          announce("Link do convite copiado.");
+          showSuccess("Link do convite copiado.");
+        } catch {
+          input.select();
+          showError("CLIPBOARD", "Não consegui copiar sozinho. O link está selecionado: use Ctrl+C.");
+        }
+      });
+      box.appendChild(copy);
+      announce("Convite gerado.");
+    } catch (err) {
+      handleApiError(err);
+    } finally {
+      inviteBusy = false;
+      el("btn-create-invite").disabled = !state.participantId;
+    }
   });
 
   // Step 3: Record functional assessment
@@ -1051,6 +1247,7 @@ export function initTherapistApp() {
 
   updateSessionBar();
   updatePublishGates();
+  if (state.session?.token) restoreContext();
 
   if (!state.session?.token && PROTECTED_HASHES.has(window.location.hash)) {
     redirectToSignIn(

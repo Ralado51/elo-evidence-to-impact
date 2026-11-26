@@ -54,6 +54,10 @@ export class ParticipantApiError extends Error {
 export function assertParticipantContractRoute(method, pathWithQuery) {
   const upper = String(method || "").toUpperCase();
   const pathname = String(pathWithQuery || "").split("?")[0];
+  // Read-only index of the participant's own publications (docs/PROPOSTA_API_CONSOLE.md). Content still uses contract routes.
+  if (upper === "GET" && /^\/api\/console\/v1\/participants\/[^/]+\/publications$/.test(pathname)) {
+    return "console.publications";
+  }
   if (!pathname.startsWith("/api/v3/")) {
     throw new Error(`Contract violation: non-v3 path rejected (${upper} ${pathname})`);
   }
@@ -205,6 +209,9 @@ export function createParticipantClient(options = {}) {
         });
       }
       return res;
+    },
+    listPublications(participantId) {
+      return request("GET", `/api/console/v1/participants/${encodeURIComponent(participantId)}/publications`);
     },
     getSummary(summaryId) {
       return request("GET", `/api/v3/summaries/${encodeURIComponent(summaryId)}`);
