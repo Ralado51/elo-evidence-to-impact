@@ -412,6 +412,7 @@ export const EN = {
   "th.advanced-select.lead": "Use only if you need to resume a participant by identifier. Only participants authorized for you are accepted.",
   "th.advanced-select.summary": "Advanced (support): select by identifier",
   "th.goal-text.default": "Carry out reported sessions of tidying the table with the right hand.",
+  "th.assessment-item-value.default": "partial",
   "th.assessment-note.default": "Initial synthetic record of the hand, descriptive mode.",
   "th.btn-create-assessment": "Record functional assessment",
   "th.btn-create-goal": "Save functional goal",

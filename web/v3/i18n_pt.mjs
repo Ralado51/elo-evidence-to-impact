@@ -412,6 +412,7 @@ export const PT = {
   "th.advanced-select.lead": "Use apenas se precisar retomar um participante pelo identificador. Só são aceitos participantes autorizados para você.",
   "th.advanced-select.summary": "Avançado (suporte): selecionar por identificador",
   "th.goal-text.default": "Realizar sessões relatadas de organizar a mesa com a mão direita.",
+  "th.assessment-item-value.default": "parcial",
   "th.assessment-note.default": "Registro sintético inicial de mão em modo descritivo.",
   "th.btn-create-assessment": "Registrar avaliação funcional",
   "th.btn-create-goal": "Salvar meta funcional",

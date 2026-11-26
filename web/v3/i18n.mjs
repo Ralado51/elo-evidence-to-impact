@@ -41,14 +41,48 @@ export function format(template, params = {}) {
 export function t(key, params) {
   const cat = CATALOGS[current];
   const raw = Object.prototype.hasOwnProperty.call(cat, key) ? cat[key] : Object.prototype.hasOwnProperty.call(PT, key) ? PT[key] : key;
-  return params ? format(raw, params) : raw;
+  const out = params ? format(raw, params) : raw;
+  remember(out, key, params);
+  return out;
+}
+
+// Rendered message -> {key, params}. Lets already-displayed dynamic messages (banners, live region, status lines)
+// be re-rendered from their key and parameters when the language changes, without repeating any operation.
+const RENDERED = new Map();
+function remember(text, key, params) {
+  if (typeof text !== "string" || text.length < 3 || typeof key !== "string") return;
+  if (RENDERED.size > 2000) RENDERED.clear();
+  RENDERED.set(text, { key, params });
+}
+
+/** Re-render a message previously produced by t() in the current language. Unknown text is returned unchanged. */
+export function retranslate(text) {
+  const hit = RENDERED.get(text);
+  if (!hit) return text;
+  let params = hit.params;
+  if (params) {
+    params = {};
+    for (const [k, v] of Object.entries(hit.params)) params[k] = typeof v === "string" && RENDERED.has(v) ? retranslate(v) : v;
+  }
+  return t(hit.key, params);
+}
+
+const DYNAMIC_MESSAGE_SINKS = "#error-banner-text, #success-banner-text, #elo-live-region, [data-live-msg], [data-error-tech] p, [data-error-tech] summary";
+/** Re-render every displayed dynamic message in the current language (text only; no re-announcement, no requests). */
+export function retranslateMessages(root = document) {
+  for (const node of root.querySelectorAll(DYNAMIC_MESSAGE_SINKS)) {
+    const cur = node.textContent;
+    if (!cur) continue;
+    const next = retranslate(cur);
+    if (next !== cur) node.textContent = next;
+  }
 }
 
 /** Label for a contract enum value, e.g. label("side", "right") -> "Direito". Unknown values show a neutral text, not the code. */
 export function label(group, value) {
   const key = `enum.${group}.${value}`;
   const cat = CATALOGS[current];
-  if (Object.prototype.hasOwnProperty.call(cat, key)) return cat[key];
+  if (Object.prototype.hasOwnProperty.call(cat, key)) { remember(cat[key], key); return cat[key]; }
   return t("enum.unknown");
 }
 
@@ -116,6 +150,7 @@ export function setLang(lang, { persist = true } = {}) {
   if (typeof document !== "undefined") {
     document.documentElement.lang = current === "en" ? "en" : "pt-BR";
     applyI18n();
+    retranslateMessages();
     syncSelector();
     document.dispatchEvent(new CustomEvent("elo:lang", { detail: { lang: current } }));
   }

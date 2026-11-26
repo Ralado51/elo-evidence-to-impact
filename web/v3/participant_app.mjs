@@ -883,8 +883,6 @@ export function initParticipantApp() {
 
   initI18n();
   document.addEventListener("elo:lang", () => {
-    clearError();
-    clearSuccess();
     updateControlsState();
     for (const id of boxBuilders.keys()) runBox(id);
     if (state.session?.token) loadPublications();

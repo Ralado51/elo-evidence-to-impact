@@ -414,7 +414,6 @@ function signOut() {
 function init() {
   initI18n();
   document.addEventListener("elo:lang", () => {
-    clearError();
     renderRecents();
     renderPatientView();
     if (state.patient && !$("verify-output").hidden) $("verify-output").hidden = true;

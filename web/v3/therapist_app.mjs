@@ -1294,8 +1294,6 @@ export function initTherapistApp() {
   initI18n();
   document.addEventListener("elo:lang", () => {
     // Re-render dynamic content in the new language without touching what the user typed.
-    clearError();
-    clearSuccess();
     updateSessionBar();
     updatePublishGates();
     renderFactsList();
