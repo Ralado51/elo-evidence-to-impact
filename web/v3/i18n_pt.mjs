@@ -261,6 +261,8 @@ export const PT = {
   "pa.js.exec_mode": "Modo: {mode}",
   "pa.js.goal_line": "Parte do corpo: {seg} • Alvo: {target}",
   "pa.js.need_both": "Escolha uma opção sobre como fez a atividade e uma sobre a ajuda.",
+  "pa.js.need_sum_id": "Informe o código do resumo para abrir.",
+  "pa.js.sum_loaded": "Resumo {id} carregado.",
   "pa.js.need_evo_id": "Informe o código da evolução para abrir.",
   "pa.js.no_goals": "Nenhuma meta cadastrada até o momento.",
   "pa.js.no_session": "Nenhuma sessão de prática iniciada.",

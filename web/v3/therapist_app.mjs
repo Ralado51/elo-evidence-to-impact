@@ -10,7 +10,7 @@ import { announce } from "./a11y.mjs";
 import { createV3Client, V3ApiError } from "./api_client.mjs";
 import { hashCanonical } from "./canonical.mjs";
 import { renderErrorTechnical } from "./ui_messages.mjs";
-import { applyI18n, initI18n, t, label, formatDate, formatDateTime, formatIsoDate } from "./i18n.mjs";
+import { applyI18n, initI18n, t, tm, lref, bindText, label, formatDate, formatDateTime, formatIsoDate } from "./i18n.mjs";
 import {
   canPublishEvolution,
   canPublishSummary,
@@ -148,13 +148,13 @@ export function initTherapistApp() {
     errorBanner.hidden = true;
     errorBanner.removeAttribute("role");
     errorBanner.setAttribute("data-error-code", "");
-    errorBannerText.textContent = "";
+    bindText(errorBannerText, "");
     renderErrorTechnical(errorBanner, "");
   }
 
   function clearSuccess() {
     successBanner.hidden = true;
-    successBannerText.textContent = "";
+    bindText(successBannerText, "");
   }
 
   function showError(code, message, technical = "") {
@@ -162,7 +162,7 @@ export function initTherapistApp() {
     clearSuccess();
     errorBanner.setAttribute("role", "alert");
     errorBanner.setAttribute("data-error-code", code || "ERROR");
-    errorBannerText.textContent = message;
+    bindText(errorBannerText, message);
     renderErrorTechnical(errorBanner, technical);
     errorBanner.hidden = false;
     announce(message, { politeness: "assertive" });
@@ -170,13 +170,13 @@ export function initTherapistApp() {
 
   function showSuccess(message) {
     clearError();
-    successBannerText.textContent = message;
+    bindText(successBannerText, message);
     successBanner.hidden = false;
     announce(message, { politeness: "polite" });
   }
 
   function redirectToSignIn(reasonText, technical = "") {
-    const msg = reasonText || describeApiError({ code: "UNAUTHENTICATED", status: 401 }).message;
+    const msg = reasonText || describeApiError({ code: "UNAUTHENTICATED", status: 401 }).msg;
     showError("UNAUTHENTICATED", msg, technical);
     if (window.location.hash !== "#sec-signin") {
       window.location.hash = "#sec-signin";
@@ -198,15 +198,15 @@ export function initTherapistApp() {
           });
     const info = describeApiError(apiErr);
     if (apiErr.code === "UNAUTHENTICATED") {
-      redirectToSignIn(info.message, info.technical);
+      redirectToSignIn(info.msg, info.technical);
       return;
     }
-    showError(apiErr.code, info.message, info.technical);
+    showError(apiErr.code, info.msg, info.technical);
   }
 
   function requireAuth() {
     if (!state.session || !state.session.token) {
-      redirectToSignIn(t("th.js.session_required"));
+      redirectToSignIn(tm("th.js.session_required"));
       return false;
     }
     return true;
@@ -216,7 +216,7 @@ export function initTherapistApp() {
     if (!requireAuth()) return false;
     const pid = state.participantId.trim();
     if (!pid) {
-      showError("PARTICIPANT_REQUIRED", t("th.js.need_participant"));
+      showError("PARTICIPANT_REQUIRED", tm("th.js.need_participant"));
       el("participant-alias")?.focus();
       return false;
     }
@@ -358,7 +358,7 @@ export function initTherapistApp() {
       btn.dataset.action = "select-participant";
       btn.addEventListener("click", () => {
         setActiveParticipant(it.participant_id, it.alias, it.care_link_id, it.side);
-        showSuccess(t("th.js.active_participant", { name: it.alias }));
+        showSuccess(tm("th.js.active_participant", { name: it.alias }));
       });
       li.appendChild(btn);
       list.appendChild(li);
@@ -558,7 +558,7 @@ export function initTherapistApp() {
       }
       renderFactsList();
       updatePublishGates();
-      showSuccess(t("th.js.review_saved", { decision: label("decision", decision), name: label("fact", entry.fact.type) }));
+      showSuccess(tm("th.js.review_saved", { decision: lref("decision", decision), name: lref("fact", entry.fact.type) }));
     } catch (err) {
       handleApiError(err);
     }
@@ -803,7 +803,7 @@ export function initTherapistApp() {
     paintParticipantStatus();
     updateSessionBar();
     updatePublishGates();
-    showSuccess(t("th.js.signed_out"));
+    showSuccess(tm("th.js.signed_out"));
     window.location.hash = "#sec-signin";
     el("signin-username")?.focus();
   });
@@ -814,7 +814,7 @@ export function initTherapistApp() {
     const username = el("signin-username").value.trim();
     const password = el("signin-password").value;
     if (!username || !password) {
-      showError("UNAUTHENTICATED", t("th.js.need_credentials"));
+      showError("UNAUTHENTICATED", tm("th.js.need_credentials"));
       return;
     }
     try {
@@ -833,7 +833,7 @@ export function initTherapistApp() {
           t("th.js.session_bar", { id: res.data.principal.id, role: label("role", res.data.principal.role), org: res.data.principal.org_id })
         );
       });
-      showSuccess(t("th.js.signed_in", { id: res.data.principal.id }));
+      showSuccess(tm("th.js.signed_in", { id: res.data.principal.id }));
       restoreContext();
     } catch (err) {
       handleApiError(err);
@@ -847,7 +847,7 @@ export function initTherapistApp() {
     const alias = el("participant-alias").value.trim();
     const side = el("participant-side").value;
     if (!alias) {
-      showError("MISSING_FIELD", t("th.js.need_alias"));
+      showError("MISSING_FIELD", tm("th.js.need_alias"));
       return;
     }
     try {
@@ -877,7 +877,7 @@ export function initTherapistApp() {
         appendParagraph(box, t("th.js.audit_link", { id: careLinkId }), "mono");
       });
 
-      showSuccess(t("th.js.registered", { alias: ent.payload.alias }));
+      showSuccess(tm("th.js.registered", { alias: ent.payload.alias }));
       refreshParticipantList("");
     } catch (err) {
       handleApiError(err);
@@ -897,7 +897,7 @@ export function initTherapistApp() {
       if (f) f.value = previous;
     };
     if (!pid) {
-      showError("MISSING_FIELD", t("th.js.need_pid"));
+      showError("MISSING_FIELD", tm("th.js.need_pid"));
       restoreField();
       return;
     }
@@ -906,12 +906,12 @@ export function initTherapistApp() {
       const res = await client.listParticipants("");
       const hit = (res.data.participants || []).find((it) => it.participant_id === pid);
       if (!hit) {
-        showError("NOT_FOUND", t("err.NOT_FOUND"), "[NOT_FOUND] participant not in the authorized list");
+        showError("NOT_FOUND", tm("err.NOT_FOUND"), "[NOT_FOUND] participant not in the authorized list");
         restoreField();
         return;
       }
       setActiveParticipant(hit.participant_id, hit.alias, hit.care_link_id, hit.side);
-      showSuccess(t("th.js.active_participant", { name: hit.alias }));
+      showSuccess(tm("th.js.active_participant", { name: hit.alias }));
     } catch (err) {
       restoreField();
       handleApiError(err);
@@ -931,7 +931,7 @@ export function initTherapistApp() {
   el("btn-create-invite").addEventListener("click", async () => {
     if (!requireAuth() || inviteBusy) return;
     if (!state.participantId) {
-      showError("MISSING_FIELD", t("th.js.invite_need_participant"));
+      showError("MISSING_FIELD", tm("th.js.invite_need_participant"));
       return;
     }
     inviteBusy = true;
@@ -960,16 +960,16 @@ export function initTherapistApp() {
         copy.addEventListener("click", async () => {
           try {
             await navigator.clipboard.writeText(input.value);
-            announce(t("th.js.copied"));
-            showSuccess(t("th.js.copied"));
+            announce(tm("th.js.copied"));
+            showSuccess(tm("th.js.copied"));
           } catch {
             input.select();
-            showError("CLIPBOARD", t("th.js.copy_fail"));
+            showError("CLIPBOARD", tm("th.js.copy_fail"));
           }
         });
         box.appendChild(copy);
       });
-      announce(t("th.js.invite_done"));
+      announce(tm("th.js.invite_done"));
     } catch (err) {
       handleApiError(err);
     } finally {
@@ -1027,7 +1027,7 @@ export function initTherapistApp() {
           t("th.js.assess_saved_detail", { date: formatIsoDate(ent.payload.assessment_date) })
         );
       });
-      showSuccess(t("th.js.assess_saved"));
+      showSuccess(tm("th.js.assess_saved"));
     } catch (err) {
       handleApiError(err);
     }
@@ -1074,7 +1074,7 @@ export function initTherapistApp() {
           t("th.js.goal_saved_detail", { status: label("goal_status", ent.payload.status) })
         );
       });
-      showSuccess(t("th.js.goal_saved"));
+      showSuccess(tm("th.js.goal_saved"));
     } catch (err) {
       handleApiError(err);
     }
@@ -1126,7 +1126,7 @@ export function initTherapistApp() {
         );
         appendParagraph(box, t("th.js.audit_event_only", { id: rxData.event_id }), "mono");
       });
-      showSuccess(t("th.js.rx_saved", { rev: rxData.revision }));
+      showSuccess(tm("th.js.rx_saved", { rev: rxData.revision }));
     } catch (err) {
       handleApiError(err);
     }
@@ -1176,7 +1176,7 @@ export function initTherapistApp() {
         summaryBox,
         t("th.js.facts_loaded_detail", { n: entries.length })
       );
-      showSuccess(t("th.js.facts_loaded_detail", { n: entries.length }));
+      showSuccess(tm("th.js.facts_loaded_detail", { n: entries.length }));
     } catch (err) {
       handleApiError(err);
     }
@@ -1190,7 +1190,7 @@ export function initTherapistApp() {
     if (items.length === 0) {
       showError(
         "FACT_NOT_APPROVED",
-        describeApiError({ code: "FACT_NOT_APPROVED", status: 422 }).message
+        describeApiError({ code: "FACT_NOT_APPROVED", status: 422 }).msg
       );
       return;
     }
@@ -1206,7 +1206,7 @@ export function initTherapistApp() {
       const getRes = await client.getSummary(pubRes.data.summary_id);
       state.publishedSummary = getRes.data;
       renderPublishedSummary(getRes.data);
-      showSuccess(t("th.js.summary_ok"));
+      showSuccess(tm("th.js.summary_ok"));
     } catch (err) {
       handleApiError(err);
     }
@@ -1222,8 +1222,7 @@ export function initTherapistApp() {
       state.evolutionContextChanges = res.data?.context_changes || {};
       renderEvolutionSeries();
       updatePublishGates();
-      showSuccess(
-        t("th.js.series_loaded", { n: state.evolutionSeries.length })
+      showSuccess(tm("th.js.series_loaded", { n: state.evolutionSeries.length })
       );
     } catch (err) {
       handleApiError(err);
@@ -1242,7 +1241,7 @@ export function initTherapistApp() {
     ) {
       showError(
         "UNREVIEWED_FACT_IN_EVOLUTION",
-        describeApiError({ code: "UNREVIEWED_FACT_IN_EVOLUTION", status: 409 }).message
+        describeApiError({ code: "UNREVIEWED_FACT_IN_EVOLUTION", status: 409 }).msg
       );
       return;
     }
@@ -1258,7 +1257,7 @@ export function initTherapistApp() {
       const getRes = await client.getEvolution(pubRes.data.evolution_id);
       state.publishedEvolution = getRes.data;
       renderPublishedEvolution(getRes.data);
-      showSuccess(t("th.js.evo_ok"));
+      showSuccess(tm("th.js.evo_ok"));
     } catch (err) {
       handleApiError(err);
     }
@@ -1276,7 +1275,7 @@ export function initTherapistApp() {
       renderBox("timeline-summary", (box) => {
         appendParagraph(box, t("th.js.timeline_loaded", { n: items.length }));
       });
-      showSuccess(t("th.js.timeline_loaded", { n: items.length }));
+      showSuccess(tm("th.js.timeline_loaded", { n: items.length }));
     } catch (err) {
       handleApiError(err);
     }
@@ -1285,8 +1284,7 @@ export function initTherapistApp() {
   // Row 9: Unauthenticated navigation to any protected section redirects to sign-in.
   window.addEventListener("hashchange", () => {
     if (!state.session?.token && PROTECTED_HASHES.has(window.location.hash)) {
-      redirectToSignIn(
-        t("th.js.session_required")
+      redirectToSignIn(tm("th.js.session_required")
       );
     }
   });
@@ -1310,8 +1308,7 @@ export function initTherapistApp() {
   if (state.session?.token) restoreContext();
 
   if (!state.session?.token && PROTECTED_HASHES.has(window.location.hash)) {
-    redirectToSignIn(
-      t("th.js.session_required")
+    redirectToSignIn(tm("th.js.session_required")
     );
   }
 }

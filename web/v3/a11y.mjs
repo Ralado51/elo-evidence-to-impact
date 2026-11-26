@@ -55,5 +55,7 @@ export function announce(message, options = {}) {
   // Clear first, then set so repeated identical messages trigger a fresh announcement.
   target.textContent = "";
   target.textContent = text;
+  // Structured messages (objects with render()) stay bound so they can be re-rendered on language change.
+  target.eloMsg = message !== null && typeof message === "object" && typeof message.render === "function" ? message : null;
   return text;
 }

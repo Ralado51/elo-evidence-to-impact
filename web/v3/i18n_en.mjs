@@ -261,6 +261,8 @@ export const EN = {
   "pa.js.exec_mode": "Mode: {mode}",
   "pa.js.goal_line": "Body part: {seg} • Target: {target}",
   "pa.js.need_both": "Choose one option about how you did the activity and one about the help.",
+  "pa.js.need_sum_id": "Enter the summary code to open.",
+  "pa.js.sum_loaded": "Summary {id} loaded.",
   "pa.js.need_evo_id": "Enter the progress code to open.",
   "pa.js.no_goals": "No goals recorded yet.",
   "pa.js.no_session": "No practice session started.",

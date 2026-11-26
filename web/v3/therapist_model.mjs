@@ -4,7 +4,7 @@
  * Zero DOM dependencies so all review-gate, origin-label, execution-mode,
  * error-formatting, and forbidden-output rules are directly unit-testable.
  */
-import { t, label } from "./i18n.mjs";
+import { t, tm, label } from "./i18n.mjs";
 
 /**
  * Origin labels mirrored directly from contracts/CL06_3-r1/contracts/catalogs/limitations.v2.json.
@@ -51,15 +51,16 @@ const RULE_PATTERNS = Object.freeze([
  */
 export function describeApiError(error) {
   const code = typeof error?.code === "string" && error.code ? error.code : "UNKNOWN_ERROR";
-  let message;
+  let msgKey;
   if (code === "RULE_VIOLATION") {
     const hit = RULE_PATTERNS.find(([re]) => re.test(String(error?.message || "")));
-    message = t(hit ? hit[1] : "err.RULE_VIOLATION");
+    msgKey = hit ? hit[1] : "err.RULE_VIOLATION";
   } else {
-    message = t(`err.${code}`);
-    if (message === `err.${code}`) message = t("err.generic");
+    msgKey = `err.${code}`;
+    if (t(msgKey) === msgKey) msgKey = "err.generic";
   }
-  return { message, code, technical: formatApiErrorMessage(error) };
+  const message = t(msgKey);
+  return { message, msg: tm(msgKey), code, technical: formatApiErrorMessage(error) };
 }
 
 /**

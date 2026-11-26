@@ -1,5 +1,5 @@
 /** Shared banner helper: technical details (code, HTTP status) live in a collapsed block for audit/diagnostics only. */
-import { t } from "./i18n.mjs";
+import { tm, bindText } from "./i18n.mjs";
 
 export function renderErrorTechnical(banner, technical) {
   if (!banner) return;
@@ -18,6 +18,6 @@ export function renderErrorTechnical(banner, technical) {
     box.appendChild(pre);
     banner.appendChild(box);
   }
-  box.querySelector("summary").textContent = t("err.tech_summary");
+  bindText(box.querySelector("summary"), tm("err.tech_summary"));
   box.querySelector("p").textContent = technical;
 }

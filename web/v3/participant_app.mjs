@@ -11,7 +11,7 @@
 
 import { announce } from "./a11y.mjs";
 import { createParticipantClient, ParticipantApiError } from "./participant_api.mjs";
-import { initI18n, t, label, formatDateTime, formatIsoDate } from "./i18n.mjs";
+import { initI18n, t, tm, bindText, label, formatDateTime, formatIsoDate } from "./i18n.mjs";
 import { renderErrorTechnical } from "./ui_messages.mjs";
 import {
   PARTICIPANT_DATA_ORIGIN,
@@ -153,20 +153,20 @@ export function initParticipantApp() {
     errorBanner.hidden = true;
     errorBanner.removeAttribute("role");
     errorBanner.setAttribute("data-error-code", "");
-    errorBannerText.textContent = "";
+    bindText(errorBannerText, "");
     renderErrorTechnical(errorBanner, "");
   }
 
   function clearSuccess() {
     successBanner.hidden = true;
-    successBannerText.textContent = "";
+    bindText(successBannerText, "");
   }
 
   function showError(code, message, technical = "") {
     clearSuccess();
     errorBanner.setAttribute("role", "alert");
     errorBanner.setAttribute("data-error-code", code || "ERROR");
-    errorBannerText.textContent = message;
+    bindText(errorBannerText, message);
     renderErrorTechnical(errorBanner, technical);
     errorBanner.hidden = false;
     announce(message, { politeness: "assertive" });
@@ -174,13 +174,13 @@ export function initParticipantApp() {
 
   function showSuccess(message) {
     clearError();
-    successBannerText.textContent = message;
+    bindText(successBannerText, message);
     successBanner.hidden = false;
     announce(message, { politeness: "polite" });
   }
 
   function redirectToSignIn(reasonText, technical = "") {
-    const msg = reasonText || describeParticipantError({ code: "UNAUTHENTICATED", status: 401 }).message;
+    const msg = reasonText || describeParticipantError({ code: "UNAUTHENTICATED", status: 401 }).msg;
     showError("UNAUTHENTICATED", msg, technical);
     if (window.location.hash !== "#sec-signin") {
       window.location.hash = "#sec-signin";
@@ -199,15 +199,15 @@ export function initParticipantApp() {
           });
     const info = describeParticipantError(apiErr);
     if (apiErr.code === "UNAUTHENTICATED") {
-      redirectToSignIn(info.message, info.technical);
+      redirectToSignIn(info.msg, info.technical);
       return;
     }
-    showError(apiErr.code, info.message, info.technical);
+    showError(apiErr.code, info.msg, info.technical);
   }
 
   function requireAuth() {
     if (!state.session || !state.session.token || !state.session.principal?.id) {
-      redirectToSignIn( t("pa.js.session_required") );
+      redirectToSignIn(tm("pa.js.session_required") );
       return false;
     }
     return true;
@@ -556,7 +556,7 @@ export function initParticipantApp() {
       state.goals = Array.isArray(goalsRes.data) ? goalsRes.data : [];
       renderPrescription(state.prescription);
       renderGoals(state.goals);
-      showSuccess(t("pa.js.plan_loaded"));
+      showSuccess(tm("pa.js.plan_loaded"));
       return true;
     } catch (err) {
       handleApiError(err);
@@ -569,7 +569,7 @@ export function initParticipantApp() {
     if (!state.activeSession || state.activeSession.phase !== "active") {
       showError(
         "INVALID_TRANSITION",
-        describeParticipantError({ code: "INVALID_TRANSITION", status: 200 }).message
+        describeParticipantError({ code: "INVALID_TRANSITION", status: 200 }).msg
       );
       return;
     }
@@ -577,7 +577,7 @@ export function initParticipantApp() {
     if (!rxPayload) {
       showError(
         "PRESCRIPTION_NOT_FOUND",
-        describeParticipantError({ code: "PRESCRIPTION_NOT_FOUND", status: 404 }).message
+        describeParticipantError({ code: "PRESCRIPTION_NOT_FOUND", status: 404 }).msg
       );
       return;
     }
@@ -614,7 +614,7 @@ export function initParticipantApp() {
       resBox.dataset.endAction = action;
       const msgKey = action === "pain" ? "pa.js.stop_pain" : action === "fatigue" ? "pa.js.stop_fatigue" : "pa.js.stop_done";
       renderBox("session-result", (b) => appendParagraph(b, t(msgKey)));
-      showSuccess(t(msgKey));
+      showSuccess(tm(msgKey));
     } catch (err) {
       handleApiError(err);
     }
@@ -624,13 +624,13 @@ export function initParticipantApp() {
     if (!requireAuth()) return;
     const clean = (summaryId || "").trim();
     if (!clean) {
-      showError("NOT_FOUND", "[NOT_FOUND] Informe o identificador do resumo para abrir.");
+      showError("NOT_FOUND", tm("pa.js.need_sum_id"));
       return;
     }
     try {
       const res = await client.getSummary(clean);
       renderSummaryView(res.data);
-      showSuccess(`Resumo ${res.data.summary_id} carregado.`);
+      showSuccess(tm("pa.js.sum_loaded", { id: res.data.summary_id }));
     } catch (err) {
       el("summary-view").hidden = true;
       clearElement(el("summary-view"));
@@ -642,13 +642,13 @@ export function initParticipantApp() {
     if (!requireAuth()) return;
     const clean = (evolutionId || "").trim();
     if (!clean) {
-      showError("NOT_FOUND", t("pa.js.need_evo_id"));
+      showError("NOT_FOUND", tm("pa.js.need_evo_id"));
       return;
     }
     try {
       const res = await client.getEvolution(clean);
       renderEvolutionView(res.data);
-      showSuccess(t("pa.js.evo_loaded"));
+      showSuccess(tm("pa.js.evo_loaded"));
     } catch (err) {
       el("evolution-view").hidden = true;
       clearElement(el("evolution-view"));
@@ -676,7 +676,7 @@ export function initParticipantApp() {
     }
     el("summary-id-input").value = "";
     el("evolution-id-input").value = "";
-    showSuccess(t("pa.js.signed_out"));
+    showSuccess(tm("pa.js.signed_out"));
     window.location.hash = "#sec-signin";
     el("invite-token")?.focus();
   });
@@ -686,7 +686,7 @@ export function initParticipantApp() {
     event.preventDefault();
     const tokenVal = el("invite-token").value.trim();
     if (!tokenVal) {
-      showError("INVITE_INVALID", describeParticipantError({ code: "INVITE_INVALID", status: 400 }).message);
+      showError("INVITE_INVALID", describeParticipantError({ code: "INVITE_INVALID", status: 400 }).msg);
       return;
     }
     try {
@@ -701,7 +701,7 @@ export function initParticipantApp() {
       loadPublications();
 
       renderBox("signin-result", (b) => appendParagraph(b, t("pa.js.access_granted")));
-      showSuccess(t("pa.js.signed_in_ok"));
+      showSuccess(tm("pa.js.signed_in_ok"));
     } catch (err) {
       handleApiError(err);
     }
@@ -762,7 +762,7 @@ export function initParticipantApp() {
       resBox.dataset.sessionPhase = "active";
       resBox.dataset.sessionId = sessionId;
       renderBox("session-result", (b) => appendParagraph(b, t("pa.js.started_detail")));
-      showSuccess(t("pa.js.started"));
+      showSuccess(tm("pa.js.started"));
     } catch (err) {
       handleApiError(err);
     }
@@ -793,19 +793,19 @@ export function initParticipantApp() {
     if (!state.activeSession || state.activeSession.phase !== "ended") {
       showError(
         "INVALID_TRANSITION",
-        describeParticipantError({ code: "INVALID_TRANSITION", status: 200 }).message
+        describeParticipantError({ code: "INVALID_TRANSITION", status: 200 }).msg
       );
       return;
     }
     if (!state.reportExecution || !state.reportAssistance) {
-      showError("RULE_VIOLATION", t("pa.js.need_both"));
+      showError("RULE_VIOLATION", tm("pa.js.need_both"));
       return;
     }
     const rxPayload = state.prescription?.payload;
     if (!rxPayload) {
       showError(
         "PRESCRIPTION_NOT_FOUND",
-        describeParticipantError({ code: "PRESCRIPTION_NOT_FOUND", status: 404 }).message
+        describeParticipantError({ code: "PRESCRIPTION_NOT_FOUND", status: 404 }).msg
       );
       return;
     }
@@ -839,7 +839,7 @@ export function initParticipantApp() {
       resBox.dataset.reportExecution = submittedExec;
       resBox.dataset.reportAssistance = submittedAssist;
       renderBox("report-result", (b) => appendParagraph(b, t("pa.js.report_saved")));
-      showSuccess(t("pa.js.report_sent"));
+      showSuccess(tm("pa.js.report_sent"));
     } catch (err) {
       handleApiError(err);
     }
@@ -859,7 +859,7 @@ export function initParticipantApp() {
   // Row 9: Unauthenticated navigation to protected section redirects to sign-in.
   window.addEventListener("hashchange", () => {
     if (!state.session?.token && PROTECTED_HASHES.has(window.location.hash)) {
-      redirectToSignIn( t("pa.js.session_required") );
+      redirectToSignIn(tm("pa.js.session_required") );
     }
   });
 
@@ -895,7 +895,7 @@ export function initParticipantApp() {
   if (state.session?.token) loadPublications();
 
   if (!state.session?.token && PROTECTED_HASHES.has(window.location.hash)) {
-    redirectToSignIn( t("pa.js.session_required") );
+    redirectToSignIn(tm("pa.js.session_required") );
   }
 }
 

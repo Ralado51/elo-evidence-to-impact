@@ -41,40 +41,41 @@ export function format(template, params = {}) {
 export function t(key, params) {
   const cat = CATALOGS[current];
   const raw = Object.prototype.hasOwnProperty.call(cat, key) ? cat[key] : Object.prototype.hasOwnProperty.call(PT, key) ? PT[key] : key;
-  const out = params ? format(raw, params) : raw;
-  remember(out, key, params);
-  return out;
+  return params ? format(raw, params) : raw;
 }
 
-// Rendered message -> {key, params}. Lets already-displayed dynamic messages (banners, live region, status lines)
-// be re-rendered from their key and parameters when the language changes, without repeating any operation.
-const RENDERED = new Map();
-function remember(text, key, params) {
-  if (typeof text !== "string" || text.length < 3 || typeof key !== "string") return;
-  if (RENDERED.size > 2000) RENDERED.clear();
-  RENDERED.set(text, { key, params });
-}
-
-/** Re-render a message previously produced by t() in the current language. Unknown text is returned unchanged. */
-export function retranslate(text) {
-  const hit = RENDERED.get(text);
-  if (!hit) return text;
-  let params = hit.params;
-  if (params) {
-    params = {};
-    for (const [k, v] of Object.entries(hit.params)) params[k] = typeof v === "string" && RENDERED.has(v) ? retranslate(v) : v;
+/**
+ * Structured, re-renderable message: a translation key plus parameters. Parameters are LITERALS by default
+ * (user data such as an alias is never interpreted as a key or label). Only explicit refs are translated:
+ *   lref(group, value) -> label of a contract enum value;  kref(key) -> a catalog text.
+ * The message is bound to the component that shows it (see bindText) and rendered again on language change.
+ */
+class Ref { constructor(kind, a, b) { this.kind = kind; this.a = a; this.b = b; } render() { return this.kind === "label" ? label(this.a, this.b) : t(this.a); } }
+export const lref = (group, value) => new Ref("label", group, value);
+export const kref = (key) => new Ref("key", key);
+export class Msg {
+  constructor(key, params) { this.key = key; this.params = params; Object.freeze(this); }
+  render() {
+    if (!this.params) return t(this.key);
+    const p = {};
+    for (const [k, v] of Object.entries(this.params)) p[k] = v instanceof Ref ? v.render() : v;
+    return t(this.key, p);
   }
-  return t(hit.key, params);
+  toString() { return this.render(); }
+}
+export const tm = (key, params) => new Msg(key, params);
+
+/** Show text in a node; a Msg is remembered on the node so it can be re-rendered on language change. Plain strings stay static. */
+export function bindText(node, value) {
+  if (!node) return;
+  node.eloMsg = value instanceof Msg ? value : null;
+  node.textContent = String(value ?? "");
 }
 
-const DYNAMIC_MESSAGE_SINKS = "#error-banner-text, #success-banner-text, #elo-live-region, [data-live-msg], [data-error-tech] p, [data-error-tech] summary";
-/** Re-render every displayed dynamic message in the current language (text only; no re-announcement, no requests). */
+/** Re-render every node showing a bound Msg in the current language (text only; no requests, no re-announcement). */
 export function retranslateMessages(root = document) {
-  for (const node of root.querySelectorAll(DYNAMIC_MESSAGE_SINKS)) {
-    const cur = node.textContent;
-    if (!cur) continue;
-    const next = retranslate(cur);
-    if (next !== cur) node.textContent = next;
+  for (const node of root.querySelectorAll("*")) {
+    if (node.eloMsg instanceof Msg) node.textContent = node.eloMsg.render();
   }
 }
 
@@ -82,7 +83,7 @@ export function retranslateMessages(root = document) {
 export function label(group, value) {
   const key = `enum.${group}.${value}`;
   const cat = CATALOGS[current];
-  if (Object.prototype.hasOwnProperty.call(cat, key)) { remember(cat[key], key); return cat[key]; }
+  if (Object.prototype.hasOwnProperty.call(cat, key)) return cat[key];
   return t("enum.unknown");
 }
 
@@ -107,6 +108,14 @@ export function formatNumber(n, opts) {
   return new Intl.NumberFormat(current, opts).format(n);
 }
 
+/** Application-managed defaults: replaced only while the person has never edited the field (explicit flag, never a content comparison). */
+export function applyManagedDefaults(root = document) {
+  for (const el of root.querySelectorAll("[data-i18n-value]")) {
+    if (el.dataset.userEdited === "true") continue;
+    el.value = t(el.getAttribute("data-i18n-value"));
+  }
+}
+
 /** Apply translations to static markup: data-i18n (text), data-i18n-attr="attr:key;attr:key", data-i18n-value (untouched defaults). */
 export function applyI18n(root = document) {
   for (const el of root.querySelectorAll("[data-i18n]")) {
@@ -118,16 +127,7 @@ export function applyI18n(root = document) {
       if (attr && key) el.setAttribute(attr.trim(), t(key.trim()));
     }
   }
-  for (const el of root.querySelectorAll("[data-i18n-value]")) {
-    // Only replace a sample default the person has not edited.
-    const prev = el.getAttribute("data-i18n-last") ?? "";
-    const key0 = el.getAttribute("data-i18n-value");
-    if (el.value === prev || el.value === "" || el.value === PT[key0] || el.value === EN[key0]) {
-      const next = t(el.getAttribute("data-i18n-value"));
-      el.value = next;
-      el.setAttribute("data-i18n-last", next);
-    }
-  }
+  applyManagedDefaults(root);
   const titleKey = document.documentElement.getAttribute("data-i18n-title");
   if (titleKey) document.title = t(titleKey);
 }
@@ -217,6 +217,16 @@ export function initI18n() {
   const stored = readStored();
   current = normalizeLang(stored || DEFAULT_LANG);
   if (typeof document !== "undefined") {
+    // Explicit edit tracking: any user input on a managed default (typing, paste, delete) marks it as person-owned.
+    document.addEventListener("input", (e) => {
+      const el = e.target;
+      if (el && el.matches && el.matches("[data-i18n-value]")) el.dataset.userEdited = "true";
+    }, true);
+    // A form reset restores application defaults, which are managed again (localized) afterwards.
+    document.addEventListener("reset", (e) => {
+      for (const el of e.target.querySelectorAll?.("[data-i18n-value]") || []) delete el.dataset.userEdited;
+      queueMicrotask(() => applyManagedDefaults());
+    }, true);
     mountLanguageSelector();
     setLang(current, { persist: Boolean(stored) });
     mountRevisionInfo();

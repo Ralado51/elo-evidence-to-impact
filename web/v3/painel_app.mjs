@@ -8,7 +8,7 @@
 import { announce } from "./a11y.mjs";
 import { createV3Client } from "./api_client.mjs";
 import { describeApiError } from "./therapist_model.mjs";
-import { initI18n, t, label as enumLabel, formatDateTime } from "./i18n.mjs";
+import { initI18n, t, tm, bindText, label as enumLabel, formatDateTime } from "./i18n.mjs";
 import { renderErrorTechnical } from "./ui_messages.mjs";
 import {
   ASSISTANCE_LEVELS,
@@ -70,15 +70,15 @@ function rememberPatient(id, alias) {
 function showError(error) {
   const banner = $("error-banner");
   const info = describeApiError(error);
-  $("error-banner-text").textContent = info.message;
+  bindText($("error-banner-text"), info.msg);
   renderErrorTechnical(banner, info.technical);
   banner.hidden = false;
-  announce(info.message, { politeness: "assertive" });
+  announce(info.msg, { politeness: "assertive" });
 }
 
 function clearError() {
   $("error-banner").hidden = true;
-  $("error-banner-text").textContent = "";
+  bindText($("error-banner-text"), "");
   renderErrorTechnical($("error-banner"), "");
 }
 
@@ -299,7 +299,7 @@ async function runVerify(kind) {
   if (res.status === 200 && res.data?.valid) {
     verdict.dataset.verdict = "accepted";
     verdict.append(el("span", { text: t("pn.js.accepted") }), el("p", { text: t("pn.js.accepted_why") }));
-    announce(t("pn.js.accepted_ann"));
+    announce(tm("pn.js.accepted_ann"));
   } else if (res.status === 200) {
     verdict.dataset.verdict = "blocked";
     const code = res.data?.code || "REJECTED";
@@ -307,7 +307,7 @@ async function runVerify(kind) {
       el("span", {}, [document.createTextNode(t("pn.js.blocked") + " — "), el("span", { class: "code", title: t("err.tech_summary"), text: code })]),
       el("p", { text: describeVerifyFailure(code) })
     );
-    announce(t("pn.js.blocked_ann"), { politeness: "assertive" });
+    announce(tm("pn.js.blocked_ann"), { politeness: "assertive" });
   } else {
     showError({ code: res.data?.error?.code || "HTTP_ERROR", status: res.status });
   }
@@ -370,7 +370,7 @@ async function openPatient(participantId) {
     setCaseNav(true);
     rememberPatient(id, alias);
     renderRecents();
-    announce(t("pn.js.loaded", { alias }));
+    announce(tm("pn.js.loaded", { alias }));
   } catch (error) {
     showError(error);
   }
@@ -393,7 +393,7 @@ async function onSignin(event) {
 function afterSignin() {
   setSignedIn(true);
   renderRecents();
-  announce(t("pn.js.signed_in"));
+  announce(tm("pn.js.signed_in"));
   const param = new URLSearchParams(window.location.search).get("participant");
   if (param) openPatient(param);
 }
@@ -408,7 +408,7 @@ function signOut() {
   }
   $("paciente").hidden = true;
   setSignedIn(false);
-  announce(t("pn.js.signed_out"));
+  announce(tm("pn.js.signed_out"));
 }
 
 function init() {

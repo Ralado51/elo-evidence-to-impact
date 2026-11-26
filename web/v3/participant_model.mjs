@@ -6,7 +6,7 @@
  */
 
 import { hashCanonical } from "./canonical.mjs";
-import { t, label } from "./i18n.mjs";
+import { t, tm, label } from "./i18n.mjs";
 import {
   formatAssistanceTransition,
   formatExecutionMode,
@@ -57,10 +57,11 @@ export function organizarAMesaGuide() {
 /** Friendly localized participant error; technical detail is returned separately for audit only. */
 export function describeParticipantError(err) {
   const code = typeof err?.code === "string" && err.code ? err.code : "UNKNOWN_ERROR";
-  let message = t(`pa.err.${code}`);
-  if (message === `pa.err.${code}`) message = t(`err.${code}`);
-  if (message === `err.${code}`) message = t("err.generic");
-  return { message, code, technical: formatParticipantError(err) };
+  let msgKey = `pa.err.${code}`;
+  if (t(msgKey) === msgKey) msgKey = `err.${code}`;
+  if (t(msgKey) === msgKey) msgKey = "err.generic";
+  const message = t(msgKey);
+  return { message, msg: tm(msgKey), code, technical: formatParticipantError(err) };
 }
 
 const ALLOWED_CONTROL_ACTIONS = new Set([
