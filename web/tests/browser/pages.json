@@ -23,6 +23,12 @@
       "path": "/v3/painel.html",
       "liveRegionModule": "/v3/a11y.mjs",
       "inlineLinkExceptions": []
+    },
+    {
+      "id": "v3-contador",
+      "path": "/v3/contador.html",
+      "liveRegionModule": "/v3/a11y.mjs",
+      "inlineLinkExceptions": []
     }
   ]
 }

@@ -2,3 +2,9 @@ Elo Evidence-to-Impact
 Copyright 2026 Airton Justino de Oliveira Junior and Raquel Cristina Delazari
 
 This product was created for Hack Brasil 2026. It uses synthetic data only.
+
+Third-party components used by the hand counter (web/v3/contador.html), loaded at deploy time and not stored in this repository:
+- MediaPipe Tasks Vision (@mediapipe/tasks-vision) and the Hand Landmarker model (hand_landmarker.task),
+  Copyright Google LLC, licensed under the Apache License, Version 2.0 (https://www.apache.org/licenses/LICENSE-2.0).
+  The model file's own licence is not stated separately by Google; see docs/third-party/mediapipe-hand-landmarker.md
+  and decision E-1 (option A). No modifications were made to these components.
