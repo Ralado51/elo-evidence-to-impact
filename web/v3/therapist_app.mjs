@@ -1154,6 +1154,7 @@ export function initTherapistApp() {
   el("form-goal").addEventListener("submit", async (event) => {
     event.preventDefault();
     if (!requireParticipant()) return;
+    if (!validateDateFields([{ input: el("goal-deadline"), required: false }])) return;
     if (!domainCatalogs.goalRules) Object.assign(domainCatalogs, await loadCatalogs());
     const kind = el("goal-target-kind").value;
     const target = buildGoalTarget(domainCatalogs.goalRules, kind, el("goal-target-value").value);
@@ -1173,6 +1174,7 @@ export function initTherapistApp() {
       status: el("goal-status").value,
       confirmed_by: null,
       confirmed_at: null,
+      ...(el("goal-deadline").value ? { deadline: el("goal-deadline").value } : {}),
     };
     await cmd("goal", (key) => client.createGoal(state.participantId, payload, { idempotencyKey: key }), async (res) => {
       const ent = res.data;

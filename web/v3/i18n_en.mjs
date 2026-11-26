@@ -638,6 +638,7 @@ export const EN = {
   "rule.dose.reps_range": "Repetitions must be whole numbers from 1 up to the technical limit.",
   "rule.dose.product_max": "Sets × repetitions exceeds the technical processing limit.",
   "rule.dose.sessions_week_range": "Sessions per week must be whole numbers from 1 to 14.",
+  "th.label.goal-deadline": "Goal deadline (optional)",
   "th.session-summary": "Not signed in. Sign in as a therapist in step 1 to continue.",
   "th.summary-gate-status": "Publishing blocked: no eligible evidence has been approved yet.",
   "th.timeline-list.aria": "Timeline items",

@@ -24,6 +24,8 @@ from elo.canonical import canonicalize, hash_canonical
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
 CONTRACTS_R1 = REPO_ROOT / "contracts" / "CL06_3-r1" / "contracts"
+CONTRACTS_A2 = REPO_ROOT / "contracts" / "CL06_3-A2" / "contracts"
+A2_ENTITY_SCHEMAS = frozenset({"goal"})
 
 ENTITY_PREFIX: dict[str, str] = {
     "participant": "p",
@@ -172,6 +174,10 @@ def check_entity_chain(versions: list[dict[str, Any]]) -> list[str]:
 
 @lru_cache(maxsize=16)
 def load_entity_schema(entity_type: str) -> dict[str, Any]:
+    # A2 candidate (3.2.0): ``goal`` gains an optional ``deadline``. The A2 schema is a strict superset of r1, so every
+    # legacy record stays valid; r1 files themselves are never modified.
+    if entity_type in A2_ENTITY_SCHEMAS:
+        return json.loads((CONTRACTS_A2 / "schemas" / "entities" / f"{entity_type}.schema.json").read_text(encoding="utf-8"))
     path = CONTRACTS_R1 / "schemas" / "entities" / f"{entity_type}.schema.json"
     return json.loads(path.read_text(encoding="utf-8"))
 

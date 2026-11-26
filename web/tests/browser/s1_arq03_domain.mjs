@@ -142,6 +142,25 @@ await check("BR-A2-10 dose: produto acima do limite técnico (10×11) e 15 sess�
   await t.waitForSelector("#rx-sessions-week-error:not([hidden])");
   assert.equal(count(/prescriptions/), before);
 });
+
+await check("BR-A2-11 prazo opcional: ausente não é enviado; válido é gravado; impossível é bloqueado no campo; servidor também recusa", async () => {
+  await t.fill("#goal-text", "Meta com prazo A2 (primeira)");
+  await t.fill("#goal-target-value", "3");
+  const before = (await goals()).length;
+  await t.click("#btn-create-goal");
+  for (let i = 0; i < 30 && (await goals()).length < before + 1; i++) await t.waitForTimeout(200);
+  assert.equal((await goals()).length, before + 1);
+  assert.equal("deadline" in (await goals()).at(-1).payload, false);
+  await t.fill("#goal-text", "Meta com prazo A2 (segunda)");
+  await t.fill("#goal-deadline", "2026-12-31");
+  await t.click("#btn-create-goal");
+  for (let i = 0; i < 30 && (await goals()).length < before + 2; i++) await t.waitForTimeout(200);
+  assert.equal((await goals()).at(-1).payload.deadline, "2026-12-31");
+  assert.equal((await goals()).length, before + 2);
+  const r = await ctx.request.post(`${origin}/api/v3/participants/${pid}/goals`, { headers: H, data: { goal_text: "x", body_segment: "hand", target: { kind: "descriptive_text", value: null, unit: null }, status: "active", confirmed_by: null, confirmed_at: null, deadline: "2026-02-30" } });
+  assert.equal(r.status(), 400);
+  assert.equal((await r.json()).error.details.rule, "goal.deadline_civil_date");
+});
 await browser.close();
 const failed = results.filter((r) => !r.ok);
 console.log(JSON.stringify({ passed: failed.length === 0, results }, null, 2));

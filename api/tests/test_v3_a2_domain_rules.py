@@ -136,3 +136,27 @@ def test_zero_unknown_and_not_assessed_are_distinct_and_accepted(monkeypatch):
     assert r.status_code == 201, r.text
     stored = r.json()["payload"]["items"]
     assert [i["value"] for i in stored] == [0, None, None] and [i["not_assessed"] for i in stored] == [False, False, True]
+
+
+# --- A2-03 deadline --------------------------------------------------------------------------------------------
+@pytest.mark.parametrize("v", VEC["deadline"], ids=lambda v: v["id"])
+def test_deadline_vectors(v):
+    got = [x.rule for x in DOMAIN_RULES.evaluate("goal", {"payload": {"deadline": v["deadline"], "target": {"kind": "descriptive_text", "value": None, "unit": None}}})]
+    assert (got == []) if v["ok"] else (got == [v["rule"]])
+
+
+def test_goal_http_deadline_optional_valid_invalid_and_history(monkeypatch):
+    app, client, ctx = _make_seeded_app(monkeypatch)
+    h = {"Authorization": f"Bearer {ctx['t1_tok']}"}
+    url = f"/api/v3/participants/{ctx['p1_id']}/goals"
+    base = _valid_goal_payload()
+    no_deadline = client.post(url, headers=h, json=base)
+    assert no_deadline.status_code == 201 and "deadline" not in no_deadline.json()["payload"]  # absent stays absent (hashes/history)
+    ok = client.post(url, headers=h, json={**base, "deadline": "2020-01-01"})  # no past rule
+    assert ok.status_code == 201 and ok.json()["payload"]["deadline"] == "2020-01-01"
+    bad = client.post(url, headers=h, json={**base, "deadline": "2026-02-30"})
+    assert bad.status_code == 400
+    assert bad.json()["error"]["code"] == "RULE_VIOLATION" and bad.json()["error"]["details"] == {"rule": "goal.deadline_civil_date", "path": "$.payload.deadline"}
+    syntax = client.post(url, headers=h, json={**base, "deadline": "31/12/2026"})
+    assert syntax.status_code == 400 and syntax.json()["error"]["code"] == "PATTERN"
+    assert len(app.state.v3_store.list_latest_entities("goal", ctx["p1_id"])) == 2

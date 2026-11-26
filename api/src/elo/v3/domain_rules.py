@@ -169,3 +169,22 @@ def assessment_item_rules(entity: dict[str, Any]) -> list[Violation]:
 
 
 DOMAIN_RULES.register("functional_assessment", assessment_item_rules)
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# A2-03 goal.deadline: optional civil date, calendar-validated by the single civil-date owner; no past/future rule (P-07).
+# The generic civil-date check skips this path so the error carries the structured rule id (A2-06).
+# ---------------------------------------------------------------------------------------------------------------------
+RULE_OWNED_DATE_PATHS = frozenset({"payload.deadline"})
+
+
+def goal_deadline_rule(entity: dict[str, Any]) -> list[Violation]:
+    from elo.v3.civil_date import is_civil_date
+
+    d = (entity.get("payload") or {}).get("deadline")
+    if d is None or is_civil_date(d):
+        return []
+    return [Violation("goal.deadline_civil_date", "$.payload.deadline", "deadline is not a valid calendar date.")]
+
+
+DOMAIN_RULES.register("goal", goal_deadline_rule)

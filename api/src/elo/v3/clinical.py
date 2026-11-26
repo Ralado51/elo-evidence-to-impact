@@ -28,7 +28,7 @@ from .entities import (
 )
 from .errors import V3Error, to_http_error
 from .store import V3Store
-from .domain_rules import DOMAIN_RULES
+from .domain_rules import DOMAIN_RULES, RULE_OWNED_DATE_PATHS
 from .civil_date import REASON_INVERTED, check_entity_civil_dates
 from .validation import validate_entity, validate_entity_chain
 
@@ -472,7 +472,7 @@ class ClinicalEntityService:
                         spec.reference_validator(self.store, participant_id, ent["payload"])
             raise to_http_error(ent_errs[0], f"Entity validation failed: {', '.join(ent_errs)}", details=ent_errs)
 
-        date_issues = check_entity_civil_dates(load_entity_schema(entity_type), ent)
+        date_issues = [i for i in check_entity_civil_dates(load_entity_schema(entity_type), ent) if i.path not in RULE_OWNED_DATE_PATHS]
         if date_issues:
             first = date_issues[0]
             if first.reason == REASON_INVERTED:

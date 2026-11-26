@@ -638,6 +638,7 @@ export const PT = {
   "rule.dose.reps_range": "Repetições devem ser inteiras, de 1 ao limite técnico.",
   "rule.dose.product_max": "Séries × repetições excede o limite técnico de processamento.",
   "rule.dose.sessions_week_range": "Sessões por semana devem ser inteiras, de 1 a 14.",
+  "th.label.goal-deadline": "Prazo da meta (opcional)",
   "th.session-summary": "Sessão não autenticada. Entre como terapeuta na etapa 1 para continuar.",
   "th.summary-gate-status": "Publicação bloqueada: nenhuma evidência elegível foi aprovada ainda.",
   "th.timeline-list.aria": "Itens da linha do tempo",
