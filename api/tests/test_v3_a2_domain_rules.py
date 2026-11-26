@@ -70,3 +70,30 @@ def test_legacy_goal_stays_readable_and_new_version_must_satisfy_rules(monkeypat
     assert bad.status_code == 400 and bad.json()["error"]["details"]["rule"] == "goal.count_unit_compatible"
     ok = client.post(f"/api/v3/goals/{gid}/versions", headers=h, json=_valid_goal_payload(target={"kind": "session_count", "value": 3, "unit": "sessions"}))
     assert ok.status_code == 201
+
+
+# --- A2-04 instrument ------------------------------------------------------------------------------------------
+@pytest.mark.parametrize("v", VEC["instrument"], ids=lambda v: v["id"])
+def test_instrument_vectors(v):
+    got = [x.rule for x in DOMAIN_RULES.evaluate("functional_assessment", {"payload": {"instrument": v["instrument"]}})]
+    assert (got == []) if v["ok"] else (got == [v["rule"]])
+
+
+def _assessment(instrument, items=None):
+    return {"assessment_date": "2026-03-10", "body_segment": "hand", "side": "right", "instrument": instrument,
+            "items": items or [{"item_key": "grip", "value_type": "category", "value": "parcial", "unit": None,
+                                "source": "therapist_observed", "assistance": "some", "not_assessed": False}],
+            "therapist_note": None}
+
+
+def test_assessment_http_instrument_registry(monkeypatch):
+    app, client, ctx = _make_seeded_app(monkeypatch)
+    h = {"Authorization": f"Bearer {ctx['t1_tok']}"}
+    url = f"/api/v3/participants/{ctx['p1_id']}/assessments"
+    for v in VEC["instrument"]:
+        r = client.post(url, headers=h, json=_assessment(v["instrument"]))
+        if v["ok"]:
+            assert r.status_code == 201, v["id"]
+        else:
+            assert r.status_code == 400 and r.json()["error"]["details"] == {"rule": v["rule"], "path": "$.payload.instrument"}, v["id"]
+    assert len(app.state.v3_store.list_latest_entities("functional_assessment", ctx["p1_id"])) == 1

@@ -162,15 +162,15 @@
 </div>
 <div class="field">
 <label data-i18n="th.label.assessment-instrument-id" for="assessment-instrument-id">Instrumento</label>
-<input id="assessment-instrument-id" name="instrument_id" required="" type="text" value="elo_hand_screen"/>
+<select id="assessment-instrument-id" name="instrument_id" required=""><option data-i18n="th.opt.assessment-instrument-id.custom_unvalidated" value="custom_unvalidated">Instrumento personalizado (não validado)</option></select>
 </div>
 <div class="field">
 <label data-i18n="th.label.assessment-instrument-version" for="assessment-instrument-version">Versão do instrumento</label>
-<input id="assessment-instrument-version" name="instrument_version" required="" type="text" value="1.0"/>
+<input id="assessment-instrument-version" name="instrument_version" readonly="" required="" type="text" value="0"/>
 </div>
 <div class="field">
 <label data-i18n="th.label.assessment-instrument-status" for="assessment-instrument-status">Situação do instrumento</label>
-<select id="assessment-instrument-status" name="instrument_status">
+<select disabled="" id="assessment-instrument-status" name="instrument_status">
 <option data-i18n="th.opt.assessment-instrument-status.unvalidated_custom" value="unvalidated_custom">Instrumento personalizado não validado</option>
 <option data-i18n="th.opt.assessment-instrument-status.validated_with_therapists" value="validated_with_therapists">Validado com terapeutas</option>
 </select>

@@ -73,6 +73,27 @@ await check("BR-A2-05 o servidor continua autoridade: POST direto com unidade in
   assert.equal(r.status(), 400);
   assert.equal((await r.json()).error.details.rule, "goal.count_unit_compatible");
 });
+
+const assessments = async () => { const b = await (await ctx.request.get(`${origin}/api/v3/participants/${pid}/assessments`, { headers: H })).json(); return b.items ?? b.entities ?? b; };
+await check("BR-A2-06 instrumento: seletor do registro; versão e situação derivadas e não editáveis", async () => {
+  assert.equal(await t.evaluate(() => document.getElementById("assessment-instrument-id").tagName), "SELECT");
+  assert.deepEqual(await t.$$eval("#assessment-instrument-id option", (o) => o.map((x) => x.value)), ["custom_unvalidated"]);
+  assert.equal(await t.getAttribute("#assessment-instrument-version", "readonly"), "");
+  assert.equal(await t.inputValue("#assessment-instrument-version"), "0");
+  assert.equal(await t.isDisabled("#assessment-instrument-status"), true);
+  assert.equal(await t.inputValue("#assessment-instrument-status"), "unvalidated_custom");
+});
+await check("BR-A2-07 avaliação com os padrões do registro é gravada; POST direto fora do registro é recusado e nada persiste", async () => {
+  await t.fill("#assessment-date", "2026-03-10");
+  await t.click("#btn-create-assessment");
+  await t.waitForSelector("#assessment-result:not([hidden])");
+  const base = (await assessments()).length;
+  assert.deepEqual((await assessments()).at(-1).payload.instrument, { instrument_id: "custom_unvalidated", instrument_version: "0", status: "unvalidated_custom" });
+  const r = await ctx.request.post(`${origin}/api/v3/participants/${pid}/assessments`, { headers: H, data: { assessment_date: "2026-03-10", body_segment: "hand", side: "right", instrument: { instrument_id: "custom_unvalidated", instrument_version: "0", status: "validated_with_therapists" }, items: [{ item_key: "grip_check", value_type: "category", value: "parcial", unit: null, source: "therapist_observed", assistance: "none", not_assessed: false }], therapist_note: null } });
+  assert.equal(r.status(), 400);
+  assert.equal((await r.json()).error.details.rule, "instrument.registry_mismatch");
+  assert.equal((await assessments()).length, base);
+});
 await browser.close();
 const failed = results.filter((r) => !r.ok);
 console.log(JSON.stringify({ passed: failed.length === 0, results }, null, 2));

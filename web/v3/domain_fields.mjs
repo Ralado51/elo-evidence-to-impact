@@ -51,3 +51,20 @@ export const FIELD_FOR_PATH = {
   "$.payload.target.unit": "goal-target-unit",
   "$.payload.deadline": "goal-deadline",
 };
+
+// ---- InstrumentSelector (A2-04): the user picks a registry entry; version and status are derived, never typed. ----
+export function instrumentEntries(registry) {
+  return registry.instruments.map((e) => ({ id: e.instrument_id, version: e.instrument_version, status: e.status }));
+}
+
+export function instrumentFromSelection(registry, instrumentId) {
+  const e = instrumentEntries(registry).find((x) => x.id === instrumentId);
+  return e ? { instrument_id: e.id, instrument_version: e.version, status: e.status } : null;
+}
+
+export function instrumentViolations(registry, inst) {
+  const ok = instrumentEntries(registry).some((e) => e.id === inst.instrument_id && e.version === inst.instrument_version && e.status === inst.status);
+  return ok ? [] : [{ rule: "instrument.registry_mismatch", path: "$.payload.instrument" }];
+}
+
+FIELD_FOR_PATH["$.payload.instrument"] = "assessment-instrument-id";

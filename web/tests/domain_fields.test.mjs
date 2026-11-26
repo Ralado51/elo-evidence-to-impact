@@ -29,3 +29,16 @@ test("JS-A2-03: invalid raw text is reported, never fixed", () => {
   }
   assert.deepEqual(goalTargetViolations(rules, buildGoalTarget(rules, "session_count", "100000")), []);
 });
+
+import { instrumentEntries, instrumentFromSelection, instrumentViolations } from "../v3/domain_fields.mjs";
+const registry = JSON.parse(readFileSync(new URL("../v3/catalogs/instrument-registry.json", import.meta.url), "utf8"));
+
+test("JS-A2-04: InstrumentSelector derives version/status from the registry; vectors agree with the server", () => {
+  assert.deepEqual(instrumentFromSelection(registry, "custom_unvalidated"), { instrument_id: "custom_unvalidated", instrument_version: "0", status: "unvalidated_custom" });
+  assert.equal(instrumentFromSelection(registry, "inventado"), null);
+  assert.equal(instrumentEntries(registry).length, 1);
+  for (const v of vec.instrument) {
+    const got = instrumentViolations(registry, v.instrument).map((x) => x.rule);
+    assert.deepEqual(got, v.ok ? [] : [v.rule], v.id);
+  }
+});

@@ -100,3 +100,26 @@ def goal_target_rules(entity: dict[str, Any]) -> list[Violation]:
 
 
 DOMAIN_RULES.register("goal", goal_target_rules)
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# A2-04 instrument derived from instrument-registry.json (P-06): new writes must match a registry entry exactly.
+# Technical metadata is never free-edited; legacy records are preserved (never revalidated on read).
+# ---------------------------------------------------------------------------------------------------------------------
+def instrument_registry_rule(entity: dict[str, Any]) -> list[Violation]:
+    inst = (entity.get("payload") or {}).get("instrument")
+    if not isinstance(inst, dict):
+        return []
+    entries = load_a2_catalog("registries/instrument-registry.json")["instruments"]
+    ok = any(
+        inst.get("instrument_id") == e["instrument_id"]
+        and inst.get("instrument_version") == e["instrument_version"]
+        and inst.get("status") == e["status"]
+        for e in entries
+    )
+    if ok:
+        return []
+    return [Violation("instrument.registry_mismatch", "$.payload.instrument", "The instrument, its version and its status must match an entry of the instrument registry.")]
+
+
+DOMAIN_RULES.register("functional_assessment", instrument_registry_rule)

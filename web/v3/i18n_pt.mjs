@@ -570,6 +570,8 @@ export const PT = {
   "th.nav.a.6": "6. Evidências e revisão",
   "th.nav.a.7": "7. Resumo e evolução",
   "th.nav.a.8": "8. Linha do tempo",
+  "th.opt.assessment-instrument-id.custom_unvalidated": "Instrumento personalizado (não validado)",
+  "rule.instrument.registry_mismatch": "O instrumento, a versão e a situação devem corresponder a uma entrada do registro.",
   "th.opt.assessment-instrument-status.unvalidated_custom": "Instrumento personalizado não validado",
   "th.opt.assessment-instrument-status.validated_with_therapists": "Validado com terapeutas",
   "th.opt.assessment-item-assistance.full": "Com ajuda total",

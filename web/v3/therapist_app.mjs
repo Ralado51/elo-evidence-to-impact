@@ -14,7 +14,7 @@ import { renderErrorTechnical } from "./ui_messages.mjs";
 import { validateDateFields } from "./date_field.mjs";
 import { setFieldError } from "./field_error.mjs";
 import { violationFromApiError } from "./validation_registry.mjs";
-import { loadCatalogs, goalTargetSpec, buildGoalTarget, goalTargetViolations, FIELD_FOR_PATH } from "./domain_fields.mjs";
+import { loadCatalogs, instrumentEntries, instrumentFromSelection, instrumentViolations, goalTargetSpec, buildGoalTarget, goalTargetViolations, FIELD_FOR_PATH } from "./domain_fields.mjs";
 import { applyI18n, initI18n, t, tm, lref, bindText, label, formatDate, formatDateTime, formatIsoDate } from "./i18n.mjs";
 import {
   canPublishEvolution,
@@ -275,7 +275,7 @@ export function initTherapistApp() {
     }
     handleApiError(out.error);
   }
-  const domainCatalogs = { goalRules: null };
+  const domainCatalogs = { goalRules: null, instruments: null };
 
   function handleApiError(err) {
     const apiErr =
@@ -1092,16 +1092,19 @@ export function initTherapistApp() {
     event.preventDefault();
     if (!requireParticipant()) return;
     if (!validateDateFields([{ input: el("assessment-date"), required: true }])) return;
+    if (!domainCatalogs.instruments) Object.assign(domainCatalogs, await loadCatalogs());
+    const instrument = instrumentFromSelection(domainCatalogs.instruments, el("assessment-instrument-id").value);
+    if (!instrument || instrumentViolations(domainCatalogs.instruments, instrument).length) {
+      setFieldError(el("assessment-instrument-id"), tm("rule.instrument.registry_mismatch"));
+      el("assessment-instrument-id").focus();
+      return;
+    }
     const noteText = el("assessment-note").value.trim();
     const payload = {
       assessment_date: el("assessment-date").value,
       body_segment: el("assessment-segment").value,
       side: el("assessment-side").value,
-      instrument: {
-        instrument_id: el("assessment-instrument-id").value.trim(),
-        instrument_version: el("assessment-instrument-version").value.trim(),
-        status: el("assessment-instrument-status").value,
-      },
+      instrument,
       items: [
         {
           item_key: el("assessment-item-key").value.trim(),
@@ -1424,6 +1427,24 @@ export function initTherapistApp() {
 
   initI18n();
   // GoalTargetField: kind drives value/unit availability; the unit is derived and read-only (A2-02).
+  function applyInstrument() {
+    const sel = el("assessment-instrument-id");
+    sel.replaceChildren(...instrumentEntries(domainCatalogs.instruments).map((e) => {
+      const o = document.createElement("option");
+      o.value = e.id;
+      o.setAttribute("data-i18n", `th.opt.assessment-instrument-id.${e.id}`);
+      o.textContent = e.id;
+      return o;
+    }));
+    applyI18n(sel);
+    syncInstrument();
+  }
+  function syncInstrument() {
+    const inst = instrumentFromSelection(domainCatalogs.instruments, el("assessment-instrument-id").value);
+    if (!inst) return;
+    el("assessment-instrument-version").value = inst.instrument_version;
+    el("assessment-instrument-status").value = inst.status;
+  }
   function applyGoalKind() {
     const spec = goalTargetSpec(domainCatalogs.goalRules, el("goal-target-kind").value);
     if (!spec) return;
@@ -1434,8 +1455,9 @@ export function initTherapistApp() {
     else if (v.value === "") v.value = "3";
     v.min = String(spec.min ?? 0);
   }
-  loadCatalogs().then((c) => { Object.assign(domainCatalogs, c); applyGoalKind(); }).catch(() => {});
+  loadCatalogs().then((c) => { Object.assign(domainCatalogs, c); applyGoalKind(); applyInstrument(); }).catch(() => {});
   el("goal-target-kind").addEventListener("change", applyGoalKind);
+  el("assessment-instrument-id").addEventListener("change", syncInstrument);
   document.addEventListener("elo:lang", () => {
     // Re-render dynamic content in the new language without touching what the user typed.
     updateSessionBar();

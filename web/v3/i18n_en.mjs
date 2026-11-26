@@ -570,6 +570,8 @@ export const EN = {
   "th.nav.a.6": "6. Evidence and review",
   "th.nav.a.7": "7. Summary and progress",
   "th.nav.a.8": "8. Timeline",
+  "th.opt.assessment-instrument-id.custom_unvalidated": "Custom instrument (unvalidated)",
+  "rule.instrument.registry_mismatch": "The instrument, version and status must match an entry of the registry.",
   "th.opt.assessment-instrument-status.unvalidated_custom": "Custom instrument, not validated",
   "th.opt.assessment-instrument-status.validated_with_therapists": "Validated with therapists",
   "th.opt.assessment-item-assistance.full": "With full help",

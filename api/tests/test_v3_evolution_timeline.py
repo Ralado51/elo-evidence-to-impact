@@ -1663,7 +1663,7 @@ def test_timeline_get_entities_events_order_and_exclusions(tmp_path: Path):
             "assessment_date": "2026-11-20",
             "body_segment": "hand",
             "side": "right",
-            "instrument": {"instrument_id": "custom_unvalidated", "instrument_version": "0.1", "status": "unvalidated_custom"},
+            "instrument": {"instrument_id": "custom_unvalidated", "instrument_version": "0", "status": "unvalidated_custom"},
             "items": [
                 {
                     "item_key": "grip_item",
@@ -1688,7 +1688,7 @@ def test_timeline_get_entities_events_order_and_exclusions(tmp_path: Path):
             "assessment_date": "2026-11-21",
             "body_segment": "hand",
             "side": "right",
-            "instrument": {"instrument_id": "custom_unvalidated", "instrument_version": "0.1", "status": "unvalidated_custom"},
+            "instrument": {"instrument_id": "custom_unvalidated", "instrument_version": "0", "status": "unvalidated_custom"},
             "items": [
                 {
                     "item_key": "grip_item",
@@ -1712,7 +1712,7 @@ def test_timeline_get_entities_events_order_and_exclusions(tmp_path: Path):
             "assessment_date": "2026-11-25",
             "body_segment": "hand",
             "side": "right",
-            "instrument": {"instrument_id": "custom_unvalidated", "instrument_version": "0.1", "status": "unvalidated_custom"},
+            "instrument": {"instrument_id": "custom_unvalidated", "instrument_version": "0", "status": "unvalidated_custom"},
             "items": [
                 {
                     "item_key": "grip_item",
