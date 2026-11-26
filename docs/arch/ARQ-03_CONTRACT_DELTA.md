@@ -24,6 +24,8 @@ Aditiva: campos novos opcionais; códigos novos só em escritas rejeitadas; clie
 A sonda `evidence/arq03_probe.py` reproduz D06 e as demais combinações; servirá de base "antes/depois".
 
 ## 6. Decisões pendentes do PO
+> Aprofundamento (regra atual, fundamentação, CA, alternativas, recomendação, impacto, validação clínica): `ARQ-03_PO_DECISION_MATRIX.md`.
+
 - **D-01** Liberar o gate do ARQ-02 (homologação independente).
 - **D-02** Unidade/valor canônicos de `session_count` e `repetitions` (null vs "sessions"/"reps"; inteiro ≥1 ou ≥0; zero) e tratamento de dados/testes existentes.
 - **D-03** `descriptive_text` deve ser null/null imposto no servidor?

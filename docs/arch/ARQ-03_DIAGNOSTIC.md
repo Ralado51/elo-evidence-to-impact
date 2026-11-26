@@ -10,7 +10,9 @@ Status: **DIAGNÓSTICO. Implementação NÃO autorizada** até (a) liberação d
 ## 2. Escopo e fontes lidas
 Lidos: PROPOSTA V2.2 (DT-04), PO_DECISIONS_RATIFIED, BUSINESS_RULES, ACCEPTANCE_CRITERIA, DATA_MODEL_V2, CONTRACT_EVOLUTION_PLAN, ACCESSIBILITY_REQUIREMENTS, US-017..021/052/053/060/090, planilha de defeitos (FIX-01..16), schemas `goal`, `functional_assessment`, `instrumental_measurement`, `reassessment`, `encounter`, registries `units.json` e `instrument-registry.json`, `limits.v1.json`, `entities.py`, `therapist.html`, `therapist_app.mjs`, `api_client.mjs`, testes e fixtures.
 
-**Limitações declaradas (não presumidas):** as linhas FIX-17..36 da planilha de defeitos e o texto integral dos 599 critérios de aceite não puderam ser lidos (a leitura via conector devolve apenas linhas de amostra). Este diagnóstico **não presume** o conteúdo de FIX-19/20/21 além do que consta nas histórias, regras e no mandato.
+**Atualização (baseline ffe1e22): a limitação abaixo foi superada — as planilhas completas (FIX-01..36, 599 CA) foram lidas via exportação .xlsx; ver `ARQ-03_PO_DECISION_MATRIX.md` §0.**
+
+**Limitações declaradas originalmente (não presumidas):** as linhas FIX-17..36 da planilha de defeitos e o texto integral dos 599 critérios de aceite não puderam ser lidos (a leitura via conector devolve apenas linhas de amostra). Este diagnóstico **não presume** o conteúdo de FIX-19/20/21 além do que consta nas histórias, regras e no mandato.
 
 ## 3. Reprodução de D06 e achados (sonda sintética, HEAD atual)
 Evidência: `evidence/arq03_probe_results.json` (43 linhas).
