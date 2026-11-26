@@ -268,7 +268,8 @@ export function resolveSummaryOriginLabel(summaryView) {
     const text = String(item?.text_ptbr || "");
     const match = text.match(/^\[(Dados sintéticos|Captura experimental|Importado de versão anterior)\]/);
     if (match) {
-      return match[0];
+      const key = { "Dados sintéticos": "synthetic_fixture", "Captura experimental": "experimental_capture", "Importado de versão anterior": "imported_v1" }[match[1]];
+      return formatOriginLabel(key);
     }
   }
   return formatOriginLabel(PARTICIPANT_DATA_ORIGIN);
@@ -281,9 +282,6 @@ export function resolveSummaryOriginLabel(summaryView) {
  * @returns {string}
  */
 export function resolveEvolutionSeriesOriginLabel(series) {
-  if (typeof series?.origin_prefix === "string" && series.origin_prefix.trim()) {
-    return series.origin_prefix.trim();
-  }
   return formatOriginLabel(series?.data_origin_class || PARTICIPANT_DATA_ORIGIN);
 }
 

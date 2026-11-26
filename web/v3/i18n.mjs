@@ -87,7 +87,8 @@ export function applyI18n(root = document) {
   for (const el of root.querySelectorAll("[data-i18n-value]")) {
     // Only replace a sample default the person has not edited.
     const prev = el.getAttribute("data-i18n-last") ?? "";
-    if (el.value === prev || el.value === "") {
+    const key0 = el.getAttribute("data-i18n-value");
+    if (el.value === prev || el.value === "" || el.value === PT[key0] || el.value === EN[key0]) {
       const next = t(el.getAttribute("data-i18n-value"));
       el.value = next;
       el.setAttribute("data-i18n-last", next);
@@ -141,6 +142,41 @@ export function mountLanguageSelector(host = document.querySelector(".site-heade
   host.appendChild(wrap);
 }
 
+/**
+ * Discreet application revision (commit) inside a collapsed "technical information" block, so the build under
+ * homologation can be confirmed. Read from build-info.json served next to this module; silent when absent.
+ */
+export async function mountRevisionInfo() {
+  if (typeof document === "undefined" || document.querySelector("[data-build-info]")) return;
+  const box = document.createElement("details");
+  box.setAttribute("data-build-info", "");
+  box.className = "audit-details build-info";
+  const sum = document.createElement("summary");
+  sum.setAttribute("data-i18n", "tech.summary");
+  const p = document.createElement("p");
+  p.className = "mono";
+  const info = document.createElement("span");
+  info.setAttribute("data-build-commit", "");
+  info.textContent = "—";
+  p.append(document.createTextNode(""), info);
+  const lbl = document.createElement("span");
+  lbl.setAttribute("data-i18n", "tech.revision");
+  p.prepend(lbl, document.createTextNode(" "));
+  box.append(sum, p);
+  document.body.appendChild(box);
+  applyI18n(box);
+  try {
+    const res = await fetch(new URL("build-info.json", import.meta.url), { cache: "no-store" });
+    if (res.ok) {
+      const d = await res.json();
+      info.textContent = `${d.commit_short || "—"}${d.dirty ? " (+local)" : ""}${d.branch ? " · " + d.branch : ""}`;
+      box.dataset.commit = d.commit || "";
+    }
+  } catch {
+    // Not served here (e.g. static review): keep the placeholder.
+  }
+}
+
 /** Initialize from storage (or the browser language on first visit). Call once per page before rendering dynamic content. */
 export function initI18n() {
   const stored = readStored();
@@ -148,5 +184,6 @@ export function initI18n() {
   if (typeof document !== "undefined") {
     mountLanguageSelector();
     setLang(current, { persist: Boolean(stored) });
+    mountRevisionInfo();
   }
 }

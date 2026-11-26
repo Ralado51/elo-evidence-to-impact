@@ -217,6 +217,7 @@ export async function checkKeyboard(context, pageUrl) {
     const expectedInfo = await pageB.evaluate(() => {
       const selector = [
         "a[href]",
+        "summary",
         "button:not([disabled])",
         'input:not([type="hidden"]):not([disabled])',
         "select:not([disabled])",
@@ -230,6 +231,9 @@ export async function checkKeyboard(context, pageUrl) {
         let cur = el;
         while (cur && cur.nodeType === 1) {
           if (cur.hasAttribute("hidden") || cur.hasAttribute("inert")) {
+            return false;
+          }
+          if (cur.tagName === "DETAILS" && !cur.open && el !== cur && !(el.tagName === "SUMMARY" && el.parentElement === cur)) {
             return false;
           }
           const cs = getComputedStyle(cur);
@@ -505,6 +509,7 @@ export async function checkTargetSize(page, inlineLinkExceptions = []) {
   const result = await page.evaluate((exceptions) => {
     const selector = [
       "a[href]",
+      "summary",
       "button",
       'input:not([type="hidden"])',
       "select",
@@ -518,6 +523,7 @@ export async function checkTargetSize(page, inlineLinkExceptions = []) {
       let cur = el;
       while (cur && cur.nodeType === 1) {
         if (cur.hasAttribute("hidden")) return false;
+        if (cur.tagName === "DETAILS" && !cur.open && el !== cur && !(el.tagName === "SUMMARY" && el.parentElement === cur)) return false;
         const cs = getComputedStyle(cur);
         if (cs.display === "none" || cs.visibility === "hidden") return false;
         cur = cur.parentElement;

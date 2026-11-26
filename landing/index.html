@@ -294,14 +294,16 @@
     root.setAttribute('lang', l === 'en' ? 'en' : 'pt-BR');
     buttons.forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-set') === l)); });
   }
-  var pt = (navigator.language || '').toLowerCase().indexOf('pt') === 0;
-  var start = pt ? 'pt' : 'en';
-  try { start = localStorage.getItem('lang') || start; } catch (e) {}
+  // One language preference for the whole product (landing, therapist, participant, dashboard, counter): "elo_lang".
+  // Values: "pt-BR" | "en". Default is pt-BR regardless of the browser language.
+  var KEY = 'elo_lang';
+  var start = 'pt';
+  try { start = (localStorage.getItem(KEY) || '').toLowerCase().indexOf('en') === 0 ? 'en' : 'pt'; } catch (e) {}
   apply(start);
   buttons.forEach(function (b) {
     b.addEventListener('click', function () {
       var l = b.getAttribute('data-set'); apply(l);
-      try { localStorage.setItem('lang', l); } catch (e) {}
+      try { localStorage.setItem(KEY, l === 'en' ? 'en' : 'pt-BR'); } catch (e) {}
     });
   });
 })();

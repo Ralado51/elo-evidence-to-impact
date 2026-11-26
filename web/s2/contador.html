@@ -1,77 +1,72 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+
+<html data-i18n-title="ct.title" lang="pt-BR">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Elo — Contador de repetições</title>
-  <link rel="stylesheet" href="../v3/tokens.css">
-  <link rel="stylesheet" href="../v3/base.css">
-  <link rel="stylesheet" href="../v3/participant.css">
-  <link rel="stylesheet" href="./contador.css">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>Elo — Contador de repetições</title>
+<link href="../v3/tokens.css" rel="stylesheet"/>
+<link href="../v3/base.css" rel="stylesheet"/>
+<link href="../v3/participant.css" rel="stylesheet"/>
+<link href="./contador.css" rel="stylesheet"/>
 </head>
 <body>
-  <a class="skip-link target" href="#main">Pular para o conteúdo principal</a>
-
-  <header class="site-header">
-    <div class="site-header-inner">
-      <p class="site-brand">Elo · Contador de repetições</p>
-      <p class="step-lead"><span class="badge">[Dados sintéticos]</span> Demonstração: nenhuma pessoa real.</p>
-      <nav class="participant-nav" aria-label="Navegação do contador">
-        <a class="target" href="#sec-privacidade">Privacidade</a>
-        <a class="target" href="#sec-contar">Contar</a>
-        <a class="target" href="#sec-resultado">Resultado</a>
-      </nav>
-    </div>
-  </header>
-
-  <main id="main" class="main" tabindex="-1">
-    <h1>Contar abrir e fechar a mão</h1>
-    <p class="hero-lead">A câmera conta as repetições para você. Quem decide o que vale é o seu terapeuta.</p>
-
-    <section id="sec-privacidade" class="step-card" aria-labelledby="h-priv">
-      <h2 id="h-priv">Sua imagem não sai daqui</h2>
-      <ul class="plain-list">
-        <li>A câmera é lida só neste aparelho.</li>
-        <li>Nenhuma foto ou vídeo é gravado ou enviado.</li>
-        <li>A tela mostra apenas um esqueleto da mão. Ficam guardados só números: repetições, tempo e amplitude.</li>
-      </ul>
-    </section>
-
-    <section id="sec-contar" class="step-card" aria-labelledby="h-contar">
-      <h2 id="h-contar">Contar</h2>
-      <p class="step-lead">Apoie o braço, deixe a palma virada para a câmera e abra e feche a mão devagar.</p>
-      <div class="actions-row">
-        <button type="button" id="btn-start" class="btn btn-primary target">Ligar a câmera</button>
-        <button type="button" id="btn-demo" class="btn btn-secondary target">Ver demonstração (sem câmera)</button>
-      </div>
-      <div class="actions-row">
-        <button type="button" id="btn-calibrate" class="btn btn-secondary target" disabled>Calibrar (10 s)</button>
-        <button type="button" id="btn-reset" class="btn btn-secondary target" disabled>Zerar</button>
-        <button type="button" id="btn-stop" class="btn btn-stop target" disabled>Parar</button>
-      </div>
-      <p id="counter-msg" class="result-box" role="note">Câmera desligada.</p>
-      <div class="stage">
-        <canvas id="skeleton" width="640" height="480" aria-label="Esqueleto da mão detectado. Nenhuma imagem da câmera é mostrada."></canvas>
-        <video id="cam" playsinline muted hidden></video>
-      </div>
-      <p class="big-count"><span id="rep-count" data-reps="0">0</span> <span>repetições</span></p>
-      <p id="live-state" class="step-lead">Estado: aguardando mão aberta.</p>
-    </section>
-
-    <section id="sec-resultado" class="step-card" aria-labelledby="h-res">
-      <h2 id="h-res">Resultado</h2>
-      <div id="result-box" class="result-box" data-result-ready="false">Ainda não há repetições.</div>
-      <table id="rep-table" class="rep-table" hidden>
-        <caption>Cada repetição contada</caption>
-        <thead><tr><th scope="col">Nº</th><th scope="col">Duração (s)</th><th scope="col">Amplitude</th><th scope="col">Observação</th></tr></thead>
-        <tbody></tbody>
-      </table>
-      <p class="step-lead">Estes números ficam só nesta tela. Repetições muito diferentes das outras aparecem marcadas como "atípica" e continuam contando.</p>
-    </section>
-  </main>
-
-  <div id="elo-live-region" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
-  <script src="./counter.js"></script>
-  <script type="module" src="./contador_app.mjs"></script>
+<a class="skip-link target" data-i18n="ct.root.a" href="#main">Pular para o conteúdo principal</a>
+<header class="site-header">
+<div class="site-header-inner">
+<p class="site-brand" data-i18n="ct.header.p">Elo · Contador de repetições</p>
+<p class="step-lead"><span class="badge" data-i18n="ct.header.span">[Dados sintéticos]</span> <span data-i18n="ct.demo-note">Demonstração: nenhuma pessoa real.</span></p>
+<nav aria-label="Navegação do contador" class="participant-nav" data-i18n-attr="aria-label:ct.header.nav.aria">
+<a class="target" data-i18n="ct.nav.a" href="#sec-privacidade">Privacidade</a>
+<a class="target" data-i18n="ct.nav.a.2" href="#sec-contar">Contar</a>
+<a class="target" data-i18n="ct.nav.a.3" href="#sec-resultado">Resultado</a>
+</nav>
+</div>
+</header>
+<main class="main" id="main" tabindex="-1">
+<h1 data-i18n="ct.main.h1">Contar abrir e fechar a mão</h1>
+<p class="hero-lead" data-i18n="ct.main.p">A câmera conta as repetições para você. Quem decide o que vale é o seu terapeuta.</p>
+<section aria-labelledby="h-priv" class="step-card" id="sec-privacidade">
+<h2 data-i18n="ct.h-priv" id="h-priv">Sua imagem não sai daqui</h2>
+<ul class="plain-list">
+<li data-i18n="ct.sec-privacidade.li">A câmera é lida só neste aparelho.</li>
+<li data-i18n="ct.sec-privacidade.li.2">Nenhuma foto ou vídeo é gravado ou enviado.</li>
+<li data-i18n="ct.sec-privacidade.li.3">A tela mostra apenas um esqueleto da mão. Ficam guardados só números: repetições, tempo e amplitude.</li>
+</ul>
+</section>
+<section aria-labelledby="h-contar" class="step-card" id="sec-contar">
+<h2 data-i18n="ct.h-contar" id="h-contar">Contar</h2>
+<p class="step-lead" data-i18n="ct.sec-contar.p">Apoie o braço, deixe a palma virada para a câmera e abra e feche a mão devagar.</p>
+<div class="actions-row">
+<button class="btn btn-primary target" data-i18n="ct.btn-start" id="btn-start" type="button">Ligar a câmera</button>
+<button class="btn btn-secondary target" data-i18n="ct.btn-demo" id="btn-demo" type="button">Ver demonstração (sem câmera)</button>
+</div>
+<div class="actions-row">
+<button class="btn btn-secondary target" data-i18n="ct.btn-calibrate" disabled="" id="btn-calibrate" type="button">Calibrar (10 s)</button>
+<button class="btn btn-secondary target" data-i18n="ct.btn-reset" disabled="" id="btn-reset" type="button">Zerar</button>
+<button class="btn btn-stop target" data-i18n="ct.btn-stop" disabled="" id="btn-stop" type="button">Parar</button>
+</div>
+<p class="result-box" id="counter-msg" role="note">Câmera desligada.</p>
+<div class="stage">
+<canvas aria-label="Esqueleto da mão detectado. Nenhuma imagem da câmera é mostrada." data-i18n-attr="aria-label:ct.skeleton.aria" height="480" id="skeleton" width="640"></canvas>
+<video hidden="" id="cam" muted="" playsinline=""></video>
+</div>
+<p class="big-count"><span data-reps="0" id="rep-count">0</span> <span data-i18n="ct.sec-contar.span">repetições</span></p>
+<p class="step-lead" id="live-state">Estado: aguardando mão aberta.</p>
+</section>
+<section aria-labelledby="h-res" class="step-card" id="sec-resultado">
+<h2 data-i18n="ct.h-res" id="h-res">Resultado</h2>
+<div class="result-box" data-result-ready="false" id="result-box">Ainda não há repetições.</div>
+<table class="rep-table" hidden="" id="rep-table">
+<caption data-i18n="ct.sec-resultado.caption">Cada repetição contada</caption>
+<thead><tr><th scope="col" data-i18n="ct.th-n">Nº</th><th data-i18n="ct.sec-resultado.th" scope="col">Duração (s)</th><th data-i18n="ct.sec-resultado.th.2" scope="col">Amplitude</th><th data-i18n="ct.sec-resultado.th.3" scope="col">Observação</th></tr></thead>
+<tbody></tbody>
+</table>
+<p class="step-lead" data-i18n="ct.sec-resultado.p">Estes números ficam só nesta tela. Repetições muito diferentes das outras aparecem marcadas como "atípica" e continuam contando.</p>
+</section>
+</main>
+<div aria-atomic="true" aria-live="polite" class="sr-only" id="elo-live-region" role="status"></div>
+<script src="./counter.js"></script>
+<script src="./contador_app.mjs" type="module"></script>
 </body>
 </html>

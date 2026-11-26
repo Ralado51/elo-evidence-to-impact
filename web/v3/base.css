@@ -331,3 +331,4 @@ legend {
 .lang-switch .btn { min-height: 3rem; min-width: 3rem; }
 .lang-switch .btn[aria-pressed="true"] { font-weight: 700; text-decoration: underline; }
 .audit-details { margin-block-start: 0.5rem; font-size: 0.875rem; }
+.audit-details > summary { display: flex; align-items: center; min-height: 3rem; cursor: pointer; }

@@ -122,12 +122,31 @@ export function initParticipantApp() {
 
   // Populate guided report-only steps for "Organizar a mesa".
   const guideList = el("activity-guide");
-  if (guideList && guideList.children.length === 0) {
+  function renderGuide() {
+    if (!guideList) return;
+    guideList.replaceChildren();
     for (const stepText of organizarAMesaGuide()) {
       const li = document.createElement("li");
       li.textContent = stepText;
       guideList.appendChild(li);
     }
+  }
+  renderGuide();
+  document.addEventListener("elo:lang", renderGuide);
+
+  // Result boxes are rebuilt from their builder so a language switch re-translates them.
+  const boxBuilders = new Map();
+  function renderBox(id, build) {
+    boxBuilders.set(id, build);
+    runBox(id);
+  }
+  function runBox(id) {
+    const box = el(id);
+    const build = boxBuilders.get(id);
+    if (!box || !build) return;
+    clearElement(box);
+    box.hidden = false;
+    build(box);
   }
 
   function clearError() {
@@ -404,11 +423,12 @@ export function initParticipantApp() {
       fb.appendChild(createBadge(originLabel, "badge-origin", "data-origin-label", originLabel));
       li.appendChild(fb);
 
-      appendParagraph(li, String(fact.text_ptbr || ""));
+      appendParagraph(li, String(fact.text_ptbr || "")).setAttribute("data-clinical-text", "");
       const lims = Array.isArray(fact.limitations_ptbr) ? fact.limitations_ptbr : [];
       if (lims.length > 0) {
         const limUl = document.createElement("ul");
         limUl.className = "limitations-list";
+        limUl.setAttribute("data-clinical-text", "");
         for (const text of lims) {
           const limLi = document.createElement("li");
           limLi.textContent = text;
@@ -470,7 +490,7 @@ export function initParticipantApp() {
         );
         li.appendChild(ib);
 
-        appendParagraph(li, `${formatIsoDate(item.session_date_local)}: ${item.text_ptbr}`);
+        appendParagraph(li, `${formatIsoDate(item.session_date_local)}: ${item.text_ptbr}`).setAttribute("data-clinical-text", "");
         const ctx = item.context || {};
         appendParagraph(
           li,
@@ -481,6 +501,7 @@ export function initParticipantApp() {
         if (lims.length > 0) {
           const limUl = document.createElement("ul");
           limUl.className = "limitations-list";
+          limUl.setAttribute("data-clinical-text", "");
           for (const text of lims) {
             const limLi = document.createElement("li");
             limLi.textContent = text;
@@ -589,18 +610,11 @@ export function initParticipantApp() {
       updateControlsState();
 
       const resBox = el("session-result");
-      clearElement(resBox);
-      resBox.hidden = false;
       resBox.dataset.sessionPhase = "ended";
       resBox.dataset.endAction = action;
-      const msg =
-        action === "pain"
-          ? t("pa.js.stop_pain")
-          : action === "fatigue"
-            ? t("pa.js.stop_fatigue")
-            : t("pa.js.stop_done");
-      appendParagraph(resBox, msg);
-      showSuccess(msg);
+      const msgKey = action === "pain" ? "pa.js.stop_pain" : action === "fatigue" ? "pa.js.stop_fatigue" : "pa.js.stop_done";
+      renderBox("session-result", (b) => appendParagraph(b, t(msgKey)));
+      showSuccess(t(msgKey));
     } catch (err) {
       handleApiError(err);
     }
@@ -645,6 +659,7 @@ export function initParticipantApp() {
   // --- Event bindings ---
 
   btnSignout.addEventListener("click", () => {
+    boxBuilders.clear();
     state.session = null;
     state.prescription = null;
     state.goals = [];
@@ -685,11 +700,8 @@ export function initParticipantApp() {
       updateControlsState();
       loadPublications();
 
-      const box = el("signin-result");
-      clearElement(box);
-      box.hidden = false;
-      appendParagraph(box, "Acesso liberado como participante em modo apenas relato.");
-      showSuccess("Entrada realizada com sucesso.");
+      renderBox("signin-result", (b) => appendParagraph(b, t("pa.js.access_granted")));
+      showSuccess(t("pa.js.signed_in_ok"));
     } catch (err) {
       handleApiError(err);
     }
@@ -747,11 +759,9 @@ export function initParticipantApp() {
       updateControlsState();
 
       const resBox = el("session-result");
-      clearElement(resBox);
-      resBox.hidden = false;
       resBox.dataset.sessionPhase = "active";
       resBox.dataset.sessionId = sessionId;
-      appendParagraph(resBox, t("pa.js.started_detail"));
+      renderBox("session-result", (b) => appendParagraph(b, t("pa.js.started_detail")));
       showSuccess(t("pa.js.started"));
     } catch (err) {
       handleApiError(err);
@@ -825,12 +835,10 @@ export function initParticipantApp() {
       updateControlsState();
 
       const resBox = el("report-result");
-      clearElement(resBox);
-      resBox.hidden = false;
       resBox.dataset.reportSubmitted = finishedSessionId;
       resBox.dataset.reportExecution = submittedExec;
       resBox.dataset.reportAssistance = submittedAssist;
-      appendParagraph(resBox, t("pa.js.report_saved"));
+      renderBox("report-result", (b) => appendParagraph(b, t("pa.js.report_saved")));
       showSuccess(t("pa.js.report_sent"));
     } catch (err) {
       handleApiError(err);
@@ -878,6 +886,7 @@ export function initParticipantApp() {
     clearError();
     clearSuccess();
     updateControlsState();
+    for (const id of boxBuilders.keys()) runBox(id);
     if (state.session?.token) loadPublications();
     if (state.prescription) renderPrescription(state.prescription);
     if (!el("goals-panel").hidden) renderGoals(state.goals);

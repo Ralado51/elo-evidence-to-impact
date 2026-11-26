@@ -948,9 +948,9 @@ async function runPointerPass(browser, contractMatchers) {
       window.sessionStorage.setItem("elo_v3_therapist_session", JSON.stringify(sess));
     }, participantSession);
     await tPage.goto(`${gateway.origin}/v3/therapist.html`, { waitUntil: "load" });
+    await tPage.click("#technical-select > summary");
     await tPage.fill("#active-participant-id", p1.participantId);
     await tPage.click("#btn-select-participant");
-    await tPage.click("#btn-load-facts");
     await tPage.waitForSelector('#error-banner[data-error-code="FORBIDDEN"]:not([hidden])');
     assert.equal(await tPage.locator("#error-banner").getAttribute("role"), "alert");
     assert.equal(await tPage.locator("#success-banner").isHidden(), true);

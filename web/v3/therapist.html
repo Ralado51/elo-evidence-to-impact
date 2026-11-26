@@ -100,6 +100,9 @@
 </form>
 <p class="step-lead" data-i18n="th.participant-list-status" id="participant-list-status">Entre como terapeuta para ver seus participantes.</p>
 <ul aria-label="Participantes vinculados a você" class="card-list" data-i18n-attr="aria-label:th.participant-list.aria" id="participant-list"></ul>
+<details id="technical-select" class="audit-details">
+<summary data-i18n="th.advanced-select.summary">Avançado (suporte): selecionar por identificador</summary>
+<p class="step-lead" data-i18n="th.advanced-select.lead">Use apenas se precisar retomar um participante pelo identificador. Só são aceitos participantes autorizados para você.</p>
 <form id="form-select-participant" novalidate="">
 <div class="field-grid">
 <div class="field">
@@ -111,6 +114,7 @@
 <button class="btn btn-secondary target" data-i18n="th.btn-select-participant" id="btn-select-participant" type="submit">Confirmar participante ativo</button>
 </div>
 </form>
+</details>
 </div>
 <div class="sub-panel" id="invite-panel">
 <h3 data-i18n="th.sec-participant.h3.2">Convite para o participante</h3>
@@ -207,7 +211,7 @@
 <div class="field-grid field-grid-two">
 <div class="field">
 <label data-i18n="th.label.goal-text" for="goal-text">Descrição da meta</label>
-<input id="goal-text" maxlength="300" name="goal_text" required="" type="text" value="Realizar sessões relatadas de organizar a mesa com a mão direita."/>
+<input data-i18n-value="th.goal-text.default" id="goal-text" maxlength="300" name="goal_text" required="" type="text" value="Realizar sessões relatadas de organizar a mesa com a mão direita."/>
 </div>
 <div class="field">
 <label data-i18n="th.label.goal-segment" for="goal-segment">Segmento corporal da meta</label>

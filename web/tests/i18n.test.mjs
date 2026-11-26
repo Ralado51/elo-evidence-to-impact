@@ -33,13 +33,17 @@ test("FIX-25: no internal code appears in any catalog text", () => {
 });
 
 test("FIX-27: every key used by the pages and scripts exists in both catalogs", () => {
-  const files = fs.readdirSync(V3).filter((f) => /\.(html|mjs)$/.test(f) && !f.startsWith("i18n"));
+  const S2 = path.join(V3, "..", "s2");
+  const files = [...fs.readdirSync(V3).map((f) => path.join(V3, f)), ...fs.readdirSync(S2).map((f) => path.join(S2, f))]
+    .filter((f) => /\.(html|mjs)$/.test(f) && !path.basename(f).startsWith("i18n"));
   const used = new Set();
   for (const f of files) {
-    const src = fs.readFileSync(path.join(V3, f), "utf8");
+    const src = fs.readFileSync(f, "utf8");
     for (const m of src.matchAll(/data-i18n(?:-value)?="([^"]+)"/g)) used.add(m[1]);
     for (const m of src.matchAll(/data-i18n-attr="([^"]+)"/g)) for (const pair of m[1].split(";")) used.add(pair.split(":")[1]);
     for (const m of src.matchAll(/\bt\(\s*"([\w.]+)"/g)) used.add(m[1]);
+    for (const m of src.matchAll(/\b(?:say|msgKey|renderBox)\(\s*"((?:ct|th|pa|pn)\.[\w.]+)"/g)) used.add(m[1]);
+    for (const m of src.matchAll(/"((?:pa|th|pn|ct)\.js\.[\w]+)"/g)) used.add(m[1]);
   }
   assert.ok(used.size > 150, "scan found too few keys");
   for (const k of used) {

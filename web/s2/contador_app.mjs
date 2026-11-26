@@ -2,7 +2,8 @@
 // only a skeleton is drawn. No MediaRecorder, toDataURL, toBlob or getImageData; nothing
 // of the image is stored or sent. Only derived numbers (reps, duration, amplitude) remain.
 import { announce } from "../v3/a11y.mjs";
-import { syntheticOpenness, summarize, STATE_LABEL_PTBR } from "./contador_model.mjs";
+import { initI18n, t, label, formatNumber } from "../v3/i18n.mjs";
+import { syntheticOpenness, summarize } from "./contador_model.mjs";
 
 const C = globalThis.EloCounter;
 const MP = { url: "./vendor/vision_bundle.mjs", wasm: "./vendor/wasm", model: "./vendor/hand_landmarker.task" };
@@ -15,7 +16,8 @@ let counter = C.createCounter(), events = [], mode = null; // "camera" | "demo" 
 let landmarker = null, HL = null, stream = null, raf = null, t0 = 0, wake = null;
 let calibrating = false, calValues = [], calEnd = 0;
 
-function say(t) { $("counter-msg").textContent = t; }
+let msg = { key: "ct.msg.off", params: undefined };
+function say(key, params) { msg = { key, params }; $("counter-msg").textContent = t(key, params); }
 function setRunning(on) {
   btn.start.disabled = on; btn.demo.disabled = on;
   btn.stop.disabled = !on; btn.reset.disabled = !on; btn.cal.disabled = !on;
@@ -27,14 +29,15 @@ function renderResult() {
   const box = $("result-box"), table = $("rep-table"), tbody = table.querySelector("tbody");
   tbody.textContent = "";
   box.dataset.resultReady = String(sum.reps > 0);
-  if (!sum.reps) { box.textContent = "Ainda não há repetições."; table.hidden = true; return; }
-  box.textContent = `${sum.reps} repetições contadas. Duração média ${String(sum.meanDurationS).replace(".", ",")} s. ` +
-    (n ? `${n} marcada(s) como atípica(s).` : "Nenhuma marcada como atípica.");
+  if (!sum.reps) { box.textContent = t("ct.result.none"); table.hidden = true; return; }
+  const dec = (x, d) => formatNumber(x, { minimumFractionDigits: d, maximumFractionDigits: d });
+  box.textContent = t("ct.result.summary", { n: sum.reps, mean: dec(sum.meanDurationS, 1) }) + " " +
+    (n ? t("ct.result.atypical", { n }) : t("ct.result.no_atypical"));
   box.dataset.reps = String(sum.reps); box.dataset.atypical = String(n);
   for (const e of events) {
     const tr = document.createElement("tr");
     tr.dataset.atypical = String(Boolean(e.atypical));
-    for (const v of [e.rep, (e.duration_ms / 1000).toFixed(1).replace(".", ","), e.amplitude.toFixed(2).replace(".", ","), e.atypical ? "atípica" : "normal"]) {
+    for (const v of [e.rep, dec(e.duration_ms / 1000, 1), dec(e.amplitude, 2), e.atypical ? t("ct.row.atypical") : t("ct.row.normal")]) {
       const td = document.createElement("td"); td.textContent = String(v); tr.appendChild(td);
     }
     tbody.appendChild(tr);
@@ -44,7 +47,7 @@ function renderResult() {
 
 function ui(v) {
   const reps = $("rep-count"); reps.textContent = String(counter.reps); reps.dataset.reps = String(counter.reps);
-  $("live-state").textContent = `Estado: ${STATE_LABEL_PTBR[counter.state]}${calibrating ? " · calibrando, abra e feche devagar" : ""}`;
+  $("live-state").textContent = t("ct.state", { state: label("counter_state", counter.state) }) + (calibrating ? " · " + t("ct.state.calibrating") : "");
 }
 
 function onSample(rel, v, score) {
@@ -52,7 +55,7 @@ function onSample(rel, v, score) {
   const prev = counter.reps;
   const ev = v == null ? (counter.lost(rel), null) : counter.feed(rel, v, score);
   if (ev) { events.push(ev); renderResult(); }
-  if (counter.reps !== prev) announce(`${counter.reps} repetições`);
+  if (counter.reps !== prev) announce(t("ct.announce.reps", { n: counter.reps }));
   if (calibrating && performance.now() > calEnd) finishCalibration();
   ui(v);
 }
@@ -60,8 +63,8 @@ function onSample(rel, v, score) {
 function finishCalibration() {
   calibrating = false; btn.cal.disabled = false;
   const th = C.thresholdsFrom(calValues);
-  if (th) { counter.set(th); say("Calibrado para a sua mão."); announce("Calibração concluída."); }
-  else { say("Não deu para calibrar: movimente mais a mão, abrindo e fechando por completo."); announce("Calibração não concluída."); }
+  if (th) { counter.set(th); say("ct.msg.calibrated"); announce(t("ct.announce.calibrated")); }
+  else { say("ct.msg.calib_fail"); announce(t("ct.announce.calib_fail")); }
 }
 
 function draw(lm) {
@@ -85,7 +88,7 @@ function resetAll() { counter.clear(); events = []; ui(null); renderResult(); }
 
 async function loadModel() {
   if (landmarker) return;
-  say("Carregando o modelo de detecção da mão…");
+  say("ct.msg.loading");
   const mod = await import(MP.url);
   HL = mod.HandLandmarker;
   const fileset = await mod.FilesetResolver.forVisionTasks(MP.wasm);
@@ -118,24 +121,24 @@ async function startCamera() {
   btn.start.disabled = btn.demo.disabled = true;
   try {
     await loadModel();
-    say("Abrindo a câmera…");
+    say("ct.msg.opening");
     stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } }, audio: false });
     vid.srcObject = stream; await vid.play();
     cv.width = vid.videoWidth || 640; cv.height = vid.videoHeight || 480;
     try { if (navigator.wakeLock) wake = await navigator.wakeLock.request("screen"); } catch { /* optional */ }
     resetAll(); mode = "camera"; t0 = performance.now(); setRunning(true);
-    say("Câmera ligada. Abra e feche a mão devagar."); announce("Câmera ligada.");
+    say("ct.msg.on"); announce(t("ct.announce.on"));
     cameraLoop();
   } catch (e) {
-    say("Não consegui ligar a câmera ou o modelo. Você pode usar a demonstração sem câmera. (" + (e?.message || e) + ")");
-    announce("Não foi possível ligar a câmera.");
+    say("ct.msg.fail", { err: String(e?.message || e) });
+    announce(t("ct.announce.fail"));
     btn.start.disabled = btn.demo.disabled = false;
   }
 }
 
 function startDemo() {
   resetAll(); mode = "demo"; t0 = performance.now(); setRunning(true);
-  say("Demonstração com sinal sintético: nenhuma câmera em uso.");
+  say("ct.msg.demo");
   const tick = () => {
     if (mode !== "demo") return;
     const rel = performance.now() - t0, v = syntheticOpenness(rel);
@@ -152,13 +155,22 @@ function stop() {
   stream = null; vid.srcObject = null;
   try { wake?.release(); } catch { /* ignore */ }
   setRunning(false); renderResult();
-  say(was ? "Parado. Câmera desligada." : "Câmera desligada.");
-  if (was) announce("Contagem parada.");
+  say(was ? "ct.msg.stopped" : "ct.msg.off");
+  if (was) announce(t("ct.announce.stopped"));
 }
 
 btn.start.addEventListener("click", startCamera);
 btn.demo.addEventListener("click", startDemo);
 btn.stop.addEventListener("click", stop);
 btn.reset.addEventListener("click", resetAll);
-btn.cal.addEventListener("click", () => { calibrating = true; calValues = []; calEnd = performance.now() + 10000; btn.cal.disabled = true; say("Calibrando por 10 segundos. Abra e feche a mão por completo, devagar."); });
+btn.cal.addEventListener("click", () => { calibrating = true; calValues = []; calEnd = performance.now() + 10000; btn.cal.disabled = true; say("ct.msg.calibrating"); });
 ui(null);
+
+function rerender() {
+  say(msg.key, msg.params);
+  ui(null);
+  renderResult();
+}
+initI18n();
+document.addEventListener("elo:lang", rerender);
+rerender();

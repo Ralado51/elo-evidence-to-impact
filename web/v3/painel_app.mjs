@@ -243,8 +243,8 @@ function renderApproved(facts, approvedIds) {
     const lim = (f.rendered.limitations_ptbr || []).map((txt) => el("li", { text: txt }));
     ul.append(
       el("li", { class: "approved-item", "data-fact-type": f.type }, [
-        el("p", { text: f.rendered.text_ptbr }),
-        el("ul", {}, lim),
+        el("p", { text: f.rendered.text_ptbr, "data-clinical-text": "" }),
+        el("ul", { "data-clinical-text": "" }, lim),
       ])
     );
   }
@@ -292,6 +292,8 @@ async function runVerify(kind) {
   const out = $("verify-output");
   out.hidden = false;
   $("verify-claim").textContent = claim;
+  if (exaggerated) $("verify-claim").removeAttribute("data-clinical-text");
+  else $("verify-claim").setAttribute("data-clinical-text", "");
   const verdict = $("verify-verdict");
   verdict.replaceChildren();
   if (res.status === 200 && res.data?.valid) {

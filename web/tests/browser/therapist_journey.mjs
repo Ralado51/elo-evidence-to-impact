@@ -1021,9 +1021,10 @@ async function runPointerPass(browser, contractMatchers) {
       { ptok: participantToken, pid: participantId }
     );
     await page.reload({ waitUntil: "load" });
+    // S1 correção A (D05/FIX-04): selection is validated against the authorized list, so the denial happens at selection.
+    await page.evaluate(() => { document.getElementById("technical-select").open = true; });
     await page.fill("#active-participant-id", participantId);
     await page.click("#btn-select-participant");
-    await page.click("#btn-load-facts");
     await page.waitForSelector('#error-banner[data-error-code="FORBIDDEN"]:not([hidden])');
     assert.equal(await page.locator("#error-banner").getAttribute("role"), "alert");
     assert.equal(await page.locator("#success-banner").isHidden(), true);
@@ -1034,10 +1035,11 @@ async function runPointerPass(browser, contractMatchers) {
     await page.fill("#signin-password", THERAPIST_B.password);
     await page.click("#btn-signin");
     await page.waitForSelector("#signin-result:not([hidden])");
+    await page.evaluate(() => { document.getElementById("technical-select").open = true; });
     await page.fill("#active-participant-id", participantId);
     await page.click("#btn-select-participant");
-    await page.click("#btn-load-timeline");
     await page.waitForSelector("#error-banner:not([hidden])");
+    assert.equal(await page.locator("#btn-create-invite").isDisabled(), true, "unauthorized id must not become the active participant");
     const unlinkCode = await page.locator("#error-banner").getAttribute("data-error-code");
     assert.ok(
       unlinkCode === "SCOPE_VIOLATION" || unlinkCode === "NOT_FOUND" || unlinkCode === "FORBIDDEN",

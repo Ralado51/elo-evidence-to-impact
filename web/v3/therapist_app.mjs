@@ -10,7 +10,7 @@ import { announce } from "./a11y.mjs";
 import { createV3Client, V3ApiError } from "./api_client.mjs";
 import { hashCanonical } from "./canonical.mjs";
 import { renderErrorTechnical } from "./ui_messages.mjs";
-import { initI18n, t, label, formatDate, formatDateTime, formatIsoDate } from "./i18n.mjs";
+import { applyI18n, initI18n, t, label, formatDate, formatDateTime, formatIsoDate } from "./i18n.mjs";
 import {
   canPublishEvolution,
   canPublishSummary,
@@ -261,6 +261,21 @@ export function initTherapistApp() {
     "invite-result",
   ];
 
+  // Result boxes are rebuilt from their builder so a language switch re-translates them (E-correction 3/4/5).
+  const boxBuilders = new Map();
+  function renderBox(id, build) {
+    boxBuilders.set(id, build);
+    runBox(id);
+  }
+  function runBox(id) {
+    const box = el(id);
+    const build = boxBuilders.get(id);
+    if (!box || !build) return;
+    clearElement(box);
+    box.hidden = false;
+    build(box);
+  }
+
   function setActiveParticipant(participantId, alias = "", careLinkId = "", side = "") {
     const changed = state.participantId !== participantId;
     if (changed) {
@@ -270,6 +285,7 @@ export function initTherapistApp() {
       state.publishedSummary = null;
       state.publishedEvolution = null;
       state.timelineItems = [];
+      for (const id of boxBuilders.keys()) if (id !== "signin-result") boxBuilders.delete(id);
       for (const id of PARTICIPANT_RESULT_BOXES) {
         const box = el(id);
         if (box) {
@@ -279,6 +295,13 @@ export function initTherapistApp() {
       }
       const tl = el("timeline-list");
       if (tl) clearElement(tl);
+      // Typed drafts of the previous participant must not be recorded on the next one.
+      for (const fid of ["form-assessment", "form-goal", "form-prescription", "form-summary", "form-evolution"]) {
+        el(fid)?.reset();
+      }
+      applyI18n(); // reset restores the markup defaults: translate them again
+      const link = el("invite-link");
+      if (link) link.value = "";
     }
     state.participantId = participantId;
     if (alias) state.participantAlias = alias;
@@ -442,7 +465,7 @@ export function initTherapistApp() {
       badges.appendChild(createBadge(gate.labelPtBr, statusClass, "data-review-status", gate.status));
       li.appendChild(badges);
 
-      appendParagraph(li, fact.rendered?.text_ptbr || "", "");
+      appendParagraph(li, fact.rendered?.text_ptbr || "", "").setAttribute("data-clinical-text", "");
       // Technical identifiers live only in a collapsed audit block (FIX-24/25); harness hooks keep the raw labels there.
       const audit = document.createElement("details");
       audit.className = "audit-details";
@@ -457,6 +480,7 @@ export function initTherapistApp() {
       if (lims.length > 0) {
         const ul = document.createElement("ul");
         ul.className = "limitations-list";
+        ul.setAttribute("data-clinical-text", "");
         for (const text of lims) {
           const limLi = document.createElement("li");
           limLi.textContent = text;
@@ -584,7 +608,7 @@ export function initTherapistApp() {
         );
         itemLi.appendChild(itemBadges);
 
-        appendParagraph(itemLi, `${formatIsoDate(item.session_date_local)}: ${item.text_ptbr}`);
+        appendParagraph(itemLi, `${formatIsoDate(item.session_date_local)}: ${item.text_ptbr}`).setAttribute("data-clinical-text", "");
         const ctx = item.context || {};
         appendParagraph(
           itemLi,
@@ -636,7 +660,7 @@ export function initTherapistApp() {
 
     const badges = document.createElement("div");
     badges.className = "meta-badges";
-    badges.appendChild(createBadge("Resumo publicado", "badge-approved", "", ""));
+    badges.appendChild(createBadge(t("th.js.summary_badge"), "badge-approved", "", ""));
     badges.appendChild(createBadge(originLabel, "badge-origin", "data-origin-label", originLabel));
     badges.appendChild(
       createBadge(t("th.js.exec_mode", { mode: execModeLabel }), "badge-mode", "data-execution-mode", execMode)
@@ -672,7 +696,7 @@ export function initTherapistApp() {
         )
       );
       li.appendChild(itemBadges);
-      appendParagraph(li, entry?.fact?.rendered?.text_ptbr || t("th.js.fact_included", { id: item.fact_id }));
+      appendParagraph(li, entry?.fact?.rendered?.text_ptbr || t("th.js.fact_included", { id: item.fact_id })).setAttribute("data-clinical-text", "");
       appendParagraph(li, `fact_id: ${item.fact_id}`, "mono");
       ul.appendChild(li);
     }
@@ -747,10 +771,8 @@ export function initTherapistApp() {
       li.dataset.timelineItem = item.ref;
       li.dataset.timelineKind = item.kind;
 
-      const originLabel =
-        item.origin_label && item.origin_label.trim()
-          ? item.origin_label.trim()
-          : formatOriginLabel(item.data_origin);
+      // Localized label derived from the canonical data_origin (the server label is pt-BR only).
+      const originLabel = formatOriginLabel(item.data_origin);
       const execMode = item.execution_mode || "not_applicable";
       const execModeLabel = formatExecutionMode(execMode);
       const kindPt = label("timeline", item.kind);
@@ -777,7 +799,8 @@ export function initTherapistApp() {
     writeStoredContext(null);
     setActiveParticipant("");
     renderParticipantList([]);
-    el("participant-list-status").textContent = "Entre como terapeuta para ver seus participantes.";
+    state.listView = null;
+    paintParticipantStatus();
     updateSessionBar();
     updatePublishGates();
     showSuccess(t("th.js.signed_out"));
@@ -804,13 +827,12 @@ export function initTherapistApp() {
       writeStoredSession(state.session);
       updateSessionBar();
 
-      const box = el("signin-result");
-      clearElement(box);
-      box.hidden = false;
-      appendParagraph(
-        box,
-        t("th.js.session_bar", { id: res.data.principal.id, role: label("role", res.data.principal.role), org: res.data.principal.org_id })
-      );
+      renderBox("signin-result", (box) => {
+        appendParagraph(
+          box,
+          t("th.js.session_bar", { id: res.data.principal.id, role: label("role", res.data.principal.role), org: res.data.principal.org_id })
+        );
+      });
       showSuccess(t("th.js.signed_in", { id: res.data.principal.id }));
       restoreContext();
     } catch (err) {
@@ -834,27 +856,26 @@ export function initTherapistApp() {
       const careLinkId = res.headers.get("x-elo-care-link-id") || "";
       setActiveParticipant(ent.entity_id, ent.payload.alias, careLinkId, ent.payload.side);
 
-      const box = el("participant-result");
-      clearElement(box);
-      box.hidden = false;
-      const originLabel = formatOriginLabel(ent.data_origin);
-      const badges = document.createElement("div");
-      badges.className = "meta-badges";
-      badges.appendChild(createBadge(originLabel, "badge-origin", "data-origin-label", originLabel));
-      badges.appendChild(
-        createBadge(
-          t("th.js.exec_mode", { mode: formatExecutionMode("not_applicable") }),
-          "badge-mode",
-          "data-execution-mode",
-          "not_applicable"
-        )
-      );
-      box.appendChild(badges);
-      appendParagraph(
-        box,
-        t("th.js.registered_detail", { alias: ent.payload.alias, side: label("side", ent.payload.side) })
-      );
-      appendParagraph(box, t("th.js.audit_link", { id: careLinkId }), "mono");
+      renderBox("participant-result", (box) => {
+        const originLabel = formatOriginLabel(ent.data_origin);
+        const badges = document.createElement("div");
+        badges.className = "meta-badges";
+        badges.appendChild(createBadge(originLabel, "badge-origin", "data-origin-label", originLabel));
+        badges.appendChild(
+          createBadge(
+            t("th.js.exec_mode", { mode: formatExecutionMode("not_applicable") }),
+            "badge-mode",
+            "data-execution-mode",
+            "not_applicable"
+          )
+        );
+        box.appendChild(badges);
+        appendParagraph(
+          box,
+          t("th.js.registered_detail", { alias: ent.payload.alias, side: label("side", ent.payload.side) })
+        );
+        appendParagraph(box, t("th.js.audit_link", { id: careLinkId }), "mono");
+      });
 
       showSuccess(t("th.js.registered", { alias: ent.payload.alias }));
       refreshParticipantList("");
@@ -863,17 +884,40 @@ export function initTherapistApp() {
     }
   });
 
-  // Step 2b: Select existing participant by ID (useful for resuming or authorization checks)
-  el("form-select-participant").addEventListener("submit", (event) => {
+  // Step 2b (support/advanced): select by identifier. The identifier must belong to the authorized list
+  // of this therapist; otherwise nothing changes and the last valid context is kept (D05 / FIX-04).
+  let selectBusy = false;
+  el("form-select-participant").addEventListener("submit", async (event) => {
     event.preventDefault();
-    if (!requireAuth()) return;
+    if (!requireAuth() || selectBusy) return;
     const pid = el("active-participant-id").value.trim();
+    const previous = state.participantId;
+    const restoreField = () => {
+      const f = el("active-participant-id");
+      if (f) f.value = previous;
+    };
     if (!pid) {
       showError("MISSING_FIELD", t("th.js.need_pid"));
+      restoreField();
       return;
     }
-    setActiveParticipant(pid);
-    showSuccess(t("th.js.active_participant", { name: pid }));
+    selectBusy = true;
+    try {
+      const res = await client.listParticipants("");
+      const hit = (res.data.participants || []).find((it) => it.participant_id === pid);
+      if (!hit) {
+        showError("NOT_FOUND", t("err.NOT_FOUND"), "[NOT_FOUND] participant not in the authorized list");
+        restoreField();
+        return;
+      }
+      setActiveParticipant(hit.participant_id, hit.alias, hit.care_link_id, hit.side);
+      showSuccess(t("th.js.active_participant", { name: hit.alias }));
+    } catch (err) {
+      restoreField();
+      handleApiError(err);
+    } finally {
+      selectBusy = false;
+    }
   });
 
   el("form-participant-search").addEventListener("submit", (event) => {
@@ -887,7 +931,7 @@ export function initTherapistApp() {
   el("btn-create-invite").addEventListener("click", async () => {
     if (!requireAuth() || inviteBusy) return;
     if (!state.participantId) {
-      showError("MISSING_FIELD", "Selecione um participante antes de gerar o convite.");
+      showError("MISSING_FIELD", t("th.js.invite_need_participant"));
       return;
     }
     inviteBusy = true;
@@ -897,35 +941,34 @@ export function initTherapistApp() {
       const res = await client.createInvite(state.participantId, ttl);
       const link = new URL("participant.html", window.location.href);
       link.hash = `invite=${encodeURIComponent(res.data.invite_token)}`;
-      const box = el("invite-result");
-      clearElement(box);
-      box.hidden = false;
-      box.dataset.inviteFor = state.participantId;
-      const when = new Date(res.data.expires_at);
-      appendParagraph(box, t("th.js.invite_made", { name: state.participantAlias || t("th.js.the_participant"), when: formatDateTime(when) }));
-      const input = document.createElement("input");
-      input.type = "text";
-      input.readOnly = true;
-      input.id = "invite-link";
-      input.value = link.toString();
-      input.setAttribute("aria-label", "Link do convite para enviar ao participante");
-      box.appendChild(input);
-      const copy = document.createElement("button");
-      copy.type = "button";
-      copy.id = "btn-copy-invite";
-      copy.className = "btn btn-secondary target";
-      copy.textContent = "Copiar link";
-      copy.addEventListener("click", async () => {
-        try {
-          await navigator.clipboard.writeText(input.value);
-          announce("Link do convite copiado.");
-          showSuccess("Link do convite copiado.");
-        } catch {
-          input.select();
-          showError("CLIPBOARD", t("th.js.copy_fail"));
-        }
+      renderBox("invite-result", (box) => {
+        box.dataset.inviteFor = state.participantId;
+        const when = new Date(res.data.expires_at);
+        appendParagraph(box, t("th.js.invite_made", { name: state.participantAlias || t("th.js.the_participant"), when: formatDateTime(when) }));
+        const input = document.createElement("input");
+        input.type = "text";
+        input.readOnly = true;
+        input.id = "invite-link";
+        input.value = link.toString();
+        input.setAttribute("aria-label", t("th.js.invite_link_aria"));
+        box.appendChild(input);
+        const copy = document.createElement("button");
+        copy.type = "button";
+        copy.id = "btn-copy-invite";
+        copy.className = "btn btn-secondary target";
+        copy.textContent = t("th.js.copy_link");
+        copy.addEventListener("click", async () => {
+          try {
+            await navigator.clipboard.writeText(input.value);
+            announce(t("th.js.copied"));
+            showSuccess(t("th.js.copied"));
+          } catch {
+            input.select();
+            showError("CLIPBOARD", t("th.js.copy_fail"));
+          }
+        });
+        box.appendChild(copy);
       });
-      box.appendChild(copy);
       announce(t("th.js.invite_done"));
     } catch (err) {
       handleApiError(err);
@@ -965,26 +1008,25 @@ export function initTherapistApp() {
     try {
       const res = await client.createAssessment(state.participantId, payload);
       const ent = res.data;
-      const box = el("assessment-result");
-      clearElement(box);
-      box.hidden = false;
-      const originLabel = formatOriginLabel(ent.data_origin);
-      const badges = document.createElement("div");
-      badges.className = "meta-badges";
-      badges.appendChild(createBadge(originLabel, "badge-origin", "data-origin-label", originLabel));
-      badges.appendChild(
-        createBadge(
-          t("th.js.exec_mode", { mode: formatExecutionMode("not_applicable") }),
-          "badge-mode",
-          "data-execution-mode",
-          "not_applicable"
-        )
-      );
-      box.appendChild(badges);
-      appendParagraph(
-        box,
-        t("th.js.assess_saved_detail", { date: formatIsoDate(ent.payload.assessment_date) })
-      );
+      renderBox("assessment-result", (box) => {
+        const originLabel = formatOriginLabel(ent.data_origin);
+        const badges = document.createElement("div");
+        badges.className = "meta-badges";
+        badges.appendChild(createBadge(originLabel, "badge-origin", "data-origin-label", originLabel));
+        badges.appendChild(
+          createBadge(
+            t("th.js.exec_mode", { mode: formatExecutionMode("not_applicable") }),
+            "badge-mode",
+            "data-execution-mode",
+            "not_applicable"
+          )
+        );
+        box.appendChild(badges);
+        appendParagraph(
+          box,
+          t("th.js.assess_saved_detail", { date: formatIsoDate(ent.payload.assessment_date) })
+        );
+      });
       showSuccess(t("th.js.assess_saved"));
     } catch (err) {
       handleApiError(err);
@@ -1013,27 +1055,26 @@ export function initTherapistApp() {
     try {
       const res = await client.createGoal(state.participantId, payload);
       const ent = res.data;
-      const box = el("goal-result");
-      clearElement(box);
-      box.hidden = false;
-      const originLabel = formatOriginLabel(ent.data_origin);
-      const badges = document.createElement("div");
-      badges.className = "meta-badges";
-      badges.appendChild(createBadge(originLabel, "badge-origin", "data-origin-label", originLabel));
-      badges.appendChild(
-        createBadge(
-          t("th.js.exec_mode", { mode: formatExecutionMode("not_applicable") }),
-          "badge-mode",
-          "data-execution-mode",
-          "not_applicable"
-        )
-      );
-      box.appendChild(badges);
-      appendParagraph(
-        box,
-        t("th.js.goal_saved_detail", { status: label("goal_status", ent.payload.status) })
-      );
-      showSuccess(`Meta funcional ${ent.entity_id} salva.`);
+      renderBox("goal-result", (box) => {
+        const originLabel = formatOriginLabel(ent.data_origin);
+        const badges = document.createElement("div");
+        badges.className = "meta-badges";
+        badges.appendChild(createBadge(originLabel, "badge-origin", "data-origin-label", originLabel));
+        badges.appendChild(
+          createBadge(
+            t("th.js.exec_mode", { mode: formatExecutionMode("not_applicable") }),
+            "badge-mode",
+            "data-execution-mode",
+            "not_applicable"
+          )
+        );
+        box.appendChild(badges);
+        appendParagraph(
+          box,
+          t("th.js.goal_saved_detail", { status: label("goal_status", ent.payload.status) })
+        );
+      });
+      showSuccess(t("th.js.goal_saved"));
     } catch (err) {
       handleApiError(err);
     }
@@ -1063,29 +1104,28 @@ export function initTherapistApp() {
       const rxData = res.data;
       const curRes = await client.getCurrentPrescription(state.participantId);
       const rxEvent = curRes.data;
-      const originLabel = formatOriginLabel(rxEvent.data_origin);
       const execMode = rxEvent.execution_mode || "not_applicable";
 
-      const box = el("prescription-result");
-      clearElement(box);
-      box.hidden = false;
-      const badges = document.createElement("div");
-      badges.className = "meta-badges";
-      badges.appendChild(createBadge(originLabel, "badge-origin", "data-origin-label", originLabel));
-      badges.appendChild(
-        createBadge(
-          t("th.js.exec_mode", { mode: formatExecutionMode(execMode) }),
-          "badge-mode",
-          "data-execution-mode",
-          execMode
-        )
-      );
-      box.appendChild(badges);
-      appendParagraph(
-        box,
-        t("th.js.rx_saved_detail", { rev: rxData.revision, movement: label("exercise", "organizar-a-mesa"), mode: formatExecutionMode("report_only") })
-      );
-      appendParagraph(box, `Evento: ${rxData.event_id}`, "mono");
+      renderBox("prescription-result", (box) => {
+        const originLabel = formatOriginLabel(rxEvent.data_origin);
+        const badges = document.createElement("div");
+        badges.className = "meta-badges";
+        badges.appendChild(createBadge(originLabel, "badge-origin", "data-origin-label", originLabel));
+        badges.appendChild(
+          createBadge(
+            t("th.js.exec_mode", { mode: formatExecutionMode(execMode) }),
+            "badge-mode",
+            "data-execution-mode",
+            execMode
+          )
+        );
+        box.appendChild(badges);
+        appendParagraph(
+          box,
+          t("th.js.rx_saved_detail", { rev: rxData.revision, movement: label("exercise", "organizar-a-mesa"), mode: formatExecutionMode("report_only") })
+        );
+        appendParagraph(box, t("th.js.audit_event_only", { id: rxData.event_id }), "mono");
+      });
       showSuccess(t("th.js.rx_saved", { rev: rxData.revision }));
     } catch (err) {
       handleApiError(err);
@@ -1166,7 +1206,7 @@ export function initTherapistApp() {
       const getRes = await client.getSummary(pubRes.data.summary_id);
       state.publishedSummary = getRes.data;
       renderPublishedSummary(getRes.data);
-      showSuccess(`Resumo ${pubRes.data.summary_id} publicado e verificado.`);
+      showSuccess(t("th.js.summary_ok"));
     } catch (err) {
       handleApiError(err);
     }
@@ -1233,10 +1273,9 @@ export function initTherapistApp() {
       state.timelineItems = items;
       renderTimeline(items);
 
-      const box = el("timeline-summary");
-      clearElement(box);
-      box.hidden = false;
-      appendParagraph(box, t("th.js.timeline_loaded", { n: items.length }));
+      renderBox("timeline-summary", (box) => {
+        appendParagraph(box, t("th.js.timeline_loaded", { n: items.length }));
+      });
       showSuccess(t("th.js.timeline_loaded", { n: items.length }));
     } catch (err) {
       handleApiError(err);
@@ -1262,6 +1301,7 @@ export function initTherapistApp() {
     renderFactsList();
     renderEvolutionSeries();
     renderTimeline(state.timelineItems || []);
+    for (const id of boxBuilders.keys()) runBox(id);
     if (state.publishedSummary) renderPublishedSummary(state.publishedSummary);
     if (state.publishedEvolution) renderPublishedEvolution(state.publishedEvolution);
     if (state.listView) renderParticipantList(state.listView.items);
