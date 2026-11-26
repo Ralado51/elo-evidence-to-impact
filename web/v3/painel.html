@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Elo — Painel do terapeuta</title>
+  <link rel="stylesheet" href="./tokens.css">
+  <link rel="stylesheet" href="./base.css">
+  <link rel="stylesheet" href="./painel.css">
+</head>
+<body>
+  <a class="skip-link target" href="#main">Pular para o conteúdo principal</a>
+
+  <header class="painel-header">
+    <div class="painel-header-inner">
+      <p class="painel-brand">Elo <span class="painel-brand-sub">Painel do terapeuta</span></p>
+      <p class="painel-badge" id="demo-badge">[Dados sintéticos] Demonstração. Nenhum dado de pessoa real.</p>
+      <nav id="painel-nav" class="painel-nav" aria-label="Seções do painel">
+        <a id="nav-entrar" class="target" href="#sec-entrar">Entrar</a>
+        <a class="target nav-case" href="#sec-resumo" hidden>Resumo</a>
+        <a class="target nav-case" href="#sec-evolucao" hidden>Evolução</a>
+        <a class="target nav-case" href="#sec-verificador" hidden>Verificador</a>
+        <a class="target nav-case" href="#sec-linha-tempo" hidden>Linha do tempo</a>
+      </nav>
+      <button type="button" id="btn-signout" class="btn btn-secondary target" hidden>Sair</button>
+    </div>
+  </header>
+
+  <main id="main" class="painel-main" tabindex="-1">
+    <h1>Painel do terapeuta</h1>
+
+    <section id="error-banner" class="banner banner-error" hidden tabindex="-1">
+      <p id="error-banner-text"></p>
+    </section>
+
+    <section id="sec-entrar" class="elo-card" aria-labelledby="h-entrar">
+      <h2 id="h-entrar">Entrar</h2>
+      <p class="elo-muted">Use as credenciais sintéticas de demonstração do servidor local.</p>
+      <form id="form-signin" novalidate>
+        <div class="field-row">
+          <div class="field">
+            <label for="signin-username">Usuário</label>
+            <input id="signin-username" name="username" type="text" autocomplete="username" required>
+          </div>
+          <div class="field">
+            <label for="signin-password">Senha</label>
+            <input id="signin-password" name="password" type="password" autocomplete="current-password" required>
+          </div>
+        </div>
+        <button type="submit" id="btn-signin" class="btn btn-primary target">Entrar</button>
+      </form>
+    </section>
+
+    <div id="painel-conteudo" hidden>
+      <section class="elo-card" aria-labelledby="h-paciente">
+        <h2 id="h-paciente">Paciente</h2>
+        <form id="form-open" class="open-row" novalidate>
+          <div class="field">
+            <label for="participant-id">Identificador do participante</label>
+            <input id="participant-id" name="participant_id" type="text" placeholder="p_..." autocomplete="off">
+          </div>
+          <button type="submit" id="btn-open" class="btn btn-primary target">Abrir paciente</button>
+        </form>
+        <div id="recents" class="recents" hidden>
+          <p class="elo-muted" id="recents-label">Abertos recentemente</p>
+          <ul id="recents-list" class="recents-list" aria-labelledby="recents-label"></ul>
+        </div>
+      </section>
+
+      <div id="paciente" hidden>
+        <section id="sec-resumo" class="elo-card patient-head" aria-labelledby="h-resumo">
+          <h2 id="h-resumo">Resumo do caso</h2>
+          <p id="patient-name" class="patient-name"></p>
+          <p id="patient-meta" class="elo-muted"></p>
+          <p id="patient-goal" class="patient-goal"></p>
+          <p id="patient-rx" class="elo-muted"></p>
+          <ul id="kpi-list" class="kpi-grid" aria-label="Indicadores do caso"></ul>
+        </section>
+
+        <section id="sec-evolucao" class="elo-card" aria-labelledby="h-evolucao">
+          <h2 id="h-evolucao">Evolução da ajuda relatada</h2>
+          <p id="evolution-headline" class="headline"></p>
+          <figure class="chart-fig">
+            <div id="evolution-chart" class="chart" role="img" aria-labelledby="evolution-chart-desc"></div>
+            <figcaption id="evolution-chart-desc" class="elo-muted"></figcaption>
+          </figure>
+          <ul id="transition-list" class="transition-list" aria-label="Mudanças entre sessões consecutivas"></ul>
+          <p class="elo-muted limit-note">Relato da própria pessoa; não é medida observada e não prova causa. A origem dos dados aparece em cada item.</p>
+        </section>
+
+        <section id="sec-verificador" class="elo-card verify-card" aria-labelledby="h-verificador">
+          <h2 id="h-verificador">Como o Elo impede exageros</h2>
+          <p class="elo-muted">Todo texto sobre o paciente é conferido por código determinístico contra as evidências registradas. Escolha uma sessão e compare uma afirmação fiel com uma exagerada.</p>
+          <div class="field">
+            <label for="verify-session">Sessão</label>
+            <select id="verify-session"></select>
+          </div>
+          <div class="verify-actions">
+            <button type="button" id="btn-verify-true" class="btn btn-secondary target">Verificar afirmação fiel</button>
+            <button type="button" id="btn-verify-false" class="btn btn-primary target">Verificar afirmação exagerada</button>
+          </div>
+          <div id="verify-output" class="verify-output" hidden>
+            <p class="verify-label">Texto proposto</p>
+            <blockquote id="verify-claim" class="verify-claim"></blockquote>
+            <div id="verify-verdict" class="verdict" data-verdict=""></div>
+          </div>
+        </section>
+
+        <section id="sec-registro" class="elo-card" aria-labelledby="h-registro">
+          <h2 id="h-registro">Sessões aprovadas para o resumo</h2>
+          <ol id="session-list" class="session-list" aria-label="Sessões aprovadas"></ol>
+          <details class="texts">
+            <summary class="target">Ver os textos aprovados, com as limitações de cada um</summary>
+            <ul id="approved-list" class="approved-list"></ul>
+          </details>
+        </section>
+
+        <section id="sec-linha-tempo" class="elo-card" aria-labelledby="h-linha-tempo">
+          <h2 id="h-linha-tempo">Linha do tempo</h2>
+          <ol id="timeline-list" class="timeline"></ol>
+        </section>
+      </div>
+    </div>
+
+    <div id="elo-live-region" class="elo-live-region" role="status" aria-live="polite" aria-atomic="true"></div>
+  </main>
+
+  <footer class="painel-footer">
+    <p class="elo-muted">Elo — dados sintéticos de demonstração. O Elo apoia a documentação e não substitui o julgamento profissional.</p>
+  </footer>
+
+  <script type="module" src="./painel_app.mjs"></script>
+</body>
+</html>

@@ -17,6 +17,12 @@
       "path": "/v3/participant.html",
       "liveRegionModule": "/v3/a11y.mjs",
       "inlineLinkExceptions": []
+    },
+    {
+      "id": "v3-painel",
+      "path": "/v3/painel.html",
+      "liveRegionModule": "/v3/a11y.mjs",
+      "inlineLinkExceptions": []
     }
   ]
 }
