@@ -13,6 +13,8 @@ the `/api/v3` contract is not changed by this branch.
   15 approved facts, summary and evolution published). Prints the participant id.
 - `web/tests/browser/pages.json`: the dashboard is registered in the real-browser accessibility harness.
 
+Quick start: `scripts/demo_up.sh` starts API + gateway (+ seed if `ELO_PLAYWRIGHT_DIR` is set). Manual test plan: `docs/UAT.md`.
+
 ## Run it (WSL, repo root)
 ```bash
 export ELO_PLAYWRIGHT_DIR="$HOME/hackathons/elo-platform/workspace/tools/playwright"
