@@ -15,13 +15,13 @@ Implements D-S1a-04-1:
 from __future__ import annotations
 
 import re
-from datetime import date
 from typing import Any
 
 from elo.canonical import CanonicalizationError, compute_event_hash, compute_event_id
 
 from .authz import ALLOWED_ROLES, AuthzScope, Principal, authorize
 from .entities import new_id, utc_now_ms, validate
+from .civil_date import parse_civil_date
 from .errors import V3Error, to_http_error
 from .store import V3Store
 from .validation import load_event_schema, load_limits_catalog, validate_event
@@ -122,18 +122,16 @@ def _enforce_decision(decision) -> None:
 
 
 def _check_prescription_dates(payload: dict[str, Any]) -> None:
-    """Enforce calendar validity and ``valid_to >= valid_from`` (S1a-04 Row 6)."""
+    """Enforce calendar validity and ``valid_to >= valid_from`` (S1a-04 Row 6) with the shared civil-date rule."""
     valid_from_raw = payload.get("valid_from")
     valid_to_raw = payload.get("valid_to")
-    try:
-        d_from = date.fromisoformat(valid_from_raw)
-    except (TypeError, ValueError) as exc:
-        raise V3Error("RULE_VIOLATION", f"valid_from {valid_from_raw!r} is not a valid calendar date.") from exc
+    d_from = parse_civil_date(valid_from_raw)
+    if d_from is None:
+        raise V3Error("RULE_VIOLATION", f"valid_from {valid_from_raw!r} is not a valid calendar date.")
     if valid_to_raw is not None:
-        try:
-            d_to = date.fromisoformat(valid_to_raw)
-        except (TypeError, ValueError) as exc:
-            raise V3Error("RULE_VIOLATION", f"valid_to {valid_to_raw!r} is not a valid calendar date.") from exc
+        d_to = parse_civil_date(valid_to_raw)
+        if d_to is None:
+            raise V3Error("RULE_VIOLATION", f"valid_to {valid_to_raw!r} is not a valid calendar date.")
         if d_to < d_from:
             raise V3Error("RULE_VIOLATION", "valid_to must not be earlier than valid_from.")
 

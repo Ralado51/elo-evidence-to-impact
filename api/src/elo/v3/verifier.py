@@ -19,7 +19,7 @@ import json
 import math
 import re
 from collections.abc import Mapping, Sequence
-from datetime import date, datetime, timezone
+from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -27,6 +27,7 @@ from zoneinfo import ZoneInfo
 
 from elo.canonical import canonicalize, hash_canonical
 from elo.v3.authz import AuthzScope, Principal, authorize
+from elo.v3.civil_date import is_civil_date
 from elo.v3.entities import validate as validate_schema
 from elo.v3.errors import V3Error
 from elo.v3.session_rules import CAPTURE_MODES, evaluate_session_stream
@@ -50,7 +51,6 @@ _SYMPTOM_ACTIONS: frozenset[str] = frozenset({"pain", "fatigue"})
 _PLACEHOLDER_RE = re.compile(r"\{([a-z_]+)(?:\|([a-z0-9]+)((?::[^:{}]+)*))?\}")
 _PARTICIPANT_ID_RE = re.compile(r"^p_[A-Za-z0-9-]{8,64}$")
 _FACT_ID_RE = re.compile(r"^f_[0-9a-f]{64}$")
-_LOCAL_DATE_RE = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$")
 
 VERIFICATION_STEPS: tuple[str, ...] = (
     "SHAPE",
@@ -113,14 +113,8 @@ def compute_content_hash(fact: Mapping[str, Any]) -> str:
 # ---------------------------------------------------------------------------
 
 
-def _is_real_local_date(val: Any) -> bool:
-    if not isinstance(val, str) or not _LOCAL_DATE_RE.fullmatch(val):
-        return False
-    try:
-        date.fromisoformat(val)
-    except ValueError:
-        return False
-    return True
+def _is_real_local_date(value: Any) -> bool:
+    return is_civil_date(value)
 
 
 def _scan_value_hygiene(val: Any, path: str = "$") -> tuple[str, str] | None:

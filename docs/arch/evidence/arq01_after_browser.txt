@@ -1,0 +1,45 @@
+{
+  "passed": true,
+  "results": [
+    {
+      "id": "DF-1 controles de data são nativos (type=date), com rótulo e sem máscara de texto",
+      "ok": true
+    },
+    {
+      "id": "DF-2 data impossível digitada (30/02/2026): erro no campo, foco, nada é enviado, nada persiste",
+      "ok": true
+    },
+    {
+      "id": "DF-3 o erro troca de idioma sem requisição e sem perder o campo; some ao editar",
+      "ok": true
+    },
+    {
+      "id": "DF-4 ano não bissexto: 29/02/2026 bloqueado; campo vazio obrigatório bloqueado",
+      "ok": true
+    },
+    {
+      "id": "DF-5 ano bissexto 29/02/2024 é aceito e persiste exatamente 2024-02-29",
+      "ok": true
+    },
+    {
+      "id": "DF-6 intervalo invertido na prescrição: erro no campo final, nada é enviado",
+      "ok": true
+    },
+    {
+      "id": "DF-7 prescrição: data final opcional vazia é aceita; mesmo dia é um intervalo válido",
+      "ok": true
+    },
+    {
+      "id": "DF-8 backend é a autoridade: chamada direta com datas impossíveis é recusada (400) e não persiste",
+      "ok": true
+    },
+    {
+      "id": "DF-9 teclado: o foco chega ao campo de data e Enter no formulário com data inválida não envia",
+      "ok": true
+    },
+    {
+      "id": "DF-10 data histórica inválida só é exibida como armazenada, nunca deslocada",
+      "ok": true
+    }
+  ]
+}

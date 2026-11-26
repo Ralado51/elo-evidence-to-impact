@@ -1,0 +1,65 @@
+{
+  "passed": true,
+  "results": [
+    {
+      "id": "E-U1 landing abre em pt-BR (navegador em inglês) e usa a mesma preferência elo_lang",
+      "ok": true
+    },
+    {
+      "id": "E-U2 inglês escolhido na landing vale em terapeuta, participante, painel e contador",
+      "ok": true
+    },
+    {
+      "id": "E-U3 escolher português no painel vale na landing e nas demais",
+      "ok": true
+    },
+    {
+      "id": "E-U4 contador: tradução completa, estados dinâmicos e rota oficial documentada",
+      "ok": true
+    },
+    {
+      "id": "E-U5 revisão da aplicação visível nas informações técnicas",
+      "ok": true
+    },
+    {
+      "id": "E-A1 estado autenticado do terapeuta em inglês (sessão, lista vazia/cheia, resultados)",
+      "ok": true
+    },
+    {
+      "id": "E-A2 convite: controles dinâmicos (resultado, link, copiar, nome acessível) em inglês e retraduzidos ao trocar",
+      "ok": true
+    },
+    {
+      "id": "E-A3 avaliação, meta, prescrição: retornos operacionais em inglês e conteúdo digitado preservado",
+      "ok": true
+    },
+    {
+      "id": "E-A4 participante autenticado em inglês: entrada, plano, sessão, relato",
+      "ok": true
+    },
+    {
+      "id": "E-A5 terapeuta: evidências, revisão e publicação em inglês; participante vê publicações em inglês",
+      "ok": true
+    },
+    {
+      "id": "E-A6 mensagens de erro e estados vazios em inglês (login inválido, busca sem resultado)",
+      "ok": true
+    },
+    {
+      "id": "A-1 id inexistente não vira participante ativo e preserva o último contexto válido",
+      "ok": true
+    },
+    {
+      "id": "A-2 id autorizado é aceito (positivo) e o rótulo mostra o apelido, não o código",
+      "ok": true
+    },
+    {
+      "id": "A-3 jornada operacional completa sem digitar identificadores (lista e pesquisa)",
+      "ok": true
+    },
+    {
+      "id": "A-4 isolamento: trocar de A para B limpa todas as seções, rascunhos e convite",
+      "ok": true
+    }
+  ]
+}

@@ -32,7 +32,6 @@ import json
 import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from datetime import date
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -41,6 +40,7 @@ from elo.canonical import compute_event_hash, compute_event_id, hash_canonical
 
 from .authz import ALLOWED_ROLES, AuthzScope, Principal, authorize
 from .entities import new_id, utc_now_ms, validate as validate_schema
+from .civil_date import is_civil_date
 from .errors import V3Error
 from .reviews import resolve_effective_reviews
 from .store import V3Store
@@ -66,7 +66,6 @@ _PROGRESS_SERIES_SCHEMA_PATH = _CONTRACTS_ROOT / "schemas" / "progress-series.sc
 _PARTICIPANT_ID_RE = re.compile(r"^p_[A-Za-z0-9-]{8,64}$")
 _EVOLUTION_ID_RE = re.compile(r"^evo_[A-Za-z0-9-]{8,64}$")
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
-_DATE_RE = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$")
 
 _METHOD_UNIT_BY_FACT: dict[str, tuple[str, str]] = {
     "F01": ("cycle_count", "cycles"),
@@ -159,13 +158,7 @@ def origin_prefix_for(data_origin: str) -> str:
 
 
 def _is_valid_date_str(value: Any) -> bool:
-    if not isinstance(value, str) or not _DATE_RE.fullmatch(value):
-        return False
-    try:
-        date.fromisoformat(value)
-        return True
-    except ValueError:
-        return False
+    return is_civil_date(value)
 
 
 def _require_valid_principal(principal: Principal | None) -> Principal:

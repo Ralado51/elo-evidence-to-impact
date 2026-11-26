@@ -28,6 +28,7 @@ from .entities import (
 )
 from .errors import V3Error, to_http_error
 from .store import V3Store
+from .civil_date import REASON_INVERTED, check_entity_civil_dates
 from .validation import validate_entity, validate_entity_chain
 
 # Top-level envelope keys owned exclusively by the server (S1a-01 Row 3).
@@ -469,6 +470,14 @@ class ClinicalEntityService:
                     ):
                         spec.reference_validator(self.store, participant_id, ent["payload"])
             raise to_http_error(ent_errs[0], f"Entity validation failed: {', '.join(ent_errs)}", details=ent_errs)
+
+        date_issues = check_entity_civil_dates(load_entity_schema(entity_type), ent)
+        if date_issues:
+            first = date_issues[0]
+            if first.reason == REASON_INVERTED:
+                start = first.field.replace("_to", "_from")
+                raise V3Error("RULE_VIOLATION", f"{first.field} must not be earlier than {start}.", details=[i.path for i in date_issues])
+            raise V3Error("RULE_VIOLATION", f"{first.field} is not a valid calendar date.", details=[i.path for i in date_issues])
 
         chain_errs = validate_entity_chain([*existing, ent])
         if chain_errs:

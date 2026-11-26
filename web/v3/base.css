@@ -332,3 +332,8 @@ legend {
 .lang-switch .btn[aria-pressed="true"] { font-weight: 700; text-decoration: underline; }
 .audit-details { margin-block-start: 0.5rem; font-size: 0.875rem; }
 .audit-details > summary { display: flex; align-items: center; min-height: 3rem; cursor: pointer; }
+
+/* Field-level validation message (DateField and future FieldError users): text + border, never colour alone. */
+.field-error { margin: 0.25rem 0 0; padding: 0.25rem 0.5rem; color: var(--elo-color-error); background-color: var(--elo-bg-error); border-left: 0.25rem solid var(--elo-color-error-border); }
+.field-error[hidden] { display: none; }
+input[aria-invalid="true"] { background-color: var(--elo-bg-surface); border-color: var(--elo-color-error-border); }

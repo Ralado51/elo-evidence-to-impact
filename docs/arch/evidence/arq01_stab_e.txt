@@ -1,0 +1,41 @@
+{
+  "passed": true,
+  "results": [
+    {
+      "id": "E1 padrão é pt-BR mesmo com navegador em inglês",
+      "ok": true
+    },
+    {
+      "id": "E2 seletor de idioma existe nas três telas",
+      "ok": true
+    },
+    {
+      "id": "E3 trocar para inglês traduz a tela e preserva o que foi digitado",
+      "ok": true
+    },
+    {
+      "id": "E4 preferência persiste após recarregar e vale para as outras telas",
+      "ok": true
+    },
+    {
+      "id": "E5 erro de login é uma mensagem compreensível, sem código técnico visível",
+      "ok": true
+    },
+    {
+      "id": "E6 jornada em inglês e troca no meio do fluxo mantém contexto e campos",
+      "ok": true
+    },
+    {
+      "id": "E7 sem códigos internos visíveis nas três telas (pt-BR)",
+      "ok": true
+    },
+    {
+      "id": "E7 sem códigos internos visíveis nas três telas (en)",
+      "ok": true
+    },
+    {
+      "id": "E8 rótulos pedidos pelo PO na tela do terapeuta (pt-BR)",
+      "ok": true
+    }
+  ]
+}

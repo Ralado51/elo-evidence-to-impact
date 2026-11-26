@@ -3,6 +3,7 @@
  * (i18n_pt.mjs, i18n_en.mjs). Contract values (enums, ids, error codes) are never translated:
  * labels are looked up from them. User-typed text is never translated.
  */
+import { parseCivilDate } from "./civil_date.mjs";
 import { PT } from "./i18n_pt.mjs";
 import { EN } from "./i18n_en.mjs";
 
@@ -99,9 +100,10 @@ export function formatDateTime(value) {
 
 /** ISO calendar date (YYYY-MM-DD) shown in the language's convention, without timezone shifts. */
 export function formatIsoDate(iso) {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ""));
-  if (!m) return String(iso ?? "");
-  return formatDate(new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], 12)), { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "UTC" });
+  const p = parseCivilDate(iso);
+  // An invalid or legacy value is shown exactly as stored: it is never shifted to another real day.
+  if (!p) return String(iso ?? "");
+  return formatDate(new Date(Date.UTC(p.year, p.month - 1, p.day, 12)), { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "UTC" });
 }
 
 export function formatNumber(n, opts) {

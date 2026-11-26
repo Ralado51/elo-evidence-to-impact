@@ -1,0 +1,75 @@
+{
+  "passed": true,
+  "task": "S1-05",
+  "screens": [
+    "/v3/therapist.html",
+    "/v3/participant.html"
+  ],
+  "static_v3_files_scanned": 27,
+  "pointer_pass": {
+    "passed": true,
+    "media_calls": 0,
+    "timeline_items": 5,
+    "publications": {
+      "summary_items": 6,
+      "evolution_series": 3,
+      "assistance_transition_direction": "less_help_reported"
+    },
+    "unreported_barrier_transitions": 0,
+    "ref_and_phase_oracle": {
+      "ok": true,
+      "total_events_validated": 17,
+      "total_streams_validated": 4,
+      "session_streams_validated": 2,
+      "entities_synthetic_checked": 4,
+      "consent_accepted_count": 0
+    },
+    "barrier_oracle": {
+      "ok": true,
+      "total_events_validated": 22,
+      "total_streams_validated": 5,
+      "session_streams_validated": 3,
+      "entities_synthetic_checked": 2,
+      "consent_accepted_count": 0
+    }
+  },
+  "keyboard_pass": {
+    "passed": true,
+    "pointer_events_used": 0,
+    "media_calls": 0,
+    "timeline_items": 5,
+    "publications": {
+      "summary_items": 6,
+      "evolution_series": 3,
+      "assistance_transition_direction": "less_help_reported"
+    },
+    "ref_and_phase_oracle": {
+      "ok": true,
+      "total_events_validated": 17,
+      "total_streams_validated": 4,
+      "session_streams_validated": 2,
+      "entities_synthetic_checked": 4,
+      "consent_accepted_count": 0
+    }
+  },
+  "called_contract_routes": [
+    "assessments.create (POST /api/v3/participants/{participant_id}/assessments)",
+    "auth.invite (POST /api/v3/auth/invite)",
+    "auth.therapist (POST /api/v3/auth/therapist)",
+    "events.batch (POST /api/v3/events:batch)",
+    "evolution.get (GET /api/v3/evolution/{evolution_id})",
+    "evolution.publish (POST /api/v3/evolution)",
+    "evolution.series (GET /api/v3/participants/{participant_id}/evolution/series)",
+    "facts.evidence (GET /api/v3/facts/{fact_id}/evidence)",
+    "facts.list (GET /api/v3/participants/{participant_id}/facts)",
+    "goals.create (POST /api/v3/participants/{participant_id}/goals)",
+    "goals.list (GET /api/v3/participants/{participant_id}/goals)",
+    "participants.create (POST /api/v3/participants)",
+    "prescriptions.current (GET /api/v3/participants/{participant_id}/prescription/current)",
+    "prescriptions.publish (POST /api/v3/prescriptions)",
+    "reviews.record (POST /api/v3/reviews)",
+    "summaries.get (GET /api/v3/summaries/{summary_id})",
+    "summaries.publish (POST /api/v3/summaries)",
+    "timeline.get (GET /api/v3/participants/{participant_id}/timeline)"
+  ]
+}

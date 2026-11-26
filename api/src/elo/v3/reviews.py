@@ -38,13 +38,13 @@ from __future__ import annotations
 
 import re
 from collections.abc import Mapping, Sequence
-from datetime import date
 from typing import Any
 
 from elo.canonical import compute_event_hash, compute_event_id, hash_canonical
 
 from .authz import ALLOWED_ROLES, AuthzScope, Principal, authorize
 from .entities import new_id, utc_now_ms
+from .civil_date import is_civil_date
 from .errors import V3Error
 from .store import V3Store
 from .verifier import derive_facts, verify_fact
@@ -52,7 +52,6 @@ from .verifier import derive_facts, verify_fact
 _PARTICIPANT_ID_RE = re.compile(r"^p_[A-Za-z0-9-]{8,64}$")
 _SUMMARY_ID_RE = re.compile(r"^sum_[A-Za-z0-9-]{8,64}$")
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
-_DATE_RE = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$")
 
 _VALID_DECISIONS: frozenset[str] = frozenset({"approve", "reject", "annotate"})
 _STATUS_CHANGING_DECISIONS: frozenset[str] = frozenset({"approve", "reject"})
@@ -118,14 +117,8 @@ def _proposal_from_fact(fact: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def _is_valid_date_str(value: str) -> bool:
-    if not _DATE_RE.fullmatch(value):
-        return False
-    try:
-        date.fromisoformat(value)
-        return True
-    except ValueError:
-        return False
+def _is_valid_date_str(value: Any) -> bool:
+    return is_civil_date(value)
 
 
 def resolve_effective_reviews(

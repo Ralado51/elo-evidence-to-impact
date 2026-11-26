@@ -1,0 +1,45 @@
+>       assert r.status_code == 400, f"{bad}: expected 400, got {r.status_code} {r.text[:200]}"
+E       AssertionError: 2026-02-30: expected 400, got 201 {"entity_id":"fa_c17c67843c9aaafa","entity_type":"functional_assessment","version":1,"prev_hash":null,"org_id":"o_1dd1ef0a9defe5b0","created_at":"2026-11-26T18:04:23.032Z","author":{"role":"therapist"
+E       assert 201 == 400
+>       assert r.status_code == 400, f"{bad}: expected 400, got {r.status_code} {r.text[:200]}"
+E       AssertionError: 2026-02-29: expected 400, got 201 {"entity_id":"fa_037d9f10c160565d","entity_type":"functional_assessment","version":1,"prev_hash":null,"org_id":"o_f18514a6aca70171","created_at":"2026-11-26T18:04:23.346Z","author":{"role":"therapist"
+E       assert 201 == 400
+>       assert r.status_code == 400, f"{bad}: expected 400, got {r.status_code} {r.text[:200]}"
+E       AssertionError: 1900-02-29: expected 400, got 201 {"entity_id":"fa_9903413a56039298","entity_type":"functional_assessment","version":1,"prev_hash":null,"org_id":"o_30eea8d0fe7f3790","created_at":"2026-11-26T18:04:23.663Z","author":{"role":"therapist"
+E       assert 201 == 400
+>       assert r.status_code == 400, f"{bad}: expected 400, got {r.status_code} {r.text[:200]}"
+E       AssertionError: 2026-04-31: expected 400, got 201 {"entity_id":"fa_7960c2b601ab4617","entity_type":"functional_assessment","version":1,"prev_hash":null,"org_id":"o_173620ff5ac623a0","created_at":"2026-11-26T18:04:24.010Z","author":{"role":"therapist"
+E       assert 201 == 400
+>       assert r.status_code == 400, f"{bad}: expected 400, got {r.status_code} {r.text[:200]}"
+E       AssertionError: 2026-00-10: expected 400, got 201 {"entity_id":"fa_95bf8c4d8bb05ef3","entity_type":"functional_assessment","version":1,"prev_hash":null,"org_id":"o_207566d8252fc818","created_at":"2026-11-26T18:04:24.349Z","author":{"role":"therapist"
+E       assert 201 == 400
+>       assert r.status_code == 400, f"{bad}: expected 400, got {r.status_code} {r.text[:200]}"
+E       AssertionError: 2026-13-10: expected 400, got 201 {"entity_id":"fa_4f09d9bc4e2de82f","entity_type":"functional_assessment","version":1,"prev_hash":null,"org_id":"o_d412205abb9023a0","created_at":"2026-11-26T18:04:24.712Z","author":{"role":"therapist"
+E       assert 201 == 400
+>       assert r.status_code == 400, f"{bad}: expected 400, got {r.status_code} {r.text[:200]}"
+E       AssertionError: 2026-01-00: expected 400, got 201 {"entity_id":"fa_d776d3be88d0f2c3","entity_type":"functional_assessment","version":1,"prev_hash":null,"org_id":"o_0faf7f18b28d6b09","created_at":"2026-11-26T18:04:25.051Z","author":{"role":"therapist"
+E       assert 201 == 400
+>       assert r.status_code == 400, f"{bad}: expected 400, got {r.status_code} {r.text[:200]}"
+E       AssertionError: 2026-01-32: expected 400, got 201 {"entity_id":"fa_152477b2a225337d","entity_type":"functional_assessment","version":1,"prev_hash":null,"org_id":"o_7303446de12d4b51","created_at":"2026-11-26T18:04:25.420Z","author":{"role":"therapist"
+E       assert 201 == 400
+>       assert r.status_code == 400, f"{bad}: expected 400, got {r.status_code} {r.text[:200]}"
+E       AssertionError: 0000-01-01: expected 400, got 201 {"entity_id":"fa_6924aaa445d5d504","entity_type":"functional_assessment","version":1,"prev_hash":null,"org_id":"o_430253eeceb79395","created_at":"2026-11-26T18:04:25.704Z","author":{"role":"therapist"
+E       assert 201 == 400
+E       assert 201 == 400
+FAILED tests/test_v3_civil_date.py::test_assessment_rejects_impossible_calendar_dates_and_persists_nothing[2026-02-30]
+FAILED tests/test_v3_civil_date.py::test_assessment_rejects_impossible_calendar_dates_and_persists_nothing[2026-02-29]
+FAILED tests/test_v3_civil_date.py::test_assessment_rejects_impossible_calendar_dates_and_persists_nothing[1900-02-29]
+FAILED tests/test_v3_civil_date.py::test_assessment_rejects_impossible_calendar_dates_and_persists_nothing[2026-04-31]
+FAILED tests/test_v3_civil_date.py::test_assessment_rejects_impossible_calendar_dates_and_persists_nothing[2026-00-10]
+FAILED tests/test_v3_civil_date.py::test_assessment_rejects_impossible_calendar_dates_and_persists_nothing[2026-13-10]
+FAILED tests/test_v3_civil_date.py::test_assessment_rejects_impossible_calendar_dates_and_persists_nothing[2026-01-00]
+FAILED tests/test_v3_civil_date.py::test_assessment_rejects_impossible_calendar_dates_and_persists_nothing[2026-01-32]
+FAILED tests/test_v3_civil_date.py::test_assessment_rejects_impossible_calendar_dates_and_persists_nothing[0000-01-01]
+FAILED tests/test_v3_civil_date.py::test_encounter_rejects_impossible_calendar_dates[2026-02-30]
+FAILED tests/test_v3_civil_date.py::test_encounter_rejects_impossible_calendar_dates[2026-04-31]
+FAILED tests/test_v3_civil_date.py::test_revision_cannot_introduce_an_impossible_date
+FAILED tests/test_v3_civil_date.py::test_parse_civil_date_vectors
+FAILED tests/test_v3_civil_date.py::test_range_vectors
+FAILED tests/test_v3_civil_date.py::test_entity_check_is_derived_from_the_contract_schema_not_a_hardcoded_field_list
+FAILED tests/test_v3_civil_date.py::test_no_module_keeps_a_private_civil_date_parser
+16 failed, 5 passed in 5.96s

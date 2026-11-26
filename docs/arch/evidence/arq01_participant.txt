@@ -1,0 +1,44 @@
+{
+  "passed": true,
+  "task": "S1-04",
+  "page": "/v3/participant.html",
+  "pointer_pass": {
+    "passed": true,
+    "get_user_media_calls": 0,
+    "verified_fact_types": [
+      "F02",
+      "F03",
+      "F04",
+      "F08"
+    ],
+    "forced_errors_verified": [
+      "CONSENT_REQUIRED",
+      "FORBIDDEN"
+    ],
+    "authz_checks_verified": [
+      "unauthenticated_redirect_to_signin",
+      "other_participant_summary_404",
+      "other_participant_evolution_404",
+      "therapist_screen_action_403_forbidden"
+    ]
+  },
+  "keyboard_pass": {
+    "passed": true,
+    "pointer_events_used": 0,
+    "get_user_media_calls": 0,
+    "verified_fact_types": [
+      "F02",
+      "F03",
+      "F04",
+      "F08"
+    ]
+  },
+  "called_participant_routes": [
+    "auth.invite (POST /api/v3/auth/invite)",
+    "events.batch (POST /api/v3/events:batch)",
+    "evolution.get (GET /api/v3/evolution/{evolution_id})",
+    "goals.list (GET /api/v3/participants/{participant_id}/goals)",
+    "prescriptions.current (GET /api/v3/participants/{participant_id}/prescription/current)",
+    "summaries.get (GET /api/v3/summaries/{summary_id})"
+  ]
+}

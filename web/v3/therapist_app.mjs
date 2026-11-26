@@ -10,6 +10,7 @@ import { announce } from "./a11y.mjs";
 import { createV3Client, V3ApiError } from "./api_client.mjs";
 import { hashCanonical } from "./canonical.mjs";
 import { renderErrorTechnical } from "./ui_messages.mjs";
+import { validateDateFields } from "./date_field.mjs";
 import { applyI18n, initI18n, t, tm, lref, bindText, label, formatDate, formatDateTime, formatIsoDate } from "./i18n.mjs";
 import {
   canPublishEvolution,
@@ -982,9 +983,10 @@ export function initTherapistApp() {
   el("form-assessment").addEventListener("submit", async (event) => {
     event.preventDefault();
     if (!requireParticipant()) return;
+    if (!validateDateFields([{ input: el("assessment-date"), required: true }])) return;
     const noteText = el("assessment-note").value.trim();
     const payload = {
-      assessment_date: el("assessment-date").value.trim(),
+      assessment_date: el("assessment-date").value,
       body_segment: el("assessment-segment").value,
       side: el("assessment-side").value,
       instrument: {
@@ -1084,7 +1086,8 @@ export function initTherapistApp() {
   el("form-prescription").addEventListener("submit", async (event) => {
     event.preventDefault();
     if (!requireParticipant()) return;
-    const validToRaw = el("rx-valid-to").value.trim();
+    if (!validateDateFields([{ input: el("rx-valid-from"), required: true }, { input: el("rx-valid-to"), notBefore: el("rx-valid-from") }])) return;
+    const validToRaw = el("rx-valid-to").value;
     const draft = {
       participant_id: state.participantId,
       exercise_id: el("rx-exercise").value,
@@ -1093,7 +1096,7 @@ export function initTherapistApp() {
       target_sets: Number.parseInt(el("rx-sets").value, 10),
       target_repetitions: Number.parseInt(el("rx-reps").value, 10),
       sessions_per_week: Number.parseInt(el("rx-sessions-week").value, 10),
-      valid_from: el("rx-valid-from").value.trim(),
+      valid_from: el("rx-valid-from").value,
       valid_to: validToRaw.length > 0 ? validToRaw : null,
       timezone: el("rx-timezone").value,
       min_calibration_span: null,
@@ -1186,6 +1189,7 @@ export function initTherapistApp() {
   el("form-summary").addEventListener("submit", async (event) => {
     event.preventDefault();
     if (!requireParticipant()) return;
+    if (!validateDateFields([{ input: el("summary-period-from"), required: true }, { input: el("summary-period-to"), required: true, notBefore: el("summary-period-from") }])) return;
     const items = getPublishableSummaryItems(state.factEntries);
     if (items.length === 0) {
       showError(
@@ -1194,8 +1198,8 @@ export function initTherapistApp() {
       );
       return;
     }
-    const periodFrom = el("summary-period-from").value.trim();
-    const periodTo = el("summary-period-to").value.trim();
+    const periodFrom = el("summary-period-from").value;
+    const periodTo = el("summary-period-to").value;
     try {
       const pubRes = await client.publishSummary({
         participant_id: state.participantId,
@@ -1233,6 +1237,7 @@ export function initTherapistApp() {
   el("form-evolution").addEventListener("submit", async (event) => {
     event.preventDefault();
     if (!requireParticipant()) return;
+    if (!validateDateFields([{ input: el("evolution-period-from"), required: true }, { input: el("evolution-period-to"), required: true, notBefore: el("evolution-period-from") }])) return;
     const publishableSeries = getPublishableEvolutionSeries(state.evolutionSeries, state.factEntries);
     if (
       !canPublishEvolution(state.evolutionSeries, state.factEntries) ||
@@ -1245,8 +1250,8 @@ export function initTherapistApp() {
       );
       return;
     }
-    const periodFrom = el("evolution-period-from").value.trim();
-    const periodTo = el("evolution-period-to").value.trim();
+    const periodFrom = el("evolution-period-from").value;
+    const periodTo = el("evolution-period-to").value;
     const seriesKeys = publishableSeries.map((s) => s.series_key_hash);
     try {
       const pubRes = await client.publishEvolution({

@@ -314,7 +314,16 @@ export async function checkKeyboard(context, pageUrl) {
     const visited = [];
     const seenIdx = new Set();
     let wrappedBackToStart = false;
-    const maxPresses = expectedInfo.expectedTabStops.length + 6;
+    // ARQ-01 (declared harness change): a native <input type="date"> exposes up to
+    // DATE_SEGMENT_STOPS internal Tab stops (day/month/year, plus the picker button) on ONE
+    // element. Consecutive repeats of such an element are segment navigation, not a trap.
+    // Any other repeat, or a non-consecutive repeat, is still reported as a trap.
+    const DATE_SEGMENT_STOPS = 5;
+    const dateInputCount = await pageB.evaluate(
+      () => document.querySelectorAll('input[type="date"]').length
+    );
+    const maxPresses = expectedInfo.expectedTabStops.length + 6 + dateInputCount * (DATE_SEGMENT_STOPS - 1);
+    let dateRepeats = 0;
 
     for (let step = 0; step < maxPresses; step += 1) {
       await pageB.keyboard.press("Tab");
@@ -329,6 +338,7 @@ export async function checkKeyboard(context, pageUrl) {
           kbdIdx: el.dataset.eloKbdIdx ?? null,
           tag: el.tagName.toLowerCase(),
           id: el.id || "",
+          isDateInput: el.tagName === "INPUT" && el.type === "date",
           outlineStyle: cs.outlineStyle,
           outlineWidthPx: Number.parseFloat(cs.outlineWidth) || 0,
         };
@@ -352,6 +362,18 @@ export async function checkKeyboard(context, pageUrl) {
         );
         break;
       }
+
+      const last = visited[visited.length - 1];
+      if (
+        current.isDateInput &&
+        last &&
+        last.kbdIdx === current.kbdIdx &&
+        dateRepeats < DATE_SEGMENT_STOPS - 1
+      ) {
+        dateRepeats += 1;
+        continue;
+      }
+      dateRepeats = 0;
 
       if (current.kbdIdx !== null && seenIdx.has(current.kbdIdx)) {
         failures.push(

@@ -820,6 +820,18 @@ async function tabToSelector(page, selector, maxTabs = 220) {
 
 async function keyboardFillInput(page, selector, text) {
   await tabToSelector(page, selector);
+  const isDate = await page.evaluate((sel) => document.querySelector(sel)?.type === "date", selector);
+  if (isDate) {
+    // Native date control (ARQ-01): the segments follow the browser locale, so type the digits in that order.
+    const digits = await page.evaluate((iso) => {
+      const [y, m, d] = iso.split("-");
+      const order = new Intl.DateTimeFormat(navigator.language).formatToParts(new Date(Date.UTC(2001, 10, 22))).filter((p) => ["year", "month", "day"].includes(p.type)).map((p) => p.type);
+      const by = { year: y, month: m, day: d };
+      return order.map((k) => by[k]).join("");
+    }, text);
+    await page.keyboard.type(digits);
+    return;
+  }
   await page.keyboard.press("Control+A");
   await page.keyboard.press("Backspace");
   await page.keyboard.type(text);
