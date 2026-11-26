@@ -51,3 +51,5 @@ Baseline `ffe1e22`; relatório: `ARQ-02_CORRECTION_REPORT.md` §7; delta: `ARQ-0
 |---|---|---|---|
 | FIX02-R01 | elegibilidade derivada de mapa só em memória (zerado na troca/recarga); servidor sem leitura de revisões; slot consumido do CommandController contradizia a tela | projeção `effective_reviews` (opt-in em `facts.list`) reconstruída a cada carga; no-op coerente; `startNewIntention` em mudança de decisão | `s1_arq02_fix03` R01-0..9 (5 falhas → ALL PASS); `fix03_effective_reviews.test.mjs`; `test_v3_fix03_effective_reviews.py` |
 | UAT pendentes (relato normal; erros das 2 datas da evolução) | — (cobertura) | — | UAT-P1, UAT-P2 passam |
+
+| FIX02-R01 (concorrência) | respostas tardias/ordem entre carregar, revisar e trocar de participante | `ctxSeq`/`factsLoadSeq`/`reviewEpoch` (cliente); delta ratificado e incorporado ao A2 do ARQ-03 | `s1_arq02_fix03b_concurrency` C1..C5 (C1, C3 falhavam → ALL PASS); `test_v3_fix03_effective_reviews.py` (8) |

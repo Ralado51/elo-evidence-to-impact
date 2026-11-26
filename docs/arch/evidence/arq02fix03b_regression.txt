@@ -1,0 +1,9 @@
+PASS UAT-P2 relato de sessão com conclusão normal: sucesso único, sem erro
+ALL PASS
+s1_arq02_fix01 ok=20 fail=0
+s1_arq02_commands ok=9 fail=0
+s1_arq01_dates ok=10 fail=0
+s1_stab_a ok=8 fail=0
+s1_stab_e ok=9 fail=0
+s1_corr_ae ok=15 fail=0
+s1_corr_e01 ok=7 fail=0

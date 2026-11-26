@@ -8,6 +8,7 @@ Pacotes `CL06_3-r1` (3.0.0) e `CL06_3-A1` (3.1.0) permanecem **íntegros e conge
 3. Ampliação de `units.json` (somente unidades aprovadas pelo PO/terapeuta).
 4. Catálogo de instrumentos/itens com fonte e aprovação profissional (hoje inexistente).
 5. Campo opcional `deadline` em `goal` (prazo) — se ratificado (D-05).
+6. **[RATIFICADO PELO PO em 2026-11-26 — origem ARQ-02 FIX-03]** `facts.list` aceita o parâmetro opcional `include=reviews`, que acrescenta `effective_reviews` (por `fact_id`: `decision`, `content_hash`, `event_id`, `note`). Detalhes em `ARQ-02_FIX03_CONTRACT_DELTA.md`. Já implementado como extensão opcional; entra no A2 (3.2.0) sem alterar os pacotes congelados. Invariantes: resposta sem o parâmetro idêntica à de 3.0.0/3.1.0; 31 operações preservadas (sem endpoint novo); autorização por participante igual à de `facts.list`; ledger como fonte de verdade; regra de resolução efetiva compartilhada com a publicação; elegibilidade definitiva validada pelo servidor; histórico integral das decisões preservado. Vetores de teste (Python e JS) do item a produzir junto com os demais do A2.
 
 ## 2. Impacto em dados históricos
 Registros append-only já gravados com combinações hoje aceitas (ex.: `session_count` com `kg`) **não são reescritos**. Regras novas aplicam-se a escritas novas; leitura histórica tolerante, com marcação de "legado" na exibição.

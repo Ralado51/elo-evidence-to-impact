@@ -89,3 +89,27 @@ def test_unsupported_include_value_rejected(tmp_path: Path):
     w = _setup_world(tmp_path)
     r = _list(w, q="?include=everything")
     assert r.status_code == 400 and r.json()["error"]["code"] == "RULE_VIOLATION"
+
+
+def test_full_decision_history_preserved_and_projection_is_last_effective(tmp_path: Path):
+    w = _setup_world(tmp_path)
+    f01 = w["facts_by_type"]["F01"]
+    for d in ("approve", "reject", "annotate", "approve", "reject"):
+        assert _review(w, f01, d, note="n" if d == "annotate" else None).status_code == 201
+    revs = w["store"].get_participant_reviews(w["p1_id"])
+    assert [r["payload"]["decision"] for r in revs] == ["approve", "reject", "annotate", "approve", "reject"]
+    eff = _list(w, q="?include=reviews").json()["effective_reviews"][f01["fact_id"]]
+    assert eff["decision"] == "reject"
+    # projection uses the shared rule
+    from elo.v3.reviews import resolve_effective_reviews
+    _, shared = resolve_effective_reviews(revs)
+    assert shared[f01["fact_id"]]["event_id"] == eff["event_id"]
+
+
+def test_publication_still_validated_by_server_regardless_of_projection(tmp_path: Path):
+    w = _setup_world(tmp_path)
+    f01 = w["facts_by_type"]["F01"]
+    assert _review(w, f01, "approve").status_code == 201
+    assert _review(w, f01, "reject").status_code == 201
+    r = w["client"].post("/api/v3/summaries", headers=_headers(w["t1_tok"]), json={"participant_id": w["p1_id"], "fact_ids": [f01["fact_id"]]})
+    assert r.status_code == 422 and r.json()["error"]["code"] == "FACT_NOT_APPROVED"

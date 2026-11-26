@@ -121,6 +121,9 @@ export function initTherapistApp() {
     side: "right",
     factEntries: [],
     effectiveReviews: {},
+    ctxSeq: 0, // bumps on every participant change: late responses of a previous context are discarded
+    reviewEpoch: 0, // bumps on every recorded review: a fact load that raced with it is repeated
+    factsLoadSeq: 0,
     evolutionSeries: [],
     evolutionNotices: [],
     evolutionContextChanges: {},
@@ -240,8 +243,8 @@ export function initTherapistApp() {
     }
     if (out.status === "ok") {
       try {
-        await onOk(out.result);
-        offerAnotherIntention(formId);
+        const r = await onOk(out.result);
+        if (r !== "stale") offerAnotherIntention(formId);
       } catch (err) {
         handleApiError(err);
       }
@@ -361,6 +364,7 @@ export function initTherapistApp() {
   function setActiveParticipant(participantId, alias = "", careLinkId = "", side = "") {
     const changed = state.participantId !== participantId;
     if (changed) {
+      state.ctxSeq += 1;
       // Isolation between participants: nothing from the previous one may stay on screen or in memory.
       state.participantAlias = "";
       state.careLinkId = "";
@@ -635,14 +639,19 @@ export function initTherapistApp() {
       decision,
       note,
     };
+    const seq = state.ctxSeq;
     await cmd(`review:${entry.fact.fact_id}:${decision}`, (key) => client.recordReview(reviewBody, { idempotencyKey: key }), async (res) => {
+      state.reviewEpoch += 1; // the ledger changed: any fact load still in flight must be repeated
+      if (seq !== state.ctxSeq) return "stale"; // recorded for its own participant; never touches the current context
       if (decision === "approve" || decision === "reject") {
+        const live = state.factEntries.find((e) => e.fact.fact_id === entry.fact.fact_id) || entry;
         entry.effectiveReview = {
           decision,
           content_hash: entry.contentHash,
           event_id: res.data.event_id,
           note,
         };
+        live.effectiveReview = entry.effectiveReview;
         state.effectiveReviews[entry.fact.fact_id] = entry.effectiveReview;
       }
       // Changing effective review invalidates previously loaded evolution series snapshot.
@@ -1220,34 +1229,49 @@ export function initTherapistApp() {
   // Step 6: Load verified facts & resolve execution_mode from evidence
   el("btn-load-facts").addEventListener("click", async () => {
     if (!requireParticipant()) return;
+    const seq = state.ctxSeq;
+    const loadId = ++state.factsLoadSeq;
+    const pid = state.participantId;
     try {
-      const res = await client.listFacts(state.participantId, { includeReviews: true });
-      const facts = Array.isArray(res.data?.facts) ? res.data.facts : [];
-      // Eligibility is rebuilt from the server ledger projection on every load (no client-only truth).
-      const projected = res.data?.effective_reviews;
-      state.effectiveReviews = projected && typeof projected === "object" ? { ...projected } : {};
+      let facts = [];
+      let projected = null;
+      let entries = [];
+      // Repeat while a review was recorded during the load (projection could predate it).
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        const epoch = state.reviewEpoch;
+        const res = await client.listFacts(pid, { includeReviews: true });
+        if (seq !== state.ctxSeq || loadId !== state.factsLoadSeq) return; // late response: discard
+        facts = Array.isArray(res.data?.facts) ? res.data.facts : [];
+        // Eligibility is rebuilt from the server ledger projection on every load (no client-only truth).
+        projected = res.data?.effective_reviews;
+        const reviews = projected && typeof projected === "object" ? { ...projected } : {};
 
-      // Fetch execution_mode once per unique session_id via GET /api/v3/facts/{fact_id}/evidence.
-      const sessionModeCache = new Map();
-      const entries = [];
-      for (const fact of facts) {
-        const sid = fact.scope?.session_id || "";
-        let executionMode = sessionModeCache.get(sid);
-        if (!executionMode) {
-          const evRes = await client.getFactEvidence(fact.fact_id);
-          const evList = Array.isArray(evRes.data?.events) ? evRes.data.events : [];
-          const startEv = evList.find((e) => e.type === "session.started") || evList[0];
-          executionMode = startEv?.execution_mode || "report_only";
-          if (sid) sessionModeCache.set(sid, executionMode);
+        // Fetch execution_mode once per unique session_id via GET /api/v3/facts/{fact_id}/evidence.
+        const sessionModeCache = new Map();
+        entries = [];
+        for (const fact of facts) {
+          const sid = fact.scope?.session_id || "";
+          let executionMode = sessionModeCache.get(sid);
+          if (!executionMode) {
+            const evRes = await client.getFactEvidence(fact.fact_id);
+            if (seq !== state.ctxSeq || loadId !== state.factsLoadSeq) return;
+            const evList = Array.isArray(evRes.data?.events) ? evRes.data.events : [];
+            const startEv = evList.find((e) => e.type === "session.started") || evList[0];
+            executionMode = startEv?.execution_mode || "report_only";
+            if (sid) sessionModeCache.set(sid, executionMode);
+          }
+          const contentHash = await hashCanonical(fact);
+          entries.push({
+            fact,
+            contentHash,
+            executionMode,
+            effectiveReview: reviews[fact.fact_id] || null,
+            draftNote: "",
+          });
         }
-        const contentHash = await hashCanonical(fact);
-        entries.push({
-          fact,
-          contentHash,
-          executionMode,
-          effectiveReview: state.effectiveReviews[fact.fact_id] || null,
-          draftNote: "",
-        });
+        if (seq !== state.ctxSeq || loadId !== state.factsLoadSeq) return;
+        state.effectiveReviews = reviews;
+        if (epoch === state.reviewEpoch) break;
       }
 
       state.factEntries = entries;
@@ -1266,7 +1290,7 @@ export function initTherapistApp() {
       );
       showSuccess(tm("th.js.facts_loaded_detail", { n: entries.length }));
     } catch (err) {
-      handleApiError(err);
+      if (seq === state.ctxSeq) handleApiError(err); // errors of a previous context are not shown in the current one
     }
   });
 
@@ -1291,8 +1315,11 @@ export function initTherapistApp() {
       period: { from: periodFrom, to: periodTo },
       note_refs: [],
     };
+    const seq = state.ctxSeq;
     await cmd("summary", (key) => client.publishSummary(summaryBody, { idempotencyKey: key }), async (pubRes) => {
+      if (seq !== state.ctxSeq) return "stale";
       const getRes = await client.getSummary(pubRes.data.summary_id);
+      if (seq !== state.ctxSeq) return "stale";
       state.publishedSummary = getRes.data;
       renderPublishedSummary(getRes.data);
       showSuccess(tm("th.js.summary_ok"));
@@ -1303,7 +1330,9 @@ export function initTherapistApp() {
   el("btn-load-evolution-series").addEventListener("click", async () => {
     if (!requireParticipant()) return;
     try {
+      const seq = state.ctxSeq;
       const res = await client.getEvolutionSeries(state.participantId);
+      if (seq !== state.ctxSeq) return;
       state.evolutionSeries = Array.isArray(res.data?.series) ? res.data.series : [];
       state.evolutionNotices = Array.isArray(res.data?.notices) ? res.data.notices : [];
       state.evolutionContextChanges = res.data?.context_changes || {};
@@ -1341,8 +1370,11 @@ export function initTherapistApp() {
       period: { from: periodFrom, to: periodTo },
       series_keys: seriesKeys,
     };
+    const seq = state.ctxSeq;
     await cmd("evolution", (key) => client.publishEvolution(evolutionBody, { idempotencyKey: key }), async (pubRes) => {
+      if (seq !== state.ctxSeq) return "stale";
       const getRes = await client.getEvolution(pubRes.data.evolution_id);
+      if (seq !== state.ctxSeq) return "stale";
       state.publishedEvolution = getRes.data;
       renderPublishedEvolution(getRes.data);
       showSuccess(tm("th.js.evo_ok"));
@@ -1353,7 +1385,9 @@ export function initTherapistApp() {
   el("btn-load-timeline").addEventListener("click", async () => {
     if (!requireParticipant()) return;
     try {
+      const seq = state.ctxSeq;
       const res = await client.getTimeline(state.participantId);
+      if (seq !== state.ctxSeq) return;
       const items = Array.isArray(res.data?.items) ? res.data.items : [];
       state.timelineItems = items;
       renderTimeline(items);
