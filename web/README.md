@@ -51,6 +51,18 @@ ELO_PYTHON="${ELO_PYTHON:-python3}" node web/tests/browser/therapist_journey.mjs
 
 Optional overrides: `ELO_PYTHON=<path/to/python3>`, `ELO_PLAYWRIGHT_DIR=<path/to/playwright>` (or `PW=<path/to/playwright>`). Exits `0` if and only if every check passes.
 
+### Participant journey harness (`web/tests/browser/participant_journey.mjs`, S1-04)
+
+- Spawns the live Python `/api/v3` server (`uvicorn --factory elo.api:app_factory`, preserving inherited `PYTHONPATH`) on loopback `127.0.0.1` with synthetic data (`ELO_V3_DATA_ORIGIN=synthetic_fixture`), plus a loopback-only gateway serving `web/v3/**` and proxying `/api/v3/*`.
+- Runs the report-only `"Organizar a mesa"` participant journey (`web/v3/participant.html`, written from scratch per PO-F29) in headless Chromium in two independent passes — **pointer** and **keyboard-only** (zero pointer events) — verifying invite sign-in, prescription/goal views, report-only session (`getUserMedia` never called, zero `consent.accepted` per D-S1-04-1), zero-typing basic report (`"Não sei / prefiro não dizer"` → `"unreported"`), single-action symptom stops (`pain`/`fatigue`), S0-03 `validate_event` + CL06.3 `elo_ref.py` + S1b-01 phase rules + therapist `facts.verify` oracle (`F02`/`F03`/`F04`/`F08`), simplified participant summary/evolution views with origin labels and zero leaked hashes/actor IDs/forbidden outputs, forced `FORBIDDEN` and `CONSENT_REQUIRED` batch denials, cross-participant `404` and therapist-route `403` denials, and strict participant-only `/api/v3` network isolation.
+- Run from the repository root:
+
+```bash
+ELO_PYTHON="${ELO_PYTHON:-python3}" node web/tests/browser/participant_journey.mjs
+```
+
+Optional overrides: `ELO_PYTHON=<path/to/python3>`, `ELO_PLAYWRIGHT_DIR=<path/to/playwright>` (or `PW=<path/to/playwright>`). Exits `0` if and only if every check passes.
+
 ## Build notes
 
 The Dockerfile fetches `@mediapipe/tasks-vision@1.2.3` and the hand model at build time, so the app serves them itself and the CSP stays `'self'`

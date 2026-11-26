@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Elo v3 — Área do participante</title>
+  <link rel="stylesheet" href="./tokens.css">
+  <link rel="stylesheet" href="./base.css">
+  <link rel="stylesheet" href="./participant.css">
+</head>
+<body>
+  <a class="skip-link target" href="#main">Pular para o conteúdo principal</a>
+
+  <header class="site-header">
+    <div class="site-header-inner">
+      <p class="site-brand">Elo v3 — Área do participante</p>
+      <p class="step-lead">[Dados sintéticos] • Modo de relato apenas (report_only) • Sem câmera nem microfone</p>
+      <nav class="participant-nav" aria-label="Etapas da área do participante">
+        <a class="target" href="#sec-signin">1. Entrar</a>
+        <a class="target" href="#sec-plan">2. Prescrição e metas</a>
+        <a class="target" href="#sec-session">3. Praticar</a>
+        <a class="target" href="#sec-report">4. Relato</a>
+        <a class="target" href="#sec-views">5. Resumo e evolução</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main" class="main" tabindex="-1">
+    <h1>Minha prática — Organizar a mesa</h1>
+
+    <section class="status-bar" aria-label="Estado da sessão do participante">
+      <div>
+        <p id="participant-session-status">Sessão não autenticada. Entre com seu convite na etapa 1.</p>
+        <p id="practice-phase-status">Nenhuma sessão de prática iniciada.</p>
+      </div>
+      <button type="button" id="btn-participant-signout" class="btn btn-secondary target" hidden>Sair</button>
+    </section>
+
+    <section id="error-banner" class="banner banner-error" hidden tabindex="-1" data-error-code="">
+      <p id="error-banner-text"></p>
+    </section>
+
+    <section id="success-banner" class="banner banner-success" hidden>
+      <p id="success-banner-text"></p>
+    </section>
+
+    <!-- Etapa 1: Entrar com convite -->
+    <section id="sec-signin" class="step-card" aria-labelledby="heading-signin">
+      <h2 id="heading-signin">1. Entrar com código de convite</h2>
+      <p class="step-lead">Use o convite sintético gerado pelo seu terapeuta para acessar sua prática.</p>
+      <form id="form-invite-signin" novalidate>
+        <div class="field">
+          <label for="invite-token">Código de convite</label>
+          <input id="invite-token" name="invite_token" type="text" autocomplete="off" required>
+        </div>
+        <div class="actions-row">
+          <button type="submit" id="btn-invite-signin" class="btn btn-primary target">Entrar com convite</button>
+        </div>
+      </form>
+      <div id="signin-result" class="result-box" hidden></div>
+    </section>
+
+    <!-- Etapa 2: Prescrição atual e metas -->
+    <section id="sec-plan" class="step-card" aria-labelledby="heading-plan">
+      <h2 id="heading-plan">2. Minha prescrição e metas</h2>
+      <p class="step-lead">Esta prática usa apenas relato (report_only): nenhuma permissão de câmera ou microfone é solicitada.</p>
+      <div class="actions-row">
+        <button type="button" id="btn-load-plan" class="btn btn-primary target">Carregar prescrição e metas</button>
+      </div>
+      <div id="prescription-view" class="result-box" hidden></div>
+      <div id="goals-panel" class="sub-panel" hidden>
+        <h3>Minhas metas</h3>
+        <ul id="goals-list" class="card-list" aria-label="Lista de metas do participante"></ul>
+      </div>
+    </section>
+
+    <!-- Etapa 3: Praticar "Organizar a mesa" (apenas relato) -->
+    <section id="sec-session" class="step-card" aria-labelledby="heading-session">
+      <h2 id="heading-session">3. Praticar: Organizar a mesa (apenas relato)</h2>
+      <p class="step-lead">Siga as orientações no seu ritmo. Você pode concluir normalmente ou encerrar com um toque caso sinta dor ou cansaço.</p>
+      <ol id="activity-guide" class="guide-list"></ol>
+      <div class="actions-row">
+        <button type="button" id="btn-session-start" class="btn btn-primary target">Iniciar sessão</button>
+        <button type="button" id="btn-session-end" class="btn btn-secondary target" disabled>Concluir sessão</button>
+        <button type="button" id="btn-stop-pain" class="btn btn-stop target" disabled>Parar por dor</button>
+        <button type="button" id="btn-stop-fatigue" class="btn btn-stop target" disabled>Parar por cansaço</button>
+      </div>
+      <div id="session-result" class="result-box" hidden></div>
+    </section>
+
+    <!-- Etapa 4: Relato básico sem digitação -->
+    <section id="sec-report" class="step-card" aria-labelledby="heading-report">
+      <h2 id="heading-report">4. Registrar relato da sessão (sem digitação)</h2>
+      <p class="step-lead">Escolha uma opção em cada pergunta. Nenhuma digitação é necessária.</p>
+      <form id="form-report" novalidate>
+        <fieldset class="choice-fieldset">
+          <legend>Como foi a realização da atividade?</legend>
+          <div id="execution-choices" class="choice-grid">
+            <button type="button" class="btn choice-btn target" data-choice-group="execution" data-choice-value="complete" aria-pressed="false">Realizei a atividade completa</button>
+            <button type="button" class="btn choice-btn target" data-choice-group="execution" data-choice-value="partial" aria-pressed="false">Realizei parte da atividade</button>
+            <button type="button" class="btn choice-btn target" data-choice-group="execution" data-choice-value="none" aria-pressed="false">Não consegui realizar</button>
+            <button type="button" class="btn choice-btn target" data-choice-group="execution" data-choice-value="unreported" aria-pressed="false">Não sei / prefiro não dizer</button>
+          </div>
+        </fieldset>
+
+        <fieldset class="choice-fieldset">
+          <legend>Precisou de ajuda durante a atividade?</legend>
+          <div id="assistance-choices" class="choice-grid">
+            <button type="button" class="btn choice-btn target" data-choice-group="assistance" data-choice-value="none" aria-pressed="false">Sem ajuda</button>
+            <button type="button" class="btn choice-btn target" data-choice-group="assistance" data-choice-value="some" aria-pressed="false">Com alguma ajuda</button>
+            <button type="button" class="btn choice-btn target" data-choice-group="assistance" data-choice-value="full" aria-pressed="false">Com ajuda total</button>
+            <button type="button" class="btn choice-btn target" data-choice-group="assistance" data-choice-value="unreported" aria-pressed="false">Não sei / prefiro não dizer</button>
+          </div>
+        </fieldset>
+
+        <p id="report-gate-status" class="step-lead">Inicie e encerre uma sessão na etapa 3 e escolha as duas opções para enviar o relato.</p>
+        <div class="actions-row">
+          <button type="submit" id="btn-submit-report" class="btn btn-primary target" disabled>Enviar relato da sessão</button>
+        </div>
+      </form>
+      <div id="report-result" class="result-box" hidden></div>
+    </section>
+
+    <!-- Etapa 5: Resumo e evolução simplificada -->
+    <section id="sec-views" class="step-card" aria-labelledby="heading-views">
+      <h2 id="heading-views">5. Meu resumo e minha evolução</h2>
+      <p class="step-lead">Visualização simplificada dos registros publicados pelo seu terapeuta.</p>
+
+      <div class="sub-panel">
+        <h3>Abrir resumo publicado</h3>
+        <form id="form-open-summary" novalidate>
+          <div class="field">
+            <label for="summary-id-input">Identificador do resumo (sum_...)</label>
+            <input id="summary-id-input" name="summary_id" type="text" placeholder="sum_...">
+          </div>
+          <div class="actions-row">
+            <button type="submit" id="btn-open-summary" class="btn btn-primary target">Abrir resumo</button>
+          </div>
+        </form>
+        <div id="summary-view" class="result-box" hidden></div>
+      </div>
+
+      <div class="sub-panel">
+        <h3>Abrir evolução publicada</h3>
+        <form id="form-open-evolution" novalidate>
+          <div class="field">
+            <label for="evolution-id-input">Identificador da evolução (evo_...)</label>
+            <input id="evolution-id-input" name="evolution_id" type="text" placeholder="evo_...">
+          </div>
+          <div class="actions-row">
+            <button type="submit" id="btn-open-evolution" class="btn btn-primary target">Abrir evolução</button>
+          </div>
+        </form>
+        <div id="evolution-view" class="result-box" hidden></div>
+      </div>
+    </section>
+  </main>
+
+  <div id="elo-live-region" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+
+  <script type="module" src="./participant_app.mjs"></script>
+</body>
+</html>
