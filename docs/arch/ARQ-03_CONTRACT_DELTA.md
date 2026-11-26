@@ -1,5 +1,7 @@
 # ARQ-03 — Contract Delta (PROPOSTA; nada aplicado)
 
+> **Consolidado em `ARQ-03_A2_PROPOSAL.md` (delta e matriz de compatibilidade) e `ARQ-03_IMPLEMENTATION_PLAN.md` (plano), sobre o baseline `2881ced`.** Este arquivo permanece como histórico do diagnóstico.
+
 Pacotes `CL06_3-r1` (3.0.0) e `CL06_3-A1` (3.1.0) permanecem **íntegros e congelados**. Qualquer mudança sai como addendum separado (A2, 3.2.0), somente após aprovação do PO. A implementação normativa fica **bloqueada** até lá.
 
 ## 1. Mudanças propostas (condicionais)
