@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Elo Evidence-to-Impact</title>
-<meta name="description" content="Documentação baseada em evidências para reabilitação infantil. Evidence-first documentation for pediatric rehabilitation. Hack Brasil 2026.">
+<title>Elo Functional Intelligence</title>
+<meta name="description" content="A IA rascunha, o código verifica, a terapeuta assina. AI drafts, code verifies, the therapist signs. Hack Brasil 2026.">
 <style>
   :root {
     --ink: #1c1c1c; --muted: #5d5d5d; --paper: #ffffff; --line: #e6e4de;
@@ -110,6 +110,15 @@
     .hero { padding: 26px 18px 22px; }
   }
   @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+  .lvl { display:grid; grid-template-columns: repeat(4,1fr); gap:12px; margin-top:14px; }
+  .lvl .vcard b { display:block; font-size:22px; }
+  .cmp { display:grid; grid-template-columns: 1fr 1fr; gap:14px; margin-top:14px; }
+  .cmp .case .pill { margin-top: 8px; }
+  .demo-links { display:grid; grid-template-columns: repeat(3,1fr); gap:12px; margin-top:14px; }
+  .demo-links a.vcard { text-decoration:none; display:block; }
+  .demo-links a.vcard:hover { border-color: var(--ink); }
+  @media (max-width: 860px) { .lvl, .cmp, .demo-links { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
@@ -120,15 +129,16 @@
 
 <header class="nav">
   <div class="nav-in">
-    <a class="brand" href="#top" aria-label="Elo Evidence-to-Impact">
+    <a class="brand" href="#top" aria-label="Elo Functional Intelligence">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M9 3 7 21M17 3l-2 18M4 9h17M3 15h17"/></svg>
-      Elo Evidence-to-Impact
+      Elo Functional Intelligence
     </a>
     <nav class="links" aria-label="Seções / Sections">
       <a class="on" href="#top"><span class="pt">Visão geral</span><span class="en">Overview</span></a>
       <a href="#exemplo"><span class="pt">Exemplo</span><span class="en">Example</span></a>
-      <a href="#veredictos"><span class="pt">Veredictos</span><span class="en">Verdicts</span></a>
-      <a href="#principios"><span class="pt">Princípios</span><span class="en">Principles</span></a>
+      <a href="#niveis"><span class="pt">Níveis</span><span class="en">Levels</span></a>
+      <a href="#demo"><span class="pt">Demonstração</span><span class="en">Demo</span></a>
+      <a href="#fabrica"><span class="pt">Como foi feito</span><span class="en">How it was built</span></a>
       <a href="#links">Links</a>
     </nav>
     <span class="spacer"></span>
@@ -142,35 +152,35 @@
 <main id="top">
   <div class="hero">
     <div class="pt">
-      <h1>Cada afirmação clínica merece uma evidência.</h1>
-      <p class="sub">Transformamos observações terapêuticas em documentação rastreável, com contexto, revisão profissional e devolutivas compreensíveis para famílias.</p>
+      <h1>A IA rascunha. O código verifica. A terapeuta assina.</h1>
+      <p class="sub">O que acontece entre as sessões de terapia vira um relato que só afirma o que as evidências sustentam. Se o texto diz mais do que o registro prova, o verificador bloqueia.</p>
     </div>
     <div class="en">
-      <h1>Every clinical claim deserves evidence.</h1>
-      <p class="sub">We turn therapy observations into traceable documentation, with context, professional review and summaries families can understand.</p>
+      <h1>AI drafts. Code verifies. The therapist signs.</h1>
+      <p class="sub">What happens between therapy sessions becomes a report that only claims what the evidence supports. If the text says more than the record proves, the verifier blocks it.</p>
     </div>
     <div class="cta">
-      <a class="btn y" href="#exemplo"><span class="pt">Ver o exemplo</span><span class="en">See the example</span></a>
-      <a class="btn o" href="/app/"><span class="pt">Abrir o app</span><span class="en">Open the app</span></a>
+      <a class="btn y" href="#exemplo"><span class="pt">Ver o bloqueio</span><span class="en">See the block</span></a>
+      <a class="btn o" href="#demo"><span class="pt">Abrir a demonstração</span><span class="en">Open the demo</span></a>
       <a class="btn o" href="https://github.com/Ralado51/elo-evidence-to-impact">GitHub</a>
     </div>
 
     <div class="flow" role="list">
-      <div class="node" role="listitem"><span class="pt">Nota<small>sintética</small></span><span class="en">Note<small>synthetic</small></span></div>
-      <div class="node" role="listitem"><span class="pt">Privacy Gate<small>cadastro local</small></span><span class="en">Privacy Gate<small>local registry</small></span></div>
-      <div class="node" role="listitem"><span class="pt">Extração<small>atividade, ambiente, assistência</small></span><span class="en">Extraction<small>activity, setting, assistance</small></span></div>
-      <div class="node hot" role="listitem"><span class="pt">Verificação<small>evidência por afirmação</small></span><span class="en">Verification<small>evidence per claim</small></span></div>
-      <div class="node" role="listitem"><span class="pt">Revisão humana<small>aprova, edita, rejeita</small></span><span class="en">Human review<small>approve, edit, reject</small></span></div>
-      <div class="node" role="listitem"><span class="pt">Devolutiva<small>só o aprovado</small></span><span class="en">Family summary<small>approved only</small></span></div>
+      <div class="node" role="listitem"><span class="pt">Prática<small>relato ou câmera</small></span><span class="en">Practice<small>self-report or camera</small></span></div>
+      <div class="node" role="listitem"><span class="pt">Eventos derivados<small>só números</small></span><span class="en">Derived events<small>numbers only</small></span></div>
+      <div class="node" role="listitem"><span class="pt">Fatos<small>catálogo fechado</small></span><span class="en">Facts<small>closed catalog</small></span></div>
+      <div class="node hot" role="listitem"><span class="pt">Verificador<small>refaz a conta</small></span><span class="en">Verifier<small>recomputes</small></span></div>
+      <div class="node" role="listitem"><span class="pt">Terapeuta<small>aprova ou rejeita</small></span><span class="en">Therapist<small>approves or rejects</small></span></div>
+      <div class="node" role="listitem"><span class="pt">Resumo<small>só o aprovado</small></span><span class="en">Summary<small>approved only</small></span></div>
     </div>
 
     <div class="tiles">
-      <div class="tile"><b>4</b><span class="pt">veredictos possíveis, incluindo “evidência insuficiente”</span><span class="en">possible verdicts, including “insufficient evidence”</span></div>
-      <div class="tile"><b>0</b><span class="pt">pacientes reais: dados 100% sintéticos</span><span class="en">real patients: data is entirely synthetic</span></div>
-      <div class="tile"><b>1</b><span class="pt">profissional aprova antes de qualquer devolutiva</span><span class="en">professional approves before any family summary</span></div>
+      <div class="tile"><b>4</b><span class="pt">níveis de evidência, do movimento à evolução funcional</span><span class="en">evidence levels, from movement to functional progress</span></div>
+      <div class="tile"><b>0</b><span class="pt">imagens guardadas: só números saem da câmera</span><span class="en">images stored: only numbers leave the camera</span></div>
+      <div class="tile"><b>1</b><span class="pt">terapeuta decide antes de qualquer resumo</span><span class="en">therapist decides before any summary</span></div>
     </div>
-    <p class="fine pt">Protótipo em desenvolvimento para o Hack Brasil 2026. Nenhuma alegação de eficácia clínica é feita.</p>
-    <p class="fine en">Prototype in development for Hack Brasil 2026. No claim of clinical effectiveness is made.</p>
+    <p class="fine pt">Protótipo para o Hack Brasil 2026, com dados 100% sintéticos. Nenhuma alegação de eficácia clínica é feita.</p>
+    <p class="fine en">Prototype for Hack Brasil 2026, with entirely synthetic data. No claim of clinical effectiveness is made.</p>
   </div>
 
   <section id="exemplo">
@@ -178,49 +188,71 @@
       <div>
         <div class="eyebrow"><span class="pt">O problema</span><span class="en">The problem</span></div>
         <div class="pt">
-          <h2>Observado na clínica não é o mesmo que alcançado em casa.</h2>
-          <p>Ferramentas de IA escrevem textos coerentes e ainda assim podem extrapolar o que foi realmente documentado. Nosso objetivo é tornar explícitos os limites da informação, em vez de escondê-los em relatórios bem escritos.</p>
-          <p class="notice">Exemplo planejado, com dados fictícios. A demonstração ainda está em construção.</p>
+          <h2>Texto fluente não é evidência.</h2>
+          <p>Entre uma sessão e outra, ninguém vê o que a pessoa fez em casa. Um modelo de linguagem preenche esse vazio com frases convincentes, e a frase "fez sem ajuda" parece tão boa quanto a verdadeira.</p>
+          <p>Aqui, cada afirmação precisa de um fato registrado. O verificador refaz a conta a partir das evidências. Se não bate, não passa.</p>
+          <p class="notice">Caso demonstrativo sintético. Pode ser reproduzido no painel da terapeuta. Nesta demonstração, os textos vêm de modelos fixos e o "rascunho exagerado" é injetado de propósito; o rascunho por modelo de linguagem local é o próximo passo.</p>
         </div>
         <div class="en">
-          <h2>Observed in the clinic is not the same as achieved at home.</h2>
-          <p>AI tools write coherent text and can still go beyond what was actually documented. Our goal is to make the limits of the information explicit instead of hiding them inside well-written reports.</p>
-          <p class="notice">Planned example with fictional data. The demo is still under construction.</p>
+          <h2>Fluent text is not evidence.</h2>
+          <p>Between sessions, nobody sees what the person did at home. A language model fills that gap with convincing sentences, and "did it without help" reads as well as the true one.</p>
+          <p>Here every claim needs a recorded fact. The verifier recomputes from the evidence. If it does not match, it does not pass.</p>
+          <p class="notice">Synthetic demo case. You can reproduce it in the therapist dashboard. In this demo the texts come from fixed templates and the "exaggerated draft" is injected on purpose; drafting with a local language model is the next step.</p>
         </div>
       </div>
-      <div class="case">
-        <div class="pt">
-          <h3>Nota da sessão (fictícia)</h3>
-          <div class="q">“Na clínica, a criança vestiu a camiseta sem assistência física, após instruções verbais.”</div>
-          <h3>Afirmação proposta</h3>
-          <div class="q">“A criança se veste de forma independente em casa.”</div>
-          <div><span class="met">MET</span> atividade observada</div>
-          <div><span class="not">NOT MET</span> ambiente: casa</div>
-          <div><span class="not">NOT MET</span> independência (houve instrução verbal)</div>
-          <div style="margin-top:10px"><span class="pill wait">Evidência insuficiente</span></div>
+      <div class="cmp">
+        <div class="case">
+          <div class="pt"><h3>Rascunho fiel</h3><div class="q">“Na sessão 3, a pessoa realizou a atividade completa, com alguma ajuda.”</div>
+          <div><span class="met">OK</span> o registro mostra alguma ajuda</div>
+          <span class="pill ok">Aceito pelo verificador</span></div>
+          <div class="en"><h3>Faithful draft</h3><div class="q">“In session 3, the person completed the activity with some help.”</div>
+          <div><span class="met">OK</span> the record shows some help</div>
+          <span class="pill ok">Accepted by the verifier</span></div>
         </div>
-        <div class="en">
-          <h3>Session note (fictional)</h3>
-          <div class="q">“In the clinic, the child put on the t-shirt without physical assistance after verbal prompts.”</div>
-          <h3>Proposed claim</h3>
-          <div class="q">“The child dresses independently at home.”</div>
-          <div><span class="met">MET</span> activity observed</div>
-          <div><span class="not">NOT MET</span> setting: home</div>
-          <div><span class="not">NOT MET</span> independence (verbal prompts were needed)</div>
-          <div style="margin-top:10px"><span class="pill wait">Insufficient evidence</span></div>
+        <div class="case">
+          <div class="pt"><h3>Rascunho exagerado</h3><div class="q">“Na sessão 3, a pessoa realizou a atividade sem ajuda.”</div>
+          <div><span class="not">BLOQUEADO</span> o verificador refez a conta e o valor afirmado não bate com o registro</div>
+          <span class="pill bad">Bloqueado: RECOMPUTE_MISMATCH</span></div>
+          <div class="en"><h3>Exaggerated draft</h3><div class="q">“In session 3, the person completed the activity without help.”</div>
+          <div><span class="not">BLOCKED</span> the verifier recomputed and the claimed value does not match the record</div>
+          <span class="pill bad">Blocked: RECOMPUTE_MISMATCH</span></div>
         </div>
       </div>
     </div>
   </section>
 
-  <section id="veredictos">
+  <section id="niveis">
     <div class="eyebrow"><span class="pt">Como decidimos</span><span class="en">How we decide</span></div>
-    <h2><span class="pt">Quatro veredictos, sempre com o trecho de origem.</span><span class="en">Four verdicts, always with the source passage.</span></h2>
-    <div class="cards">
-      <div class="vcard"><span class="pill ok"><code>supported</code></span><p class="pt">A nota sustenta todas as restrições da afirmação.</p><p class="en">The note supports every constraint of the claim.</p></div>
-      <div class="vcard"><span class="pill bad"><code>contradicted</code></span><p class="pt">A evidência diz o contrário sobre o mesmo evento.</p><p class="en">The evidence says the opposite about the same event.</p></div>
-      <div class="vcard"><span class="pill wait"><code>insufficient_evidence</code></span><p class="pt">Falta observação direta no ambiente ou nível de assistência afirmado.</p><p class="en">No direct observation in the claimed setting or assistance level.</p></div>
-      <div class="vcard"><span class="pill wait"><code>needs_review</code></span><p class="pt">O sistema se abstém e passa a decisão à profissional.</p><p class="en">The system abstains and hands the decision to the professional.</p></div>
+    <h2><span class="pt">Cada frase só pode subir até o nível que a evidência alcança.</span><span class="en">Each sentence can only go as high as the evidence reaches.</span></h2>
+    <div class="lvl">
+      <div class="vcard"><b>1</b><p class="pt">O movimento aconteceu. O registro do aparelho ou da câmera sustenta.</p><p class="en">The movement happened. The device or camera record supports it.</p></div>
+      <div class="vcard"><b>2</b><p class="pt">O exercício prescrito foi feito, com validação.</p><p class="en">The prescribed exercise was done, with validation.</p></div>
+      <div class="vcard"><b>3</b><p class="pt">Foi feito com independência: só com relato ou observação, sempre marcados como tal.</p><p class="en">It was done independently: only with a report or an observation, always labelled as such.</p></div>
+      <div class="vcard"><b>4</b><p class="pt">Evolução funcional: decisão exclusiva da terapeuta.</p><p class="en">Functional progress: the therapist's decision alone.</p></div>
+    </div>
+    <p style="margin-top:14px" class="pt">"Não observado" nunca vira "não fez". Quando faltam dados, o relato diz que faltam.</p>
+    <p style="margin-top:14px" class="en">"Not observed" never becomes "did not do". When data is missing, the report says so.</p>
+  </section>
+
+  <section id="demo">
+    <div class="eyebrow"><span class="pt">Demonstração</span><span class="en">Demo</span></div>
+    <h2><span class="pt">Três telas, uma história.</span><span class="en">Three screens, one story.</span></h2>
+    <div class="demo-links">
+      <a class="vcard" href="/v3/participant.html"><b><span class="pt">Participante</span><span class="en">Participant</span></b><p class="pt">Entra com um convite, pratica e conta como foi, sem digitar.</p><p class="en">Signs in with an invite, practices and reports how it went, no typing.</p></a>
+      <a class="vcard" href="/v3/contador.html"><b><span class="pt">Contador de mãos</span><span class="en">Hand counter</span></b><p class="pt">A câmera conta as repetições no próprio aparelho. Só números ficam.</p><p class="en">The camera counts repetitions on the device. Only numbers remain.</p></a>
+      <a class="vcard" href="/v3/painel.html"><b><span class="pt">Painel da terapeuta</span><span class="en">Therapist dashboard</span></b><p class="pt">Evolução, linha do tempo e o verificador em ação: aceita o fiel, bloqueia o exagerado.</p><p class="en">Progress, timeline and the verifier in action: accepts the faithful, blocks the exaggerated.</p></a>
+    </div>
+  </section>
+
+  <section id="fabrica">
+    <div class="eyebrow"><span class="pt">Como foi feito</span><span class="en">How it was built</span></div>
+    <div class="pt">
+      <h2>O mesmo princípio vale para quem construiu.</h2>
+      <p>Uma fábrica de agentes dividiu o trabalho em três papéis: arquiteto, implementador e verificador, cada um em um modelo diferente. Quem escreve o código não o aprova. Contratos e verificações em código decidem o que entra, e uma pessoa aprova o que vai adiante.</p>
+    </div>
+    <div class="en">
+      <h2>The same principle applies to how it was built.</h2>
+      <p>An agent factory split the work into three roles: architect, implementer and verifier, each on a different model. Whoever writes the code does not approve it. Contracts and code checks decide what gets in, and a person approves what moves on.</p>
     </div>
   </section>
 
@@ -228,18 +260,16 @@
     <div class="eyebrow"><span class="pt">Princípios</span><span class="en">Principles</span></div>
     <ul class="rules pt">
       <li>Dados inteiramente sintéticos na competição.</li>
-      <li>Sem diagnóstico ou prescrição automática.</li>
-      <li>Nenhuma afirmação publicada sem revisão profissional.</li>
-      <li>Sem previsões clínicas ou simulações de eficácia.</li>
+      <li>Só sessões iniciadas pela pessoa: sem monitoramento contínuo.</li>
+      <li>Sem diagnóstico, prescrição automática ou previsão clínica.</li>
+      <li>Nenhuma afirmação publicada sem revisão da terapeuta.</li>
     </ul>
     <ul class="rules en">
       <li>Entirely synthetic data in the competition.</li>
-      <li>No automatic diagnosis or prescription.</li>
-      <li>No statement published without professional review.</li>
-      <li>No clinical predictions or effectiveness simulations.</li>
+      <li>Only person-initiated sessions: no continuous monitoring.</li>
+      <li>No diagnosis, automatic prescription or clinical prediction.</li>
+      <li>No statement published without therapist review.</li>
     </ul>
-    <p style="margin-top:16px" class="pt"><b>Visão futura:</b> a organização longitudinal de observações verificadas poderá fundamentar um Participation Twin, sem confundir hipótese com fato. É uma direção de pesquisa, não parte deste protótipo.</p>
-    <p style="margin-top:16px" class="en"><b>Future vision:</b> organizing verified observations over time could support a Participation Twin without confusing hypothesis with fact. It is a research direction, not part of this prototype.</p>
   </section>
 
   <section id="links">
@@ -247,7 +277,6 @@
     <div class="links-row">
       <a class="btn d" href="https://github.com/Ralado51/elo-evidence-to-impact">GitHub</a>
       <span class="btn soon"><span class="pt">Vídeo: em breve</span><span class="en">Video: coming soon</span></span>
-      <span class="btn soon"><span class="pt">Demo: em breve</span><span class="en">Demo: coming soon</span></span>
     </div>
   </section>
 </main>
