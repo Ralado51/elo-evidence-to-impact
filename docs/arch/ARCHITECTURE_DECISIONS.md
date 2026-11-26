@@ -12,7 +12,7 @@
 | ID | Decisão | Por quê |
 |---|---|---|
 | PD-01 | Limites clínicos de data (futuro, janela, fuso, correção histórica); datas padrão (FIX-22); prazo de meta | regra de negócio/clínica; não inventada |
-| PD-02 | Contrato de idempotência: chave, fingerprint, retenção | evolução de contrato normativo (ARQ-02) |
+| PD-02 | Contrato de idempotência: **proposta do PO recebida em 26/11**; delta normativo exato apresentado em `ARQ-02_CONTRACT_DELTA.md` — aguardando aprovação (Q1–Q6) antes de alterar `contracts/` | evolução de contrato normativo (ARQ-02) |
 | PD-03 | Matriz tipo de meta × unidade × instrumento, lateralidade, séries/repetições | regra clínica (ARQ-03) |
 | PD-04 | Política de logout/revogação de sessão | segurança |
 | PD-05 | Unificar códigos de erro de data entre superfícies | altera contrato de erro |
