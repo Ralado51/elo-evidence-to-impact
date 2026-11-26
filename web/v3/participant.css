@@ -362,3 +362,30 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* ---- Friendly guided layer (presentation only) ---- */
+.hero-lead { font-size: var(--elo-font-size-md); color: var(--elo-color-text-muted); margin: 0 0 var(--elo-space-4); }
+.participant-nav { counter-reset: none; }
+.participant-nav .n {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.75rem; height: 1.75rem; margin-right: var(--elo-space-2);
+  border-radius: 50%; background-color: var(--elo-bg-primary); color: var(--elo-color-on-primary);
+  font-size: var(--elo-font-size-sm);
+}
+.participant-nav a { text-decoration: none; }
+.step-card { transition: none; }
+body[data-stage] .step-card { background-color: var(--elo-bg-subtle); border-style: dashed; }
+body[data-stage="signin"] #sec-signin,
+body[data-stage="plan"] #sec-plan,
+body[data-stage="practice"] #sec-session,
+body[data-stage="report"] #sec-report,
+body[data-stage="done"] #sec-views {
+  background-color: var(--elo-bg-surface);
+  border-style: solid;
+  border-color: var(--elo-color-link);
+  border-width: 4px;
+}
+body[data-stage="practice"] #btn-session-start:not(:disabled),
+body[data-stage="practice"] #btn-session-end:not(:disabled) { min-height: 4rem; font-size: var(--elo-font-size-md); }
+#btn-stop-pain, #btn-stop-fatigue { font-weight: 700; }
+.guide-list li { margin-bottom: var(--elo-space-3); font-size: var(--elo-font-size-md); }

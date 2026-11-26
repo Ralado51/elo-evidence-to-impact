@@ -13,24 +13,25 @@
 
   <header class="site-header">
     <div class="site-header-inner">
-      <p class="site-brand">Elo v3 — Área do participante</p>
-      <p class="step-lead">[Dados sintéticos] • Modo de relato apenas (report_only) • Sem câmera nem microfone</p>
-      <nav class="participant-nav" aria-label="Etapas da área do participante">
-        <a class="target" href="#sec-signin">1. Entrar</a>
-        <a class="target" href="#sec-plan">2. Prescrição e metas</a>
-        <a class="target" href="#sec-session">3. Praticar</a>
-        <a class="target" href="#sec-report">4. Relato</a>
-        <a class="target" href="#sec-views">5. Resumo e evolução</a>
+      <p class="site-brand">Elo · Minha prática</p>
+      <p class="step-lead"><span class="badge">[Dados sintéticos]</span> Demonstração: nenhuma pessoa real. Sem câmera nem microfone.</p>
+      <nav class="participant-nav" aria-label="Etapas da minha prática" id="stepper">
+        <a class="target" href="#sec-signin"><span class="n">1</span> Entrar</a>
+        <a class="target" href="#sec-plan"><span class="n">2</span> Meu plano</a>
+        <a class="target" href="#sec-session"><span class="n">3</span> Praticar</a>
+        <a class="target" href="#sec-report"><span class="n">4</span> Relato</a>
+        <a class="target" href="#sec-views"><span class="n">5</span> Evolução</a>
       </nav>
     </div>
   </header>
 
   <main id="main" class="main" tabindex="-1">
-    <h1>Minha prática — Organizar a mesa</h1>
+    <h1 id="hero-title">Olá! Vamos praticar hoje?</h1>
+    <p class="hero-lead" id="hero-lead">Entre com o código que seu terapeuta enviou. Leva menos de um minuto.</p>
 
     <section class="status-bar" aria-label="Estado da sessão do participante">
       <div>
-        <p id="participant-session-status">Sessão não autenticada. Entre com seu convite na etapa 1.</p>
+        <p id="participant-session-status">Você ainda não entrou. Comece pelo passo 1.</p>
         <p id="practice-phase-status">Nenhuma sessão de prática iniciada.</p>
       </div>
       <button type="button" id="btn-participant-signout" class="btn btn-secondary target" hidden>Sair</button>
@@ -46,8 +47,8 @@
 
     <!-- Etapa 1: Entrar com convite -->
     <section id="sec-signin" class="step-card" aria-labelledby="heading-signin">
-      <h2 id="heading-signin">1. Entrar com código de convite</h2>
-      <p class="step-lead">Use o convite sintético gerado pelo seu terapeuta para acessar sua prática.</p>
+      <h2 id="heading-signin">1. Entrar</h2>
+      <p class="step-lead">Cole o código de convite que seu terapeuta enviou.</p>
       <form id="form-invite-signin" novalidate>
         <div class="field">
           <label for="invite-token">Código de convite</label>
@@ -62,10 +63,10 @@
 
     <!-- Etapa 2: Prescrição atual e metas -->
     <section id="sec-plan" class="step-card" aria-labelledby="heading-plan">
-      <h2 id="heading-plan">2. Minha prescrição e metas</h2>
-      <p class="step-lead">Esta prática usa apenas relato (report_only): nenhuma permissão de câmera ou microfone é solicitada.</p>
+      <h2 id="heading-plan">2. Meu plano</h2>
+      <p class="step-lead">O que seu terapeuta combinou com você. Nesta prática você só conta como foi: nada de câmera ou microfone.</p>
       <div class="actions-row">
-        <button type="button" id="btn-load-plan" class="btn btn-primary target">Carregar prescrição e metas</button>
+        <button type="button" id="btn-load-plan" class="btn btn-primary target">Ver meu plano</button>
       </div>
       <div id="prescription-view" class="result-box" hidden></div>
       <div id="goals-panel" class="sub-panel" hidden>
@@ -76,8 +77,8 @@
 
     <!-- Etapa 3: Praticar "Organizar a mesa" (apenas relato) -->
     <section id="sec-session" class="step-card" aria-labelledby="heading-session">
-      <h2 id="heading-session">3. Praticar: Organizar a mesa (apenas relato)</h2>
-      <p class="step-lead">Siga as orientações no seu ritmo. Você pode concluir normalmente ou encerrar com um toque caso sinta dor ou cansaço.</p>
+      <h2 id="heading-session">3. Praticar: organizar a mesa</h2>
+      <p class="step-lead">Vá no seu ritmo. Se sentir dor ou cansaço, pare a qualquer momento: um toque basta.</p>
       <ol id="activity-guide" class="guide-list"></ol>
       <div class="actions-row">
         <button type="button" id="btn-session-start" class="btn btn-primary target">Iniciar sessão</button>
@@ -90,8 +91,8 @@
 
     <!-- Etapa 4: Relato básico sem digitação -->
     <section id="sec-report" class="step-card" aria-labelledby="heading-report">
-      <h2 id="heading-report">4. Registrar relato da sessão (sem digitação)</h2>
-      <p class="step-lead">Escolha uma opção em cada pergunta. Nenhuma digitação é necessária.</p>
+      <h2 id="heading-report">4. Como foi?</h2>
+      <p class="step-lead">Duas perguntas rápidas. É só tocar na resposta, sem digitar.</p>
       <form id="form-report" novalidate>
         <fieldset class="choice-fieldset">
           <legend>Como foi a realização da atividade?</legend>
@@ -113,9 +114,9 @@
           </div>
         </fieldset>
 
-        <p id="report-gate-status" class="step-lead">Inicie e encerre uma sessão na etapa 3 e escolha as duas opções para enviar o relato.</p>
+        <p id="report-gate-status" class="step-lead">Termine a prática (passo 3) e responda às duas perguntas para enviar.</p>
         <div class="actions-row">
-          <button type="submit" id="btn-submit-report" class="btn btn-primary target" disabled>Enviar relato da sessão</button>
+          <button type="submit" id="btn-submit-report" class="btn btn-primary target" disabled>Enviar meu relato</button>
         </div>
       </form>
       <div id="report-result" class="result-box" hidden></div>
@@ -123,32 +124,32 @@
 
     <!-- Etapa 5: Resumo e evolução simplificada -->
     <section id="sec-views" class="step-card" aria-labelledby="heading-views">
-      <h2 id="heading-views">5. Meu resumo e minha evolução</h2>
-      <p class="step-lead">Visualização simplificada dos registros publicados pelo seu terapeuta.</p>
+      <h2 id="heading-views">5. Minha evolução</h2>
+      <p class="step-lead">O resumo e a evolução que seu terapeuta liberou para você. Ele passa os códigos abaixo.</p>
 
       <div class="sub-panel">
-        <h3>Abrir resumo publicado</h3>
+        <h3>Meu resumo</h3>
         <form id="form-open-summary" novalidate>
           <div class="field">
-            <label for="summary-id-input">Identificador do resumo (sum_...)</label>
+            <label for="summary-id-input">Código do resumo</label>
             <input id="summary-id-input" name="summary_id" type="text" placeholder="sum_...">
           </div>
           <div class="actions-row">
-            <button type="submit" id="btn-open-summary" class="btn btn-primary target">Abrir resumo</button>
+            <button type="submit" id="btn-open-summary" class="btn btn-primary target">Ver resumo</button>
           </div>
         </form>
         <div id="summary-view" class="result-box" hidden></div>
       </div>
 
       <div class="sub-panel">
-        <h3>Abrir evolução publicada</h3>
+        <h3>Minha evolução</h3>
         <form id="form-open-evolution" novalidate>
           <div class="field">
-            <label for="evolution-id-input">Identificador da evolução (evo_...)</label>
+            <label for="evolution-id-input">Código da evolução</label>
             <input id="evolution-id-input" name="evolution_id" type="text" placeholder="evo_...">
           </div>
           <div class="actions-row">
-            <button type="submit" id="btn-open-evolution" class="btn btn-primary target">Abrir evolução</button>
+            <button type="submit" id="btn-open-evolution" class="btn btn-primary target">Ver evolução</button>
           </div>
         </form>
         <div id="evolution-view" class="result-box" hidden></div>
@@ -159,5 +160,6 @@
   <div id="elo-live-region" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
   <script type="module" src="./participant_app.mjs"></script>
+  <script type="module" src="./participant_stage.mjs"></script>
 </body>
 </html>
