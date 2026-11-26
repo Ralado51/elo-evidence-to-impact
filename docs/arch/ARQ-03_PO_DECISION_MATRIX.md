@@ -1,5 +1,7 @@
 # ARQ-03 — Matriz de decisões para ratificação do PO (D-02 a D-10)
 
+> **Superada nos pontos divergentes por `ARQ-03_PO_RATIFICATION_RECORD.md` (26/11/2026):** D-02 (alternativa C), D-04 (sem nova restrição de escrita na API) e P-04 (testes com `sessions`/`reps` preservados). Mantida como histórico das recomendações.
+
 Base: diagnóstico `e7a7300`; baseline funcional atual `ffe1e22` (ARQ-02 fix02). **Somente documentação: nenhum código, contrato ou teste foi alterado.** Gate do ARQ-02 (D-01) permanece pendente; nada aqui autoriza implementação.
 
 ## 0. Fontes consultadas e correção de limitação

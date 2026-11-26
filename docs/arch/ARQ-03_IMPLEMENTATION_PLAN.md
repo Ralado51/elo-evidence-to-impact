@@ -1,6 +1,6 @@
 # ARQ-03 — Plano detalhado de implementação (CMP-05, CMP-06, CMP-13)
 
-**Status: PLANO. Nenhum código, contrato ou teste foi alterado.** Baseline `2881ced`. Preparação documental autorizada; **implementação funcional aguarda a liberação definitiva do gate pelo PO** (D-01) e a homologação independente do FIX-03/ARQ-02. Não inicia ARQ-04, S2 nem altera ARQ-02. Sem push/deploy. Seções 1 e 2 do pedido (delta e matriz de compatibilidade) estão em `ARQ-03_A2_PROPOSAL.md` §1 e §2.
+**Status: PLANO RATIFICADO (`ARQ-03_PO_RATIFICATION_RECORD.md`). Nenhum código, contrato ou teste foi alterado.** Baseline `2881ced`. **Implementação em standby:** condicionada ao parecer independente do Gemini sobre o FIX-37 na revisão `2881ced` e à liberação expressa do PO (D-01). Após a liberação, execução autônoma das oito fases, sem novas aprovações para decisões já estabelecidas. Não inicia ARQ-04, S2 nem altera ARQ-02. Sem push/deploy. Seções 1 e 2 do pedido (delta e matriz de compatibilidade) estão em `ARQ-03_A2_PROPOSAL.md` §1 e §2.
 
 Prioridade: **FIX-03 → FIX-19 → FIX-20 → FIX-21** (FIX-03 é o único defeito confirmado, D06; FIX-19/20/21 são backlog de catálogo/derivação).
 
@@ -45,8 +45,10 @@ Prioridade: **FIX-03 → FIX-19 → FIX-20 → FIX-21** (FIX-03 é o único defe
 | `web/tests/validation_registry.test.mjs`, `domain_fields.test.mjs`, `catalog_parity.test.mjs` | NOVO |
 | `web/tests/browser/s1_arq03_domain.mjs` | NOVO |
 | `evidence/arq03_probe.py` | REAPROVEITADO como "antes/depois" |
-| `api/tests/test_v3_goals.py` (4× `repetitions`+`"reps"`, l.251/280/481/507), `test_v3_evolution_timeline.py` (`kgf`/`cycles`), `web/tests/browser/participant_journey.mjs` (`sessions`) | **só com ratificação do PO**: substituição rastreável com cópia legada em `docs/arch/evidence/legacy/` (precedente fix02) |
-| **9 suítes de navegador que criam meta/avaliação pelos defaults da UI:** `e2e_journey`, `seed_demo`, `therapist_journey`, `s1_arq01_dates`, `s1_arq02_commands`, `s1_arq02_fix01`, `s1_arq02_fix03`, `s1_arq02_fix03b_concurrency`, `s1_corr_ae` | **não alteradas**: ids e fluxo preservados; os novos padrões da UI são válidos (meta `session_count`/3 sem unidade; instrumento `custom_unvalidated` v0). Risco explícito: o padrão atual `sessions`/`elo_hand_screen` 1.0 **deixa de ser gravável** |
+| `api/tests/test_v3_goals.py` (`repetitions`+`"reps"`), `web/tests/browser/participant_journey.mjs` (`sessions`) | **NÃO substituir** (P-04): `sessions`/`reps` permanecem válidos nos respectivos tipos |
+| `test_v3_evolution_timeline.py` (`kgf`/`cycles`), instrumentais, fixtures congeladas e testes históricos | **NÃO alterar** nesta entrega (P-04) |
+| Qualquer teste cuja expectativa normativa precise mudar | justificativa e rastreabilidade **individuais** (cópia legada em `evidence/legacy/`); proibido enfraquecer asserções para obter suíte verde |
+| **9 suítes de navegador que criam meta/avaliação pelos defaults da UI:** `e2e_journey`, `seed_demo`, `therapist_journey`, `s1_arq01_dates`, `s1_arq02_commands`, `s1_arq02_fix01`, `s1_arq02_fix03`, `s1_arq02_fix03b_concurrency`, `s1_corr_ae` | **não alteradas**: ids e fluxo preservados; os novos padrões da UI são válidos (meta `session_count`/3 com unidade **derivada automaticamente** (`sessions`); instrumento `custom_unvalidated` v0 `unvalidated_custom`, autorizados em P-04). Risco explícito: o instrumento padrão atual `elo_hand_screen` 1.0 **deixa de ser gravável**; a unidade `sessions` da meta continua válida |
 
 ## 4. Sequência de implementação
 
@@ -54,10 +56,10 @@ Cada fase: caracterização "antes" primeiro (sondas A01–A12, G10–G14, M02/M
 
 | Fase | Entrega | Componentes | FIX | Gate de saída |
 |---|---|---|---|---|
-| **0 — Pré-condições** | D-01 liberado; reexportar backlog do Drive; PO responde P-01..P-08 (§6.2); lista de testes legados a substituir ratificada | — | — | autorização do PO por escrito |
+| **0 — Pré-condições** | D-01 liberado (parecer do Gemini sobre FIX-37 em `2881ced` + liberação expressa do PO); **reexportar as planilhas oficiais**; documentos normativos e registro de ratificação atualizados (feito) | — | — | liberação expressa do PO |
 | **1 — Pacote A2 e catálogos** | `CL06_3-A2` com catálogos, regras, schema `goal`, vetores, manifest; `sync_catalogs.py --check`; testes de paridade de hash | CMP-06 | — | manifest verde; r1/A1 inalterados |
 | **2 — ValidationRegistry** | `domain_rules.py` + `validation_registry.mjs` sem regras ativas além de `rules-registry`; encaixe em `clinical.py` com *no-op* provado | CMP-05, CMP-13 | — | suítes atuais 100% verdes (nenhum comportamento muda) |
-| **3 — FIX-03 (D06)** | regras A2-02 + `GoalTargetField` (tipo define campos, unidade derivada/oculta, erro por campo) + marcador "legado" | CMP-13, CMP-06 | **FIX-03** | D06 reproduzido "antes" e rejeitado "depois"; `measure_value` oculto na UI |
+| **3 — FIX-03 (D06)** | regras A2-02 + `GoalTargetField` (tipo define campos, unidade derivada automaticamente e sem edição livre, erro por campo) + marcador "legado" para combinações incompatíveis | CMP-13, CMP-06 | **FIX-03** | D06 reproduzido "antes" e rejeitado "depois"; `measure_value` oculto na UI; API sem restrição nova para ele |
 | **4 — FIX-19/FIX-20** | A2-04 + `InstrumentSelector` (somente registro; sem id/versão/situação editáveis; "personalizado — não validado") | CMP-06 | **FIX-19, FIX-20** | A01–A03 rejeitadas; nenhum instrumento "validado" |
 | **5 — FIX-21** | A2-05 R1–R5 + `MeasurementField` (zero × ausente × desconhecido) + unidade/versão derivadas | CMP-06, CMP-13 | **FIX-21** | A04–A12 rejeitadas conforme regra; RN008 provado |
 | **6 — DoseField** | guarda de produto derivada de `limits.v1`; nunca ajusta dose | CMP-06 | (US-019/060) | R02–R09 bloqueadas no front **e** no servidor |
@@ -72,10 +74,10 @@ IDs de teste: `PY` = pytest, `JS` = `node --test`, `BR` = navegador. CA = crité
 ### FIX-03 (D06) — US-018 CA02/CA03 · RN004, RN008
 | # | Critério | Teste |
 |---|---|---|
-| 3.1 | `session_count` com `unit="kg"` rejeitado (400 `RULE_VIOLATION`, `details.path=$.payload.target.unit`, `rule=goal.count_no_unit`); a UI nem oferece unidade | PY-A2-01, BR-A2-01 |
-| 3.2 | `session_count`/`repetitions`: 2.5 → `TYPE`; 0 → `OUT_OF_RANGE` (piso 1, **P-02**); 1 e 100000 aceitos; sem aplicar o limite de dose 100 | PY-A2-02 |
+| 3.1 | `session_count` com `unit="kg"` (ou `reps`) e `repetitions` com `sessions` rejeitados (400 `RULE_VIOLATION`, `details.path=$.payload.target.unit`, `rule=goal.count_unit_compatible`); `null` e a unidade canônica aceitos; a UI deriva a unidade sem edição livre | PY-A2-01, BR-A2-01 |
+| 3.2 | `session_count`/`repetitions`: fracionário, zero, negativo e ausência de valor rejeitados; 1 e 100000 aceitos; teto técnico, sem aplicar o limite de dose 100 (P-02) | PY-A2-02 |
 | 3.3 | `descriptive_text` com valor ou unidade rejeitado; null/null aceito | PY-A2-03 |
-| 3.4 | `measure_value`: `value` nulo, unidade ausente ou fora do registro rejeitados; `45 deg` aceito; tipo oculto na UI | PY-A2-04, BR-A2-02 |
+| 3.4 | `measure_value`: tipo **oculto na UI** para novas metas; a API **mantém o comportamento atual** (sem nova restrição, D-04); catálogo preparado e testado por paridade | PY-A2-04 (caracterização: comportamento inalterado), BR-A2-02 |
 | 3.5 | Meta legada (`kg`) continua listada, com hash/cadeia válidos e marcador "legado"; nova versão exige correção | PY-A2-05, BR-A2-03 |
 | 3.6 | Mesmos vetores em Python e JS (`fixtures/a2`) com o mesmo `rule_id`/`path` | JS-A2-01, PY-A2-06 |
 | 3.7 | Erro aparece no campo (`aria-invalid`, `aria-describedby`), PT/EN, sem sucesso simultâneo | BR-A2-04 |
@@ -96,7 +98,7 @@ IDs de teste: `PY` = pytest, `JS` = `node --test`, `BR` = navegador. CA = crité
 | 5.2 | R2 ternário: `not_assessed=true` com valor rejeitado; `0` aceito como valor real; nulo nunca vira zero | PY-A2-11, JS-A2-03 |
 | 5.3 | R3 unidade em `category|boolean` rejeitada; R4 instrumental numérico sem unidade rejeitado | PY-A2-12 |
 | 5.4 | R5 `item_key` duplicado rejeitado | PY-A2-13 |
-| 5.5 | `not_assessed`×`assistance` **não** imposto (P-05) — teste documenta o comportamento aceito | PY-A2-14 |
+| 5.5 | `not_assessed`×`assistance` **sem relação adicional** (P-05); estados não avaliado, desconhecido, valor observado e zero distintos e testados | PY-A2-14, JS-A2-03 |
 | 5.6 | DoseField: produto >100, 0, fracionário, negativo bloqueados no front e no servidor; dose nunca ajustada | JS-A2-04, BR-A2-06, PY (existentes R02–R09) |
 
 ### Transversais
@@ -121,18 +123,19 @@ IDs de teste: `PY` = pytest, `JS` = `node --test`, `BR` = navegador. CA = crité
 | — | Vocabulário de `category` por item; unidades `kgf`/`cycles` (usadas em fixtures, fora do registro) | valores livres ≤80; testes legados mantidos |
 | FIX-23 | Divergência de lateralidade (decisão pendente na planilha) | **fora do ARQ-03** |
 
-### 6.2 Do PO / técnicas (não clínicas)
-| ID | Pergunta | Recomendação |
-|---|---|---|
-| P-01 | Numeração: campos em CMP-06 e regras em CMP-13 (como no backlog) ou todos em CMP-13 (como no mandato)? | manter o backlog; plano cobre os dois |
-| P-02 | Piso 1 para `session_count`/`repetitions` (0 sessões sem uso descrito nos CA) | confirmar piso 1 |
-| P-03 | Escopo do CMP-05 no ARQ-03: só `ValidationRegistry` + erro por campo, ou também `FormController` (dirty/touched)? | só o primeiro; o segundo vira item próprio |
-| P-04 | Lista de testes legados a substituir (`test_v3_goals.py` ×4, `kgf`/`cycles`, `participant_journey`) e que o **padrão da UI** passe a `session_count` sem unidade e `custom_unvalidated` | ratificar a lista |
-| P-05 | `not_assessed` × `assistance` (`not_assessed` existe nos dois campos) | não impor |
-| P-06 | Instrumento fora do registro: rejeitar (alt. A, recomendada) ou aceitar derivando `unvalidated_custom` (alt. B) | A |
-| P-07 | Clientes com validação estrita de schema e `deadline` (§2.1 da proposta) | aceitar; sem clientes externos 3.x conhecidos |
-| P-08 | Revisão de registro legado: exigir correção do dado para nova versão (§2.2) | aceitar |
-| — | Política de datas (futuro/passado) para `deadline` | sem regra até a política existir |
+### 6.2 Do PO / técnicas — **todas resolvidas** em 26/11/2026 (ver `ARQ-03_PO_RATIFICATION_RECORD.md`)
+| ID | Resultado |
+|---|---|
+| P-01 | Numeração oficial do backlog (CMP-05 / CMP-06 / CMP-13) |
+| P-02 | Alternativa C: contagens com `unit` null ou canônica (`sessions`/`reps`), derivada automaticamente; piso 1; teto técnico |
+| P-03 | ValidationRegistry + erro por campo compartilhado; **sem** FormController completo; parcela remanescente do CMP-05 registrada para tratamento posterior |
+| P-04 | Parcial: testes com `sessions`/`reps`, `kgf`/`cycles`, históricos e fixtures preservados; padrões de avaliação e de meta autorizados; justificativa individual para qualquer mudança normativa |
+| P-05 | Sem relação adicional `not_assessed`×`assistance`; R1–R5; R6 condicionado ao catálogo |
+| P-06 | Rejeitar instrumento/versão/situação incompatíveis; sem edição livre; sem validação clínica automática |
+| P-07 | `deadline` opcional (DateField + validação civil no servidor), sem regra de passado/futuro; A2 **não** declarado retrocompatível; estratégia de versionamento antes de congelar (A2 §2.4–2.5) |
+| P-08 | Novas versões de legado cumprem as regras; original preservado; mensagens específicas; sem migração silenciosa |
+
+**Pendências remanescentes (não bloqueiam o plano):** parcela remanescente do CMP-05 (FormController: dirty/touched); política de datas (futuro/passado) para `deadline`; reexportação das planilhas na Fase 0.
 
 ## 7. Estratégia de reutilização dos componentes existentes
 
