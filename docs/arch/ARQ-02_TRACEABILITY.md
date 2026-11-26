@@ -41,4 +41,4 @@ Baseline `5331e60`; relatório: `ARQ-02_CORRECTION_REPORT.md`. Status dos defeit
 | D04 (≈FIX-02) | identidade da intenção por tempo (burst 500 ms) | `consumeUntilEdit` + `release` por edição; slot por participante | `s1_arq02_fix01` FX-D04-a..f; `command_controller_fix01.test.mjs` |
 | S1-03 (≈FIX-18) | relato do participante fora do CommandController; envios concorrentes | relato no CommandController, evento único por intenção, estados exclusivos | FX-S103 ×3 |
 | S1-08 (proposto) | `form.reset()` não limpa estado de validação do DateField | DateField escuta `reset` do formulário | FX-S108-a/b/c |
-| D-FIX01-1 (pendente PO) | CC-2..CC-6 legados presumem nova intenção sem edição | proposta `s1_arq02_commands_v2.mjs` | ver relatório §6 |
+| D-FIX01-1 (**ratificada**, fix02) | CC-2..CC-6 legados presumiam nova intenção sem ação | ação explícita `#btn-cmd-another` + `startNewIntention`; legado preservado em `evidence/legacy/` | `s1_arq02_commands` 9/9; FX-I-1..3 |

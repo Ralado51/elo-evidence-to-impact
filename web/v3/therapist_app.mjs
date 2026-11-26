@@ -207,19 +207,41 @@ export function initTherapistApp() {
   for (const [id, formId] of Object.entries(COMMAND_FORMS)) {
     const form = document.getElementById(formId);
     if (!form) continue;
-    const edited = () => { commands.release(slotOf(id)); };
+    // Only genuine user edits count: programmatic value changes, i18n re-translation and language switches fire no trusted event.
+    const edited = (ev) => { if (ev.isTrusted) { commands.release(slotOf(id)); document.getElementById("btn-cmd-another")?.remove(); } };
     form.addEventListener("input", edited);
     form.addEventListener("change", edited);
-    form.addEventListener("reset", () => commands.release(slotOf(id)));
+  }
+  // Explicit "new intention" transition after a success: the user can register another operation with identical
+  // content without editing a field. Starts a NEW intention (new Idempotency-Key) only on this deliberate action.
+  function offerAnotherIntention(formId) {
+    document.getElementById("btn-cmd-another")?.remove();
+    if (commands.stateOf(formId) !== "settled" || successBanner.hidden) return;
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.id = "btn-cmd-another";
+    btn.className = "btn btn-secondary target";
+    bindText(btn, tm("th.js.cmd_another"));
+    btn.addEventListener("click", () => {
+      commands.startNewIntention(formId);
+      btn.remove();
+      announce(tm("th.js.cmd_another_done"), { politeness: "polite" });
+    });
+    successBanner.appendChild(btn);
   }
   async function cmd(rawFormId, send, onOk, signature) {
     const formId = slotOf(rawFormId);
     errorBanner.querySelector("#btn-cmd-new-intention")?.remove();
     const out = await commands.run(formId, send, { signature });
-    if (out.status === "ignored" || out.status === "settled") return; // same intention already fulfilled: single outcome
+    if (out.status === "ignored") return;
+    if (out.status === "settled") {
+      announce(tm("th.js.cmd_settled"), { politeness: "polite" }); // same intention already fulfilled: no new record
+      return;
+    }
     if (out.status === "ok") {
       try {
         await onOk(out.result);
+        offerAnotherIntention(formId);
       } catch (err) {
         handleApiError(err);
       }

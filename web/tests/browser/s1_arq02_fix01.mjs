@@ -96,6 +96,41 @@ const edit = async (t) => { await t.focus("#goal-text"); await t.keyboard.press(
   await ctx.close();
 }
 
+// ---------- fix02: explicit new intention ----------
+{
+  const { ctx, t, goalCount, goalReqs, writes } = await therapistPage("Fix02 intent");
+  const another = () => t.click("#btn-cmd-another");
+  await check("FX-I-1 nova intenção explícita (sem editar): nova chave e novo registro; reenvio sem ação não cria outro", async () => {
+    await t.click("#btn-create-goal"); await t.waitForSelector("#btn-cmd-another");
+    await t.click("#btn-create-goal"); await t.click("#btn-create-goal"); await t.waitForTimeout(500);
+    assert.equal(goalReqs().length, 1);
+    await another(); await t.click("#btn-create-goal"); await t.waitForTimeout(900);
+    const k = goalReqs().map((w) => w.key);
+    assert.equal(k.length, 2); assert.notEqual(k[0], k[1]);
+    assert.equal(await goalCount(), 2, "duas metas legitimamente idênticas");
+  });
+  await check("FX-I-2 alteração programática e troca de idioma não geram nova intenção", async () => {
+    await another().catch(() => {}); await t.click("#btn-create-goal"); await t.waitForTimeout(900);
+    const n = goalReqs().length;
+    await t.evaluate(() => { const i = document.querySelector("#goal-text"); i.value = i.value + "!"; i.dispatchEvent(new Event("input", { bubbles: true })); i.dispatchEvent(new Event("change", { bubbles: true })); });
+    await t.click('[data-lang-option="pt-BR"]'); await t.click('[data-lang-option="en"]');
+    await t.click("#btn-create-goal"); await t.waitForTimeout(700);
+    assert.equal(goalReqs().length, n);
+  });
+  await check("FX-I-3 falha ambígua: retry preserva a chave original e não duplica", async () => {
+    await another().catch(() => {}); await edit(t);
+    const base = await goalCount(); const before = goalReqs().length; let first = true;
+    await t.route("**/api/v3/participants/*/goals", async (route) => { try { if (route.request().method() === "POST" && first) { first = false; await route.fetch(); await route.abort("connectionreset"); } else await route.continue(); } catch {} });
+    await t.click("#btn-create-goal"); await t.waitForTimeout(900);
+    await t.click("#btn-create-goal"); await t.waitForTimeout(900);
+    await t.unroute("**/api/v3/participants/*/goals").catch(() => {});
+    const k = goalReqs().slice(before).map((w) => w.key);
+    assert.equal(k.length, 2); assert.equal(k[0], k[1]);
+    assert.equal((await goalCount()) - base, 1);
+  });
+  await ctx.close();
+}
+
 // ---------- S1-08 ----------
 {
   const { ctx, t, pid } = await therapistPage("Fix01 Alfa");
@@ -140,6 +175,8 @@ const edit = async (t) => { await t.focus("#goal-text"); await t.keyboard.press(
 }
 
 // ---------- S1-03 (participant report) ----------
+// the API limits 120 requests/60 s per client: let the window drain so the suite is deterministic
+await new Promise((r) => setTimeout(r, 62000));
 {
   const t = await therapistPage("Fix01 S103");
   await t.t.click("#btn-create-assessment"); await t.t.waitForSelector("#assessment-result:not([hidden])");

@@ -1,0 +1,5 @@
+s1_arq01_dates: "passed":true,
+s1_stab_a: "passed":true,
+s1_stab_e: "passed":true,
+s1_corr_ae: "passed":true,
+s1_corr_e01: "passed":true,

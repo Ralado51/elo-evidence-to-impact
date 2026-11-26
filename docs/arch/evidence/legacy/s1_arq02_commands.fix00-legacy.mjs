@@ -1,6 +1,3 @@
-// ARQ-02 fix01 — v2 of s1_arq02_commands.mjs: IDENTICAL scenarios; the only change is that each new intention starts with an
-// explicit user edit (touch) because fix01 defines intention identity by edit, not by elapsed time (see ARQ-02_CORRECTION_REPORT.md §6).
-// The original file is kept untouched.
 // ARQ-02 CommandController + transactional idempotency in a real browser (SYNTHETIC data).
 // Usage: node s1_arq02_commands.mjs --origin URL     (exit code != 0 when any check fails)
 import assert from "node:assert/strict";
@@ -41,7 +38,6 @@ const goalCount = async () => { const b = await (await ctx.request.get(`${origin
 const successVisible = () => t.locator("#success-banner").isVisible();
 const errorVisible = () => t.locator("#error-banner").isVisible();
 const errorCode = () => t.getAttribute("#error-banner", "data-error-code");
-const touch = async () => { await t.focus("#goal-text"); await t.keyboard.press("End"); await t.keyboard.type("x"); await t.keyboard.press("Backspace"); };
 await t.fill("#goal-text", "Meta sintética de teste de comando");
 
 let base = await goalCount();
@@ -54,7 +50,6 @@ await check("CC-1 duplo clique em 'Salvar meta': 1 envio, 1 registro (D04/S1-03)
 });
 
 await check("CC-2 Enter + clique simultâneos: 1 envio, 1 registro", async () => {
-  await touch();
   base = await goalCount(); writes = [];
   await t.focus("#goal-text");
   await Promise.all([t.keyboard.press("Enter"), t.click("#btn-create-goal")]);
@@ -64,10 +59,8 @@ await check("CC-2 Enter + clique simultâneos: 1 envio, 1 registro", async () =>
 });
 
 await check("CC-3 chave Idempotency-Key enviada e nova a cada intenção", async () => {
-  await touch();
   writes = [];
   await t.click("#btn-create-goal"); await settle();
-  await touch();
   await t.click("#btn-create-goal"); await settle();
   const k = writes.filter((w) => /\/goals$/.test(w.path)).map((w) => w.key);
   assert.equal(k.length, 2);
@@ -76,7 +69,6 @@ await check("CC-3 chave Idempotency-Key enviada e nova a cada intenção", async
 });
 
 await check("CC-4 resposta perdida após commit: mesma chave no reenvio, replay, sem duplicata, sem sucesso+erro juntos", async () => {
-  await touch();
   base = await goalCount(); writes = [];
   let first = true;
   await t.route("**/api/v3/participants/*/goals", async (route) => {
@@ -97,7 +89,6 @@ await check("CC-4 resposta perdida após commit: mesma chave no reenvio, replay,
 });
 
 await check("CC-5 falha antes do commit (erro 5xx simulado sem chegar à API): reenvio com mesma chave cria 1 registro", async () => {
-  await touch();
   base = await goalCount(); writes = [];
   let first = true;
   await t.route("**/api/v3/participants/*/goals", async (route) => {
@@ -111,7 +102,6 @@ await check("CC-5 falha antes do commit (erro 5xx simulado sem chegar à API): r
 });
 
 await check("CC-6 após a janela segura: sem reenvio automático, estado 'resultado desconhecido', nova tentativa só por ação explícita", async () => {
-  await touch();
   writes = [];
   let first = true;
   await t.route("**/api/v3/participants/*/goals", async (route) => {
@@ -135,7 +125,6 @@ await check("CC-6 após a janela segura: sem reenvio automático, estado 'result
 });
 
 await check("CC-7 erro definitivo do servidor: só erro visível; depois sucesso: só sucesso (FIX-18)", async () => {
-  await touch();
   await t.route("**/api/v3/participants/*/goals", async (route) => {
     if (route.request().method() === "POST") await route.fulfill({ status: 400, contentType: "application/json", body: JSON.stringify({ error: { code: "TYPE", message: "bad" } }) });
     else await route.continue();
