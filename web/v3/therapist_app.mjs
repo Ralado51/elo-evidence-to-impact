@@ -135,7 +135,7 @@ export function initTherapistApp() {
   });
 
   // CMP-07: one Idempotency-Key per business intention, single-flight, bounded retry window (ARQ-02).
-  const commands = createCommandController();
+  const commands = createCommandController({ consumeUntilEdit: true });
   async function syncRetention() {
     try {
       const res = await client.health();
@@ -200,10 +200,23 @@ export function initTherapistApp() {
   }
 
   // Runs one keyed command. Success and error are mutually exclusive; ambiguous results keep the same key.
-  async function cmd(formId, send, onOk, signature) {
+  // An intention belongs to a form AND to the active participant: switching participant never reuses a key/state.
+  const slotOf = (id) => (id === "participant" ? id : `${id}@${state.participantId || ""}`);
+  const COMMAND_FORMS = { participant: "form-participant", assessment: "form-assessment", goal: "form-goal", prescription: "form-prescription", summary: "form-summary", evolution: "form-evolution" };
+  // A user edit (typing, selecting, reset) is what starts a NEW intention; never elapsed time or content comparison.
+  for (const [id, formId] of Object.entries(COMMAND_FORMS)) {
+    const form = document.getElementById(formId);
+    if (!form) continue;
+    const edited = () => { commands.release(slotOf(id)); };
+    form.addEventListener("input", edited);
+    form.addEventListener("change", edited);
+    form.addEventListener("reset", () => commands.release(slotOf(id)));
+  }
+  async function cmd(rawFormId, send, onOk, signature) {
+    const formId = slotOf(rawFormId);
     errorBanner.querySelector("#btn-cmd-new-intention")?.remove();
     const out = await commands.run(formId, send, { signature });
-    if (out.status === "ignored") return;
+    if (out.status === "ignored" || out.status === "settled") return; // same intention already fulfilled: single outcome
     if (out.status === "ok") {
       try {
         await onOk(out.result);

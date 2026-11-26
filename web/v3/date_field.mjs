@@ -33,6 +33,9 @@ function errorNode(input) {
     const clear = () => setFieldError(input, null);
     input.addEventListener("input", clear);
     input.addEventListener("change", clear);
+    // A native form reset (participant switch, draft discard) invalidates the whole validation state of the field:
+    // message, aria-invalid and the aria-describedby reference (ARQ-02 fix01, S1-08).
+    if (input.form) input.form.addEventListener("reset", clear);
   }
   return node;
 }

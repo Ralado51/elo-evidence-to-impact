@@ -10,6 +10,12 @@
  *    intention becomes "unknown": no automatic resend, no silent new key; only `startNewIntention` clears it;
  *  - definite failures (4xx, including 409 IDEMPOTENCY_KEY_REUSED) and successes close the intention.
  *
+ * Intention identity (ARQ-02 fix01, defect D04): with `consumeUntilEdit` a successful command CONSUMES its intention.
+ * The same form re-submitted without an intervening user edit (`release(formId)`, wired to input/change events)
+ * is the same intention (Enter followed by click, click followed by Enter, repeated Enter, at ANY latency):
+ * no request is sent and `{status: "settled"}` is returned. A new intention starts only by an explicit edit, never by
+ * elapsed time or by comparing content, so two legitimate goals with identical content stay possible.
+ *
  * The controller never stores or logs payloads, tokens or clinical data: only key, form id and timestamps.
  * Invite generation (single-use secret) uses `singleFlightOnly`: no key, nothing retained.
  */
@@ -41,6 +47,9 @@ export function createCommandController(options = {}) {
   const inflight = new Set();
   const burstMs = options.burstMs ?? BURST_GUARD_MS;
   const lastOk = new Map(); // formId -> time of last success
+  const consumeUntilEdit = options.consumeUntilEdit === true;
+  const consumed = new Map(); // formId -> { key, at, result } (intention already fulfilled, not yet edited)
+  const editedInFlight = new Set();
 
   function withinBurst(id, sig) {
     const last = lastOk.get(id);
@@ -58,6 +67,8 @@ export function createCommandController(options = {}) {
   }
   function stateOf(formId) {
     if (inflight.has(formId)) return "in_flight";
+    const done = consumed.get(formId);
+    if (done && now() - done.at <= windowMs()) return "settled";
     const it = intentions.get(formId);
     if (!it) return "idle";
     return now() - it.startedAt > windowMs() ? "unknown" : "pending_retry";
@@ -72,7 +83,13 @@ export function createCommandController(options = {}) {
   async function run(formId, send, runOptions = {}) {
     const sig = runOptions.signature === undefined ? undefined : digest(runOptions.signature);
     if (inflight.has(formId)) return { status: "ignored" };
-    if (withinBurst(formId, sig)) return { status: "ignored" };
+    const done = consumed.get(formId);
+    if (done) {
+      if (now() - done.at <= windowMs()) return { status: "settled", result: done.result, key: done.key };
+      consumed.delete(formId); // beyond the dedup window the key can no longer be guaranteed: a deliberate repeat is new
+    }
+    // keyed commands under consumeUntilEdit: identity is the edit, never elapsed time (the burst guard is a debounce)
+    if (!consumeUntilEdit && withinBurst(formId, sig)) return { status: "ignored" };
     let it = intentions.get(formId);
     if (it && now() - it.startedAt > windowMs()) return { status: "unknown", key: it.key };
     if (!it) {
@@ -84,6 +101,7 @@ export function createCommandController(options = {}) {
       const result = await send(it.key);
       intentions.delete(formId);
       lastOk.set(formId, { at: now(), sig });
+      if (consumeUntilEdit && !editedInFlight.has(formId)) consumed.set(formId, { key: it.key, at: now(), result });
       return { status: "ok", result, key: it.key };
     } catch (error) {
       if (isAmbiguousFailure(error)) return { status: "ambiguous", error, key: it.key };
@@ -91,7 +109,15 @@ export function createCommandController(options = {}) {
       return { status: "error", error, key: it.key };
     } finally {
       inflight.delete(formId);
+      editedInFlight.delete(formId);
     }
+  }
+
+  /** The user edited the form: a fulfilled intention is released so the next submit is a NEW intention (new key).
+   *  A pending (ambiguous) intention is kept: its key must still be reused until the user decides explicitly. */
+  function release(formId) {
+    if (inflight.has(formId)) editedInFlight.add(formId);
+    return consumed.delete(formId);
   }
 
   /** Single-flight without any key or retained state (single-use secrets). */
@@ -115,8 +141,9 @@ export function createCommandController(options = {}) {
   function startNewIntention(formId) {
     if (inflight.has(formId)) return false;
     intentions.delete(formId);
+    consumed.delete(formId);
     return true;
   }
 
-  return { run, singleFlightOnly, startNewIntention, stateOf, setRetentionDays, windowMs };
+  return { run, singleFlightOnly, startNewIntention, release, stateOf, setRetentionDays, windowMs };
 }

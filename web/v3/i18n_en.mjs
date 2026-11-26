@@ -278,6 +278,8 @@ export const EN = {
   "pa.js.report_ready": "Report ready to send.",
   "pa.js.report_saved": "Report recorded.",
   "pa.js.report_sent": "Session report sent successfully.",
+  "pa.js.cmd_retry": "We could not confirm that your report was saved. Tap Send my report again: the same operation is resent and the report is not duplicated.",
+  "pa.js.cmd_unknown": "The result of sending your report could not be confirmed. Ask your therapist for help before trying again.",
   "pa.js.rx_activity": "Prescribed activity: {name} — {movement}",
   "pa.js.rx_instructions": "Therapist instructions: {text}",
   "pa.js.rx_plan": "Side: {side} • Plan: {sets} sets of {reps} repetitions ({per} sessions per week)",

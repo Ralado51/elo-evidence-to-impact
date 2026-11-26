@@ -31,3 +31,14 @@ Defeitos oficiais relacionados (status **não** alterados): D04, S1-03, FIX-02, 
 | D04 / S1-03 | ARQ-02 implementado: single-flight + chave por intenção; duplo clique e Enter+clique geram 1 registro (antes: 2) | `arq02_before_browser.txt` × `arq02_after_browser.txt` (CC-1, CC-2) |
 | FIX-02 | ARQ-02 implementado: idempotência transacional A1 (3.1.0), reenvio seguro com a mesma chave | B (45) + CC-4/5/6 |
 | FIX-18 | Exclusividade erro×sucesso nos envios com comando; demais caminhos seguem em ARQ-04 | CC-4, CC-7 |
+
+
+## Correção fix01 (pós-UAT independente) — rastreabilidade
+Baseline `5331e60`; relatório: `ARQ-02_CORRECTION_REPORT.md`. Status dos defeitos **não** alterados (sem homologação).
+
+| Defeito | Causa-raiz | Correção | Testes (antes → depois) |
+|---|---|---|---|
+| D04 (≈FIX-02) | identidade da intenção por tempo (burst 500 ms) | `consumeUntilEdit` + `release` por edição; slot por participante | `s1_arq02_fix01` FX-D04-a..f; `command_controller_fix01.test.mjs` |
+| S1-03 (≈FIX-18) | relato do participante fora do CommandController; envios concorrentes | relato no CommandController, evento único por intenção, estados exclusivos | FX-S103 ×3 |
+| S1-08 (proposto) | `form.reset()` não limpa estado de validação do DateField | DateField escuta `reset` do formulário | FX-S108-a/b/c |
+| D-FIX01-1 (pendente PO) | CC-2..CC-6 legados presumem nova intenção sem edição | proposta `s1_arq02_commands_v2.mjs` | ver relatório §6 |

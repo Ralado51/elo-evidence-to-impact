@@ -1,0 +1,17 @@
+PASS FX-D04-a Enter seguido de clique (0 ms): 1 requisição, 1 chave, 1 registro
+PASS FX-D04-a Enter seguido de clique (80 ms): 1 requisição, 1 chave, 1 registro
+FAIL FX-D04-a Enter seguido de clique (600 ms): 1 requisição, 1 chave, 1 registro :: requisições=2 / 
+FAIL FX-D04-a Enter seguido de clique (1500 ms): 1 requisição, 1 chave, 1 registro :: requisições=2 / 
+PASS FX-D04-b clique seguido de Enter (0 ms): 1 requisição, 1 registro
+FAIL FX-D04-b clique seguido de Enter (700 ms): 1 requisição, 1 registro :: requisições=2 / 
+FAIL FX-D04-c Enter repetido (3x, 700 ms): 1 requisição, 1 registro :: Expected values to be strictly equal: / 
+FAIL FX-D04-d resposta lenta (1,2 s): Enter + clique durante o voo e clique depois: 1 requisição, 1 registro :: requisições=2 / 
+FAIL FX-D04-e nova intenção legítima com conteúdo idêntico (após edição explícita): 2 chaves distintas, +2 registros :: Expected values to be strictly equal: / 
+PASS FX-D04-f chaves: toda requisição de meta leva Idempotency-Key UUID v4
+FAIL FX-S108-a erro de data incompleta na troca de participante: mensagem, aria-invalid e aria-describedby limpos :: aria-invalid residual / 
+FAIL FX-S108-b alternância PT/EN após a troca: sem estado residual e rótulos coerentes :: Expected values to be strictly equal: / 
+PASS FX-S108-c a validação continua funcionando depois da troca (campo reaproveitado)
+FAIL FX-S103 relato: clique duplo: 1 evento, resultado único (sem erro junto do sucesso) :: eventos report.submitted=2 / 
+PASS FX-S103 relato: Enter seguido de clique: 1 evento, resultado único (sem erro junto do sucesso)
+PASS FX-S103 relato: clique seguido de clique (1,5 s): 1 evento, resultado único (sem erro junto do sucesso)
+FAILED: 9

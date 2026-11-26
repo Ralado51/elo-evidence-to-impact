@@ -10,6 +10,7 @@
  */
 
 import { announce } from "./a11y.mjs";
+import { createCommandController } from "./command_controller.mjs";
 import { createParticipantClient, ParticipantApiError } from "./participant_api.mjs";
 import { initI18n, t, tm, bindText, label, formatDateTime, formatIsoDate } from "./i18n.mjs";
 import { renderErrorTechnical } from "./ui_messages.mjs";
@@ -93,6 +94,8 @@ function appendParagraph(parent, text) {
 }
 
 export function initParticipantApp() {
+  // CMP-07 (single owner of intention identity/single-flight). The ledger stays naturally idempotent by event_id.
+  const commands = createCommandController({ consumeUntilEdit: true });
   const state = {
     session: readStoredSession(),
     prescription: null,
@@ -790,6 +793,7 @@ export function initParticipantApp() {
   el("form-report").addEventListener("submit", async (event) => {
     event.preventDefault();
     if (!requireAuth()) return;
+    if (!state.activeSession && state.lastReportSlot && commands.stateOf(state.lastReportSlot) === "settled") return;
     if (!state.activeSession || state.activeSession.phase !== "ended") {
       showError(
         "INVALID_TRANSITION",
@@ -809,27 +813,53 @@ export function initParticipantApp() {
       );
       return;
     }
-    const nextSeq = state.activeSession.seq + 1;
-    const occurredAt = nextMonotonicIso(state.activeSession.lastOccurredAt);
+    const slot = `report@${state.activeSession.sessionId}`;
+    const execution = state.reportExecution;
+    const assistance = state.reportAssistance;
+    const out = await commands.run(slot, async () => {
+      // The event is built once per intention: a retry after an ambiguous failure resends the SAME event_id/seq/hash.
+      if (!state.pendingReport || state.pendingReport.slot !== slot || state.pendingReport.execution !== execution || state.pendingReport.assistance !== assistance) {
+        const nextSeq = state.activeSession.seq + 1;
+        const occurredAt = nextMonotonicIso(state.activeSession.lastOccurredAt);
+        state.pendingReport = {
+          slot, execution, assistance, nextSeq, occurredAt,
+          ev: await buildReportSubmittedEvent({
+            participantId: state.session.principal.id,
+            orgId: state.session.principal.org_id,
+            sessionId: state.activeSession.sessionId,
+            prescriptionId: rxPayload.prescription_id,
+            prescriptionRevision: rxPayload.revision,
+            exerciseId: rxPayload.exercise_id,
+            seq: nextSeq,
+            prevHash: state.activeSession.lastHash,
+            occurredAt,
+            execution,
+            assistance,
+          }),
+        };
+      }
+      await client.postEventsBatch([state.pendingReport.ev]);
+    });
+    if (out.status === "ignored" || out.status === "settled") return; // same intention: one single outcome state
+    if (out.status === "ambiguous") {
+      showError("RESULT_UNCONFIRMED", tm("pa.js.cmd_retry"));
+      return;
+    }
+    if (out.status === "unknown") {
+      showError("RESULT_UNKNOWN", tm("pa.js.cmd_unknown"));
+      return;
+    }
+    if (out.status === "error") {
+      state.pendingReport = null;
+      handleApiError(out.error);
+      return;
+    }
     try {
-      const ev = await buildReportSubmittedEvent({
-        participantId: state.session.principal.id,
-        orgId: state.session.principal.org_id,
-        sessionId: state.activeSession.sessionId,
-        prescriptionId: rxPayload.prescription_id,
-        prescriptionRevision: rxPayload.revision,
-        exerciseId: rxPayload.exercise_id,
-        seq: nextSeq,
-        prevHash: state.activeSession.lastHash,
-        occurredAt,
-        execution: state.reportExecution,
-        assistance: state.reportAssistance,
-      });
-      await client.postEventsBatch([ev]);
-
-      const submittedExec = state.reportExecution;
-      const submittedAssist = state.reportAssistance;
+      const submittedExec = execution;
+      const submittedAssist = assistance;
       const finishedSessionId = state.activeSession.sessionId;
+      state.lastReportSlot = slot;
+      state.pendingReport = null;
       state.activeSession = null;
       resetReportChoices();
       updateControlsState();

@@ -278,6 +278,8 @@ export const PT = {
   "pa.js.report_ready": "Relato pronto para envio.",
   "pa.js.report_saved": "Relato registrado.",
   "pa.js.report_sent": "Relato da sessão enviado com sucesso.",
+  "pa.js.cmd_retry": "Não consegui confirmar se o relato foi salvo. Toque de novo em Enviar meu relato: a mesma operação é reenviada e o relato não é duplicado.",
+  "pa.js.cmd_unknown": "Não foi possível confirmar o resultado do envio do relato. Peça ajuda à terapeuta antes de tentar de novo.",
   "pa.js.rx_activity": "Atividade prescrita: {name} — {movement}",
   "pa.js.rx_instructions": "Orientações do terapeuta: {text}",
   "pa.js.rx_plan": "Lado: {side} • Plano: {sets} séries de {reps} repetições ({per} sessões por semana)",
