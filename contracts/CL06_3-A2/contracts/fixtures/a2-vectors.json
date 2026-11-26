@@ -1,0 +1,315 @@
+{
+ "goal": [
+  {
+   "id": "V-G01",
+   "target": {
+    "kind": "session_count",
+    "value": 3,
+    "unit": "sessions"
+   },
+   "ok": true
+  },
+  {
+   "id": "V-G02",
+   "target": {
+    "kind": "session_count",
+    "value": 3,
+    "unit": null
+   },
+   "ok": true
+  },
+  {
+   "id": "V-G03",
+   "target": {
+    "kind": "repetitions",
+    "value": 10,
+    "unit": "reps"
+   },
+   "ok": true
+  },
+  {
+   "id": "V-G04",
+   "target": {
+    "kind": "descriptive_text",
+    "value": null,
+    "unit": null
+   },
+   "ok": true
+  },
+  {
+   "id": "V-G05",
+   "target": {
+    "kind": "session_count",
+    "value": 3,
+    "unit": "kg"
+   },
+   "ok": false,
+   "rule": "goal.count_unit_compatible"
+  },
+  {
+   "id": "V-G06",
+   "target": {
+    "kind": "repetitions",
+    "value": 10,
+    "unit": "kg"
+   },
+   "ok": false,
+   "rule": "goal.count_unit_compatible"
+  },
+  {
+   "id": "V-G07",
+   "target": {
+    "kind": "session_count",
+    "value": 2.5,
+    "unit": "sessions"
+   },
+   "ok": false,
+   "rule": "goal.count_integer"
+  },
+  {
+   "id": "V-G08",
+   "target": {
+    "kind": "session_count",
+    "value": 0,
+    "unit": "sessions"
+   },
+   "ok": false,
+   "rule": "goal.count_floor"
+  },
+  {
+   "id": "V-G09",
+   "target": {
+    "kind": "session_count",
+    "value": -1,
+    "unit": "sessions"
+   },
+   "ok": false,
+   "rule": "goal.count_floor"
+  },
+  {
+   "id": "V-G10",
+   "target": {
+    "kind": "session_count",
+    "value": null,
+    "unit": null
+   },
+   "ok": false,
+   "rule": "goal.count_value_required"
+  },
+  {
+   "id": "V-G11",
+   "target": {
+    "kind": "descriptive_text",
+    "value": 5,
+    "unit": "kg"
+   },
+   "ok": false,
+   "rule": "goal.descriptive_no_numeric"
+  },
+  {
+   "id": "V-G12",
+   "target": {
+    "kind": "measure_value",
+    "value": 40,
+    "unit": "deg"
+   },
+   "ok": true
+  },
+  {
+   "id": "V-G13",
+   "target": {
+    "kind": "session_count",
+    "value": 100000,
+    "unit": "sessions"
+   },
+   "ok": true
+  }
+ ],
+ "instrument": [
+  {
+   "id": "V-I01",
+   "instrument": {
+    "instrument_id": "custom_unvalidated",
+    "instrument_version": "0",
+    "status": "unvalidated_custom"
+   },
+   "ok": true
+  },
+  {
+   "id": "V-I02",
+   "instrument": {
+    "instrument_id": "custom_unvalidated",
+    "instrument_version": "0",
+    "status": "validated_with_therapists"
+   },
+   "ok": false,
+   "rule": "instrument.registry_mismatch"
+  },
+  {
+   "id": "V-I03",
+   "instrument": {
+    "instrument_id": "inventado",
+    "instrument_version": "1",
+    "status": "validated_with_therapists"
+   },
+   "ok": false,
+   "rule": "instrument.registry_mismatch"
+  },
+  {
+   "id": "V-I04",
+   "instrument": {
+    "instrument_id": "custom_unvalidated",
+    "instrument_version": "1.0",
+    "status": "unvalidated_custom"
+   },
+   "ok": false,
+   "rule": "instrument.registry_mismatch"
+  }
+ ],
+ "items": [
+  {
+   "id": "V-M01",
+   "items": [
+    {
+     "item_key": "a",
+     "value_type": "number",
+     "value": 4.5,
+     "unit": "deg",
+     "source": "therapist_observed",
+     "not_assessed": false
+    }
+   ],
+   "ok": true
+  },
+  {
+   "id": "V-M02",
+   "items": [
+    {
+     "item_key": "a",
+     "value_type": "number",
+     "value": 0,
+     "unit": "deg",
+     "source": "therapist_observed",
+     "not_assessed": false
+    }
+   ],
+   "ok": true
+  },
+  {
+   "id": "V-M03",
+   "items": [
+    {
+     "item_key": "a",
+     "value_type": "number",
+     "value": null,
+     "unit": null,
+     "source": "therapist_observed",
+     "not_assessed": true
+    }
+   ],
+   "ok": true
+  },
+  {
+   "id": "V-M04",
+   "items": [
+    {
+     "item_key": "a",
+     "value_type": "number",
+     "value": "x",
+     "unit": null,
+     "source": "therapist_observed",
+     "not_assessed": false
+    }
+   ],
+   "ok": false,
+   "rule": "item.value_type_mismatch"
+  },
+  {
+   "id": "V-M05",
+   "items": [
+    {
+     "item_key": "a",
+     "value_type": "number",
+     "value": 3,
+     "unit": null,
+     "source": "therapist_observed",
+     "not_assessed": true
+    }
+   ],
+   "ok": false,
+   "rule": "item.not_assessed_requires_null"
+  },
+  {
+   "id": "V-M06",
+   "items": [
+    {
+     "item_key": "a",
+     "value_type": "category",
+     "value": "x",
+     "unit": "kg",
+     "source": "therapist_observed",
+     "not_assessed": false
+    }
+   ],
+   "ok": false,
+   "rule": "item.unit_not_allowed"
+  },
+  {
+   "id": "V-M07",
+   "items": [
+    {
+     "item_key": "a",
+     "value_type": "number",
+     "value": 9,
+     "unit": null,
+     "source": "therapist_instrumental",
+     "not_assessed": false
+    }
+   ],
+   "ok": false,
+   "rule": "item.instrumental_requires_unit"
+  },
+  {
+   "id": "V-M08",
+   "items": [
+    {
+     "item_key": "a",
+     "value_type": "text",
+     "value": "s",
+     "unit": null,
+     "source": "therapist_observed",
+     "not_assessed": false
+    },
+    {
+     "item_key": "a",
+     "value_type": "text",
+     "value": "t",
+     "unit": null,
+     "source": "therapist_observed",
+     "not_assessed": false
+    }
+   ],
+   "ok": false,
+   "rule": "item.key_duplicate"
+  }
+ ],
+ "deadline": [
+  {
+   "id": "V-D01",
+   "deadline": "2026-12-31",
+   "ok": true
+  },
+  {
+   "id": "V-D02",
+   "deadline": "2026-02-30",
+   "ok": false,
+   "rule": "goal.deadline_civil_date"
+  },
+  {
+   "id": "V-D03",
+   "deadline": "2020-01-01",
+   "ok": true,
+   "note": "no past/future rule (P-07)"
+  }
+ ]
+}

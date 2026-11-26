@@ -1,0 +1,31 @@
+{
+ "rules_version": "1",
+ "status": "CANDIDATE_A2",
+ "scope": "write_only",
+ "rules": {
+  "R1": {
+   "id": "item.value_type_mismatch",
+   "text": "value must agree with value_type (integer|number numeric, boolean bool, category|text string)"
+  },
+  "R2": {
+   "id": "item.not_assessed_requires_null",
+   "text": "not_assessed=true implies value null; null is not zero"
+  },
+  "R3": {
+   "id": "item.unit_not_allowed",
+   "text": "unit only on value_type integer|number"
+  },
+  "R4": {
+   "id": "item.instrumental_requires_unit",
+   "text": "source=therapist_instrumental with numeric value requires unit"
+  },
+  "R5": {
+   "id": "item.key_duplicate",
+   "text": "item_key unique within assessment"
+  },
+  "R6": {
+   "status": "dormant",
+   "text": "unit-vs-item_key compatibility only after an approved clinical catalog"
+  }
+ }
+}

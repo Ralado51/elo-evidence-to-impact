@@ -1,0 +1,9 @@
+fa62a60892c27c7f7be30169ff424ef3cf5a3cb442e6d0c4077a5471dca51dcd  ./contracts/VERSIONS.json
+1efd190d68504a4fb0f6c557dc2e7b5e3138a92815259b1f76daf32a49ed4740  ./contracts/catalogs/assessment-item-rules.v1.json
+94317b5a6fc65b5fcc808bdfcc855cbce32cfecb403e999b6abf7d4facf4a08a  ./contracts/catalogs/goal-target-rules.v1.json
+242ac2a6f6c7fa78e7f9f5cd809612c899fa6a22b219117eedd344e452b31252  ./contracts/catalogs/rules-registry.v1.json
+b502770c7c88ee5de92b2ff2f71f9171f06603ce22710ed1da064525c928f939  ./contracts/fixtures/a2-vectors.json
+71ca5009e72218f9b48a59651b401c67d2615b79494b7cfde55e3fd7eae764a7  ./contracts/registries/instrument-registry.json
+6c88a326e8649a895718ab7dbc57f7e82f598d4c3f45fa38a77509880e4ee675  ./contracts/registries/units.json
+d7c6f023efa457583434236c9823dc432a78652cfabbdab1909036f17eaeb3c7  ./contracts/schemas/entities/goal.schema.json
+a7a25da101ced086de2332bb4688549ce58339f77f60cf3ff170785e5e960b93  ./docs/AMENDMENT_A2_DOMAIN_VALIDATION.md

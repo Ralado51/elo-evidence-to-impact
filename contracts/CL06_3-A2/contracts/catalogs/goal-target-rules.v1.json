@@ -1,0 +1,52 @@
+{
+ "rules_version": "1",
+ "status": "CANDIDATE_A2",
+ "scope": "write_only",
+ "kinds": {
+  "descriptive_text": {
+   "value": {
+    "required": "null"
+   },
+   "unit": {
+    "required": "null"
+   },
+   "rule": "goal.descriptive_no_numeric"
+  },
+  "session_count": {
+   "value": {
+    "type": "integer",
+    "min": 1,
+    "max": 100000,
+    "required": true,
+    "ceiling": "technical, not clinical"
+   },
+   "unit": {
+    "allowed": [
+     null,
+     "sessions"
+    ],
+    "derived": "sessions"
+   }
+  },
+  "repetitions": {
+   "value": {
+    "type": "integer",
+    "min": 1,
+    "max": 100000,
+    "required": true,
+    "ceiling": "technical, not clinical"
+   },
+   "unit": {
+    "allowed": [
+     null,
+     "reps"
+    ],
+    "derived": "reps"
+   }
+  },
+  "measure_value": {
+   "write_rule": "none",
+   "note": "D-04: UI hides it for new goals; no new API write restriction without PO approval. Legacy preserved."
+  }
+ }
+}

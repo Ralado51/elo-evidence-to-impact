@@ -1,0 +1,12 @@
+{
+ "registry_version": "1",
+ "status": "EXTENSIBLE_PENDING_VALIDATION_WITH_RAQUEL",
+ "note": "No clinical instrument is defined by CL06.3. Items are generic (item_key/value_type/unit/source). Instrument-specific fields wait for validation with the occupational therapist.",
+ "instruments": [
+  {
+   "instrument_id": "custom_unvalidated",
+   "instrument_version": "0",
+   "status": "unvalidated_custom"
+  }
+ ]
+}

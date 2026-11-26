@@ -1,0 +1,60 @@
+{
+ "rules_version": "1",
+ "status": "CANDIDATE_A2",
+ "scope": "write_only",
+ "rules": [
+  {
+   "id": "goal.descriptive_no_numeric",
+   "code": "RULE_VIOLATION"
+  },
+  {
+   "id": "goal.count_integer",
+   "code": "TYPE"
+  },
+  {
+   "id": "goal.count_floor",
+   "code": "OUT_OF_RANGE"
+  },
+  {
+   "id": "goal.count_unit_compatible",
+   "code": "ENUM"
+  },
+  {
+   "id": "goal.count_value_required",
+   "code": "RULE_VIOLATION"
+  },
+  {
+   "id": "goal.deadline_civil_date",
+   "code": "RULE_VIOLATION"
+  },
+  {
+   "id": "instrument.registry_mismatch",
+   "code": "RULE_VIOLATION"
+  },
+  {
+   "id": "item.value_type_mismatch",
+   "code": "TYPE"
+  },
+  {
+   "id": "item.not_assessed_requires_null",
+   "code": "RULE_VIOLATION"
+  },
+  {
+   "id": "item.unit_not_allowed",
+   "code": "RULE_VIOLATION"
+  },
+  {
+   "id": "item.instrumental_requires_unit",
+   "code": "RULE_VIOLATION"
+  },
+  {
+   "id": "item.key_duplicate",
+   "code": "DUPLICATE_ITEM"
+  }
+ ],
+ "details_shape": {
+  "rule": "<rule id>",
+  "path": "$.payload..."
+ },
+ "new_error_codes": []
+}
