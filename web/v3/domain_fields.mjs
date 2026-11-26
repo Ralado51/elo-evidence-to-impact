@@ -3,7 +3,7 @@
 // Nothing is corrected or normalized silently: the derived unit is a visible, read-only consequence of the chosen kind.
 
 export async function loadCatalogs(fetchFn = fetch, base = new URL("./catalogs/", import.meta.url)) {
-  const names = { goalRules: "goal-target-rules.v1.json", itemRules: "assessment-item-rules.v1.json", instruments: "instrument-registry.json", limits: "limits.v1.json" };
+  const names = { goalRules: "goal-target-rules.v1.json", itemRules: "assessment-item-rules.v1.json", instruments: "instrument-registry.json", units: "units.json", limits: "limits.v1.json" };
   const out = {};
   for (const [k, f] of Object.entries(names)) {
     const r = await fetchFn(new URL(f, base));
@@ -68,3 +68,46 @@ export function instrumentViolations(registry, inst) {
 }
 
 FIELD_FOR_PATH["$.payload.instrument"] = "assessment-instrument-id";
+
+// ---- MeasurementField (A2-05, R1–R5): value/unit/not-assessed of one assessment item ----
+const NUMERIC = ["integer", "number"];
+
+/** Parse the raw text for a value_type. Invalid text stays a string/NaN so the rule reports it; nothing is coerced silently. */
+export function parseItemValue(valueType, raw, notAssessed) {
+  if (notAssessed) return null;
+  const s = String(raw ?? "").trim();
+  if (s === "") return null;
+  if (NUMERIC.includes(valueType)) return Number(s);
+  if (valueType === "boolean") return s === "true" ? true : s === "false" ? false : s;
+  return s;
+}
+
+export function buildItem({ key, valueType, rawValue, unit, notAssessed, assistance, source = "therapist_observed" }) {
+  const numeric = NUMERIC.includes(valueType);
+  return { item_key: key, value_type: valueType, value: parseItemValue(valueType, rawValue, notAssessed), unit: numeric && unit ? unit : null, source, assistance, not_assessed: !!notAssessed };
+}
+
+/** Same rule ids/paths as the server (assessment-item-rules.v1). */
+export function itemViolations(items) {
+  const out = [];
+  const seen = new Set();
+  items.forEach((it, i) => {
+    const base = `$.payload.items[${i}]`;
+    const { item_key: key, value_type: vt, value: val, unit } = it;
+    if (seen.has(key)) out.push({ rule: "item.key_duplicate", path: `${base}.item_key` });
+    seen.add(key);
+    if (it.not_assessed === true && val !== null) out.push({ rule: "item.not_assessed_requires_null", path: `${base}.value` });
+    if (val !== null) {
+      const ok = (vt === "integer" && typeof val === "number" && Number.isInteger(val)) || (vt === "number" && typeof val === "number" && Number.isFinite(val)) ||
+        (vt === "boolean" && typeof val === "boolean") || (vt === "category" && typeof val === "string");
+      if (!ok) out.push({ rule: "item.value_type_mismatch", path: `${base}.value` });
+    }
+    if (unit !== null && !NUMERIC.includes(vt)) out.push({ rule: "item.unit_not_allowed", path: `${base}.unit` });
+    if (it.source === "therapist_instrumental" && NUMERIC.includes(vt) && val !== null && unit === null) out.push({ rule: "item.instrumental_requires_unit", path: `${base}.unit` });
+  });
+  return out;
+}
+
+FIELD_FOR_PATH["$.payload.items[0].value"] = "assessment-item-value";
+FIELD_FOR_PATH["$.payload.items[0].unit"] = "assessment-item-unit";
+FIELD_FOR_PATH["$.payload.items[0].item_key"] = "assessment-item-key";

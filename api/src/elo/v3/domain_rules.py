@@ -123,3 +123,49 @@ def instrument_registry_rule(entity: dict[str, Any]) -> list[Violation]:
 
 
 DOMAIN_RULES.register("functional_assessment", instrument_registry_rule)
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# A2-05 assessment item rules R1-R5 (assessment-item-rules.v1); R6 stays dormant until a clinical catalog is approved.
+# Distinguishes not assessed (flag) / unknown (value null, not flagged) / observed value / zero. No not_assessed x assistance rule.
+# ---------------------------------------------------------------------------------------------------------------------
+_NUMERIC = ("integer", "number")
+
+
+def _is_num(v: Any) -> bool:
+    return isinstance(v, (int, float)) and not isinstance(v, bool)
+
+
+def assessment_item_rules(entity: dict[str, Any]) -> list[Violation]:
+    items = (entity.get("payload") or {}).get("items")
+    if not isinstance(items, list):
+        return []
+    out: list[Violation] = []
+    seen: set[Any] = set()
+    for i, it in enumerate(items):
+        if not isinstance(it, dict):
+            continue
+        base = f"$.payload.items[{i}]"
+        key, vt, val, unit = it.get("item_key"), it.get("value_type"), it.get("value"), it.get("unit")
+        if key in seen:
+            out.append(Violation("item.key_duplicate", f"{base}.item_key", "Each item_key may appear only once in an assessment."))
+        seen.add(key)
+        if it.get("not_assessed") is True and val is not None:
+            out.append(Violation("item.not_assessed_requires_null", f"{base}.value", "A not-assessed item carries no value (null is not zero)."))
+        if val is not None:
+            ok = (
+                (vt == "integer" and _is_num(val) and float(val).is_integer())
+                or (vt == "number" and _is_num(val))
+                or (vt == "boolean" and isinstance(val, bool))
+                or (vt == "category" and isinstance(val, str))
+            )
+            if not ok:
+                out.append(Violation("item.value_type_mismatch", f"{base}.value", f"The value does not match value_type '{vt}'."))
+        if unit is not None and vt not in _NUMERIC:
+            out.append(Violation("item.unit_not_allowed", f"{base}.unit", "A unit is only allowed on integer or number items."))
+        if it.get("source") == "therapist_instrumental" and vt in _NUMERIC and val is not None and unit is None:
+            out.append(Violation("item.instrumental_requires_unit", f"{base}.unit", "An instrumental numeric value requires a unit."))
+    return out
+
+
+DOMAIN_RULES.register("functional_assessment", assessment_item_rules)

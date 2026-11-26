@@ -94,6 +94,38 @@ await check("BR-A2-07 avaliação com os padrões do registro é gravada; POST d
   assert.equal((await r.json()).error.details.rule, "instrument.registry_mismatch");
   assert.equal((await assessments()).length, base);
 });
+
+await check("BR-A2-08 item: tipo numérico habilita unidade do registro; não avaliado desabilita valor; texto numérico inválido é bloqueado no campo", async () => {
+  assert.equal(await t.isDisabled("#assessment-item-unit"), true);
+  await t.selectOption("#assessment-item-value-type", "integer");
+  assert.equal(await t.isDisabled("#assessment-item-unit"), false);
+  assert.deepEqual(await t.$$eval("#assessment-item-unit option", (o) => o.map((x) => x.value)), ["", "1", "deg"]);
+  await t.fill("#assessment-item-value", "2.5");
+  const before = count(/assessments/);
+  await t.click("#btn-create-assessment");
+  await t.waitForSelector("#assessment-item-value-error:not([hidden])");
+  assert.equal(await t.evaluate(() => document.activeElement.id), "assessment-item-value");
+  assert.equal(count(/assessments/), before);
+  await t.check("#assessment-item-not-assessed");
+  assert.equal(await t.isDisabled("#assessment-item-value"), true);
+});
+await check("BR-A2-09 item não avaliado é gravado com valor nulo e flag; zero observado é gravado como 0", async () => {
+  const base = (await assessments()).length;
+  await t.selectOption("#assessment-item-value-type", "number");
+  await t.selectOption("#assessment-item-unit", "deg");
+  await t.click("#btn-create-assessment");
+  await t.waitForFunction((n) => true, base);
+  await t.waitForTimeout(800);
+  let last = (await assessments()).at(-1).payload.items[0];
+  assert.deepEqual([last.value, last.not_assessed, last.unit], [null, true, "deg"]);
+  await t.uncheck("#assessment-item-not-assessed");
+  await t.fill("#assessment-item-key", "wrist_flexion");
+  await t.fill("#assessment-item-value", "0");
+  await t.click("#btn-create-assessment");
+  await t.waitForTimeout(800);
+  last = (await assessments()).at(-1).payload.items[0];
+  assert.deepEqual([last.value, last.not_assessed, last.unit], [0, false, "deg"]);
+});
 await browser.close();
 const failed = results.filter((r) => !r.ok);
 console.log(JSON.stringify({ passed: failed.length === 0, results }, null, 2));

@@ -97,3 +97,42 @@ def test_assessment_http_instrument_registry(monkeypatch):
         else:
             assert r.status_code == 400 and r.json()["error"]["details"] == {"rule": v["rule"], "path": "$.payload.instrument"}, v["id"]
     assert len(app.state.v3_store.list_latest_entities("functional_assessment", ctx["p1_id"])) == 1
+
+
+# --- A2-05 items -----------------------------------------------------------------------------------------------
+@pytest.mark.parametrize("v", VEC["items"], ids=lambda v: v["id"])
+def test_item_vectors(v):
+    got = [x.rule for x in DOMAIN_RULES.evaluate("functional_assessment", {"payload": {"items": v["items"]}})]
+    assert (got == []) if v["ok"] else (got[:1] == [v["rule"]])
+
+
+def test_assessment_http_items(monkeypatch):
+    app, client, ctx = _make_seeded_app(monkeypatch)
+    h = {"Authorization": f"Bearer {ctx['t1_tok']}"}
+    url = f"/api/v3/participants/{ctx['p1_id']}/assessments"
+    inst = {"instrument_id": "custom_unvalidated", "instrument_version": "0", "status": "unvalidated_custom"}
+    accepted = 0
+    for v in VEC["items"]:
+        r = client.post(url, headers=h, json=_assessment(inst, v["items"]))
+        if v["ok"]:
+            assert r.status_code == 201, (v["id"], r.text)
+            accepted += 1
+        else:
+            assert r.status_code == 400, v["id"]
+            d = r.json()["error"].get("details")
+            if isinstance(d, dict):
+                assert d["rule"] == v["rule"], v["id"]
+    assert len(app.state.v3_store.list_latest_entities("functional_assessment", ctx["p1_id"])) == accepted
+
+
+def test_zero_unknown_and_not_assessed_are_distinct_and_accepted(monkeypatch):
+    app, client, ctx = _make_seeded_app(monkeypatch)
+    h = {"Authorization": f"Bearer {ctx['t1_tok']}"}
+    inst = {"instrument_id": "custom_unvalidated", "instrument_version": "0", "status": "unvalidated_custom"}
+    mk = lambda k, val, na, a="not_assessed" if False else "none": {"item_key": k, "value_type": "number", "value": val, "unit": "deg" if val is not None else None,
+                                                                    "source": "therapist_observed", "assistance": a, "not_assessed": na}
+    items = [mk("zero_item", 0, False), mk("unknown_item", None, False), mk("skipped_item", None, True, "not_assessed")]
+    r = client.post(f"/api/v3/participants/{ctx['p1_id']}/assessments", headers=h, json=_assessment(inst, items))
+    assert r.status_code == 201, r.text
+    stored = r.json()["payload"]["items"]
+    assert [i["value"] for i in stored] == [0, None, None] and [i["not_assessed"] for i in stored] == [False, False, True]

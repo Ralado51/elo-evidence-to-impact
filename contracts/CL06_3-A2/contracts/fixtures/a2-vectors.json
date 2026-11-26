@@ -171,12 +171,13 @@
    "id": "V-M01",
    "items": [
     {
-     "item_key": "a",
+     "item_key": "grip_key",
      "value_type": "number",
      "value": 4.5,
      "unit": "deg",
      "source": "therapist_observed",
-     "not_assessed": false
+     "not_assessed": false,
+     "assistance": "none"
     }
    ],
    "ok": true
@@ -185,12 +186,13 @@
    "id": "V-M02",
    "items": [
     {
-     "item_key": "a",
+     "item_key": "grip_key",
      "value_type": "number",
      "value": 0,
      "unit": "deg",
      "source": "therapist_observed",
-     "not_assessed": false
+     "not_assessed": false,
+     "assistance": "none"
     }
    ],
    "ok": true
@@ -199,12 +201,13 @@
    "id": "V-M03",
    "items": [
     {
-     "item_key": "a",
+     "item_key": "grip_key",
      "value_type": "number",
      "value": null,
      "unit": null,
      "source": "therapist_observed",
-     "not_assessed": true
+     "not_assessed": true,
+     "assistance": "none"
     }
    ],
    "ok": true
@@ -213,12 +216,13 @@
    "id": "V-M04",
    "items": [
     {
-     "item_key": "a",
+     "item_key": "grip_key",
      "value_type": "number",
      "value": "x",
      "unit": null,
      "source": "therapist_observed",
-     "not_assessed": false
+     "not_assessed": false,
+     "assistance": "none"
     }
    ],
    "ok": false,
@@ -228,12 +232,13 @@
    "id": "V-M05",
    "items": [
     {
-     "item_key": "a",
+     "item_key": "grip_key",
      "value_type": "number",
      "value": 3,
      "unit": null,
      "source": "therapist_observed",
-     "not_assessed": true
+     "not_assessed": true,
+     "assistance": "none"
     }
    ],
    "ok": false,
@@ -243,12 +248,13 @@
    "id": "V-M06",
    "items": [
     {
-     "item_key": "a",
+     "item_key": "grip_key",
      "value_type": "category",
      "value": "x",
      "unit": "kg",
      "source": "therapist_observed",
-     "not_assessed": false
+     "not_assessed": false,
+     "assistance": "none"
     }
    ],
    "ok": false,
@@ -258,12 +264,13 @@
    "id": "V-M07",
    "items": [
     {
-     "item_key": "a",
+     "item_key": "grip_key",
      "value_type": "number",
      "value": 9,
      "unit": null,
      "source": "therapist_instrumental",
-     "not_assessed": false
+     "not_assessed": false,
+     "assistance": "none"
     }
    ],
    "ok": false,
@@ -273,20 +280,22 @@
    "id": "V-M08",
    "items": [
     {
-     "item_key": "a",
-     "value_type": "text",
+     "item_key": "grip_key",
+     "value_type": "category",
      "value": "s",
      "unit": null,
      "source": "therapist_observed",
-     "not_assessed": false
+     "not_assessed": false,
+     "assistance": "none"
     },
     {
-     "item_key": "a",
-     "value_type": "text",
+     "item_key": "grip_key",
+     "value_type": "category",
      "value": "t",
      "unit": null,
      "source": "therapist_observed",
-     "not_assessed": false
+     "not_assessed": false,
+     "assistance": "none"
     }
    ],
    "ok": false,

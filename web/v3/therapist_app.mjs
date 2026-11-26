@@ -14,7 +14,7 @@ import { renderErrorTechnical } from "./ui_messages.mjs";
 import { validateDateFields } from "./date_field.mjs";
 import { setFieldError } from "./field_error.mjs";
 import { violationFromApiError } from "./validation_registry.mjs";
-import { loadCatalogs, instrumentEntries, instrumentFromSelection, instrumentViolations, goalTargetSpec, buildGoalTarget, goalTargetViolations, FIELD_FOR_PATH } from "./domain_fields.mjs";
+import { loadCatalogs, instrumentEntries, instrumentFromSelection, instrumentViolations, buildItem, itemViolations, goalTargetSpec, buildGoalTarget, goalTargetViolations, FIELD_FOR_PATH } from "./domain_fields.mjs";
 import { applyI18n, initI18n, t, tm, lref, bindText, label, formatDate, formatDateTime, formatIsoDate } from "./i18n.mjs";
 import {
   canPublishEvolution,
@@ -275,7 +275,7 @@ export function initTherapistApp() {
     }
     handleApiError(out.error);
   }
-  const domainCatalogs = { goalRules: null, instruments: null };
+  const domainCatalogs = { goalRules: null, instruments: null, units: null };
 
   function handleApiError(err) {
     const apiErr =
@@ -1099,23 +1099,30 @@ export function initTherapistApp() {
       el("assessment-instrument-id").focus();
       return;
     }
+    const items = [buildItem({
+      key: el("assessment-item-key").value.trim(),
+      valueType: el("assessment-item-value-type").value,
+      rawValue: el("assessment-item-value").value,
+      unit: el("assessment-item-unit").value,
+      notAssessed: el("assessment-item-not-assessed").checked,
+      assistance: el("assessment-item-assistance").value,
+    })];
+    const itemProblems = itemViolations(items);
+    if (itemProblems.length) {
+      const first = itemProblems[0];
+      const input = el(FIELD_FOR_PATH[first.path.replace(/items\[\d+\]/, "items[0]")] || "assessment-item-value");
+      setFieldError(input, tm(`rule.${first.rule}`));
+      input.focus();
+      announce(tm(`rule.${first.rule}`), { politeness: "assertive" });
+      return;
+    }
     const noteText = el("assessment-note").value.trim();
     const payload = {
       assessment_date: el("assessment-date").value,
       body_segment: el("assessment-segment").value,
       side: el("assessment-side").value,
       instrument,
-      items: [
-        {
-          item_key: el("assessment-item-key").value.trim(),
-          value_type: "category",
-          value: el("assessment-item-value").value.trim(),
-          unit: null,
-          source: "therapist_observed",
-          assistance: el("assessment-item-assistance").value,
-          not_assessed: false,
-        },
-      ],
+      items,
       therapist_note: noteText.length > 0 ? noteText : null,
     };
     await cmd("assessment", (key) => client.createAssessment(state.participantId, payload, { idempotencyKey: key }), async (res) => {
@@ -1427,6 +1434,26 @@ export function initTherapistApp() {
 
   initI18n();
   // GoalTargetField: kind drives value/unit availability; the unit is derived and read-only (A2-02).
+  function applyMeasurement() {
+    const numeric = ["integer", "number"].includes(el("assessment-item-value-type").value);
+    const unit = el("assessment-item-unit");
+    unit.disabled = !numeric;
+    if (!numeric) unit.value = "";
+    const na = el("assessment-item-not-assessed").checked;
+    const v = el("assessment-item-value");
+    v.disabled = na;
+    if (na) v.value = "";
+  }
+  function applyUnits() {
+    const sel = el("assessment-item-unit");
+    for (const u of domainCatalogs.units.units) {
+      if ([...sel.options].some((o) => o.value === u.unit)) continue;
+      const o = document.createElement("option");
+      o.value = u.unit;
+      o.textContent = label("unit", u.unit);
+      sel.appendChild(o);
+    }
+  }
   function applyInstrument() {
     const sel = el("assessment-instrument-id");
     sel.replaceChildren(...instrumentEntries(domainCatalogs.instruments).map((e) => {
@@ -1455,8 +1482,10 @@ export function initTherapistApp() {
     else if (v.value === "") v.value = "3";
     v.min = String(spec.min ?? 0);
   }
-  loadCatalogs().then((c) => { Object.assign(domainCatalogs, c); applyGoalKind(); applyInstrument(); }).catch(() => {});
+  loadCatalogs().then((c) => { Object.assign(domainCatalogs, c); applyGoalKind(); applyInstrument(); applyUnits(); applyMeasurement(); }).catch(() => {});
   el("goal-target-kind").addEventListener("change", applyGoalKind);
+  el("assessment-item-value-type").addEventListener("change", applyMeasurement);
+  el("assessment-item-not-assessed").addEventListener("change", applyMeasurement);
   el("assessment-instrument-id").addEventListener("change", syncInstrument);
   document.addEventListener("elo:lang", () => {
     // Re-render dynamic content in the new language without touching what the user typed.

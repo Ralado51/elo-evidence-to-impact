@@ -184,6 +184,22 @@
 <input data-i18n-value="th.assessment-item-value.default" id="assessment-item-value" name="item_value" required="" type="text" value="parcial"/>
 </div>
 <div class="field">
+<label data-i18n="th.label.assessment-item-value-type" for="assessment-item-value-type">Tipo do valor</label>
+<select id="assessment-item-value-type" name="item_value_type">
+<option data-i18n="th.opt.assessment-item-value-type.category" value="category">Categoria (texto)</option>
+<option data-i18n="th.opt.assessment-item-value-type.integer" value="integer">Número inteiro</option>
+<option data-i18n="th.opt.assessment-item-value-type.number" value="number">Número</option>
+<option data-i18n="th.opt.assessment-item-value-type.boolean" value="boolean">Sim/não (true/false)</option>
+</select>
+</div>
+<div class="field">
+<label data-i18n="th.label.assessment-item-unit" for="assessment-item-unit">Unidade do valor</label>
+<select disabled="" id="assessment-item-unit" name="item_unit"><option data-i18n="th.opt.assessment-item-unit.none" value="">Sem unidade</option></select>
+</div>
+<div class="field">
+<label for="assessment-item-not-assessed"><input id="assessment-item-not-assessed" name="item_not_assessed" type="checkbox"/> <span data-i18n="th.label.assessment-item-not-assessed">Item não avaliado (sem valor)</span></label>
+</div>
+<div class="field">
 <label data-i18n="th.label.assessment-item-assistance" for="assessment-item-assistance">Ajuda observada</label>
 <select id="assessment-item-assistance" name="assistance">
 <option data-i18n="th.opt.assessment-item-assistance.some" value="some">Com alguma ajuda</option>

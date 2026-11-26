@@ -42,3 +42,25 @@ test("JS-A2-04: InstrumentSelector derives version/status from the registry; vec
     assert.deepEqual(got, v.ok ? [] : [v.rule], v.id);
   }
 });
+
+import { buildItem, itemViolations, parseItemValue } from "../v3/domain_fields.mjs";
+
+test("JS-A2-06: item vectors give the same first rule as the server", () => {
+  for (const v of vec.items) {
+    const got = itemViolations(v.items).map((x) => x.rule);
+    if (v.ok) assert.deepEqual(got, [], v.id);
+    else assert.ok(got.includes(v.rule), `${v.id}: ${got}`);
+  }
+});
+
+test("JS-A2-07: MeasurementField keeps zero, unknown and not-assessed apart; unit only on numeric", () => {
+  const base = { key: "grip_key", assistance: "none" };
+  assert.equal(buildItem({ ...base, valueType: "number", rawValue: "0", unit: "deg" }).value, 0);
+  assert.equal(buildItem({ ...base, valueType: "number", rawValue: "", unit: "deg" }).value, null);
+  const na = buildItem({ ...base, valueType: "number", rawValue: "7", unit: "deg", notAssessed: true });
+  assert.deepEqual([na.value, na.not_assessed], [null, true]);
+  assert.equal(buildItem({ ...base, valueType: "category", rawValue: "x", unit: "deg" }).unit, null);
+  assert.equal(parseItemValue("boolean", "true"), true);
+  assert.equal(itemViolations([buildItem({ ...base, valueType: "integer", rawValue: "2.5" })])[0].rule, "item.value_type_mismatch");
+  assert.equal(itemViolations([buildItem({ ...base, valueType: "boolean", rawValue: "talvez" })])[0].rule, "item.value_type_mismatch");
+});
