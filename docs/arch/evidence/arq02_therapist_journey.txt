@@ -1,0 +1,43 @@
+{
+  "passed": true,
+  "task": "S1-03",
+  "page": "/v3/therapist.html",
+  "pointer_pass": {
+    "passed": true,
+    "timeline_items": 5,
+    "forced_errors_verified": [
+      "CONTENT_HASH_STALE",
+      "UNREVIEWED_FACT_IN_EVOLUTION",
+      "COMPARABILITY_VIOLATION"
+    ],
+    "authz_checks_verified": [
+      "unauthenticated_redirect_to_signin",
+      "participant_token_403_forbidden",
+      "unlinked_therapist_not_found"
+    ]
+  },
+  "keyboard_pass": {
+    "passed": true,
+    "pointer_events_used": 0,
+    "facts_approved": 6,
+    "timeline_items": 5
+  },
+  "called_contract_routes": [
+    "assessments.create (POST /api/v3/participants/{participant_id}/assessments)",
+    "auth.therapist (POST /api/v3/auth/therapist)",
+    "evolution.get (GET /api/v3/evolution/{evolution_id})",
+    "evolution.publish (POST /api/v3/evolution)",
+    "evolution.series (GET /api/v3/participants/{participant_id}/evolution/series)",
+    "facts.evidence (GET /api/v3/facts/{fact_id}/evidence)",
+    "facts.list (GET /api/v3/participants/{participant_id}/facts)",
+    "goals.create (POST /api/v3/participants/{participant_id}/goals)",
+    "health (GET /api/v3/health)",
+    "participants.create (POST /api/v3/participants)",
+    "prescriptions.current (GET /api/v3/participants/{participant_id}/prescription/current)",
+    "prescriptions.publish (POST /api/v3/prescriptions)",
+    "reviews.record (POST /api/v3/reviews)",
+    "summaries.get (GET /api/v3/summaries/{summary_id})",
+    "summaries.publish (POST /api/v3/summaries)",
+    "timeline.get (GET /api/v3/participants/{participant_id}/timeline)"
+  ]
+}

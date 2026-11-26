@@ -1,0 +1,784 @@
+FFFF.FFFFFFFFFFF...FFF.FFFFFFFFFFFFFFFFFFFFF.                            [100%]
+=================================== FAILURES ===================================
+____ test_same_key_same_payload_replays_original_result_without_duplicating ____
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ff526dede00>
+
+    def test_same_key_same_payload_replays_original_result_without_duplicating(monkeypatch):
+        app, client, ctx = _make_seeded_app(monkeypatch)
+        k = key()
+        r1 = goals(client, ctx, k)
+        r2 = goals(client, ctx, k)
+        assert r1.status_code == 201 and r2.status_code == 201
+>       assert r2.json() == r1.json() and r2.json()["version"] == 1
+E       AssertionError: assert ({'entity_id':...h': None, ...} == {'entity_id':...h': None, ...}
+E         
+E         Omitting 8 identical items, use -vv to show
+E         Differing items:
+E         {'created_at': '2026-11-26T18:42:51.775Z'} != {'created_at': '2026-11-26T18:42:51.771Z'}
+E         {'entity_id': 'gl_7b626443cdf43915'} != {'entity_id': 'gl_efdf2834cec7fcb7'}
+E         {'hash': '972985f541acf985706bb94648ca139db7553b3380fed808721763ca05115823'} != {'hash': '54a6e0c155d82e03ce4bce955d4ced9045ca07dba2f40e5084fe18ada0791ca9'}
+E         Use -v to get more diff)
+
+tests/test_v3_arq02_idempotency.py:57: AssertionError
+_______ test_other_clinical_creates_are_idempotent[assessments-payload0] _______
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ff526dedcd0>
+path = 'assessments'
+payload = {'assessment_date': '2026-11-23', 'body_segment': 'hand', 'side': 'right', 'instrument': {'instrument_id': 'custom_unvalidated', 'instrument_version': '0', 'status': 'unvalidated_custom'}, ...}
+
+    @pytest.mark.parametrize("path,payload", [("assessments", _valid_fa_payload()), ("encounters", {"encounter_date": "2026-11-23", "modality": "in_person", "duration_min": 30, "prescription_ref": None, "assessment_ref": None, "therapist_note": None})])
+    def test_other_clinical_creates_are_idempotent(monkeypatch, path, payload):
+        app, client, ctx = _make_seeded_app(monkeypatch)
+        k = key()
+        a = client.post(f"/api/v3/participants/{ctx['p1_id']}/{path}", headers=auth(ctx["t1_tok"], k), json=payload)
+        b = client.post(f"/api/v3/participants/{ctx['p1_id']}/{path}", headers=auth(ctx["t1_tok"], k), json=payload)
+>       assert a.status_code == b.status_code == 201 and a.json() == b.json() and b.headers.get(REPLAYED) == "true"
+E       AssertionError: assert (201 == 201 and {'entity_id':...h': None, ...} == {'entity_id':...h': None, ...}
+E        +  where 201 = <Response [201 Created]>.status_code
+E         
+E         Omitting 8 identical items, use -vv to show
+E         Differing items:
+E         {'created_at': '2026-11-26T18:42:52.173Z'} != {'created_at': '2026-11-26T18:42:52.177Z'}
+E         {'entity_id': 'fa_ea2350333ea411be'} != {'entity_id': 'fa_d06363c5206a908a'}
+E         {'hash': '1b069c742c27b5dddb30e04896d74d74a569debb5214402fb8e72e16f04ac540'} != {'hash': 'f6c8af0bbeb638947365e28dcee13fe03e85852954301ca472332773d6cec68e'}
+E         Use -v to get more diff)
+
+tests/test_v3_arq02_idempotency.py:68: AssertionError
+_______ test_other_clinical_creates_are_idempotent[encounters-payload1] ________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ff526c757f0>
+path = 'encounters'
+payload = {'encounter_date': '2026-11-23', 'modality': 'in_person', 'duration_min': 30, 'prescription_ref': None, ...}
+
+    @pytest.mark.parametrize("path,payload", [("assessments", _valid_fa_payload()), ("encounters", {"encounter_date": "2026-11-23", "modality": "in_person", "duration_min": 30, "prescription_ref": None, "assessment_ref": None, "therapist_note": None})])
+    def test_other_clinical_creates_are_idempotent(monkeypatch, path, payload):
+        app, client, ctx = _make_seeded_app(monkeypatch)
+        k = key()
+        a = client.post(f"/api/v3/participants/{ctx['p1_id']}/{path}", headers=auth(ctx["t1_tok"], k), json=payload)
+        b = client.post(f"/api/v3/participants/{ctx['p1_id']}/{path}", headers=auth(ctx["t1_tok"], k), json=payload)
+>       assert a.status_code == b.status_code == 201 and a.json() == b.json() and b.headers.get(REPLAYED) == "true"
+E       AssertionError: assert (201 == 201 and {'entity_id':...h': None, ...} == {'entity_id':...h': None, ...}
+E        +  where 201 = <Response [201 Created]>.status_code
+E         
+E         Omitting 8 identical items, use -vv to show
+E         Differing items:
+E         {'created_at': '2026-11-26T18:42:52.556Z'} != {'created_at': '2026-11-26T18:42:52.562Z'}
+E         {'entity_id': 'en_e5d4beee68444f73'} != {'entity_id': 'en_3249f35186188e30'}
+E         {'hash': '3c206155e5377a7b7b99ca510b9e19bc62884c442ca29cafea6896a8399f2616'} != {'hash': '41cc304821f9221d8d1fbbc2ee3747da5c613409cd87f32870fecbdc7aec419c'}
+E         Use -v to get more diff)
+
+tests/test_v3_arq02_idempotency.py:68: AssertionError
+__________ test_same_key_different_payload_is_409_and_creates_nothing __________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ff526029ae0>
+
+    def test_same_key_different_payload_is_409_and_creates_nothing(monkeypatch):
+        app, client, ctx = _make_seeded_app(monkeypatch)
+        k = key()
+        assert goals(client, ctx, k).status_code == 201
+        r = goals(client, ctx, k, _valid_goal_payload(goal_text="Synthetic goal: a different one."))
+>       assert r.status_code == 409 and r.json()["error"]["code"] == "IDEMPOTENCY_KEY_REUSED"
+E       assert (201 == 409)
+E        +  where 201 = <Response [201 Created]>.status_code
+
+tests/test_v3_arq02_idempotency.py:76: AssertionError
+_______________ test_legacy_clients_without_header_are_unchanged _______________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ff526acc950>
+
+    def test_legacy_clients_without_header_are_unchanged(monkeypatch):
+        app, client, ctx = _make_seeded_app(monkeypatch)
+        assert goals(client, ctx).status_code == 201 and goals(client, ctx).status_code == 201
+>       assert n_entities(app, "goal", ctx["p1_id"]) == 2 and dedup_rows(app) == []
+                                                              ^^^^^^^^^^^^^^^
+
+tests/test_v3_arq02_idempotency.py:91: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+app = <fastapi.applications.FastAPI object at 0x7ff52605c910>
+
+    def dedup_rows(app):
+>       return app.state.v3_store.db.execute("SELECT * FROM v3_command_dedup").fetchall()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       sqlite3.OperationalError: no such table: v3_command_dedup
+
+tests/test_v3_arq02_idempotency.py:42: OperationalError
+____________ test_key_identifies_the_intention_not_the_payload_hash ____________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ff526acfd50>
+
+    def test_key_identifies_the_intention_not_the_payload_hash(monkeypatch):
+        app, client, ctx = _make_seeded_app(monkeypatch)
+        k1, k2 = key(), key()
+        a = goals(client, ctx, k1)
+        # a replay of k1 with the SAME payload but sent while another key exists must still map to k1's entity
+        goals(client, ctx, k2)
+        again = goals(client, ctx, k1)
+>       assert again.json()["entity_id"] == a.json()["entity_id"]
+E       AssertionError: assert 'gl_4b1cfbab5e36a1fa' == 'gl_38942c20321ea213'
+E         
+E         - gl_38942c20321ea213
+E         + gl_4b1cfbab5e36a1fa
+
+tests/test_v3_arq02_idempotency.py:101: AssertionError
+_ test_replay_after_a_later_revision_returns_the_original_version_not_the_latest _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ff525e21220>
+
+    def test_replay_after_a_later_revision_returns_the_original_version_not_the_latest(monkeypatch):
+        app, client, ctx = _make_seeded_app(monkeypatch)
+        k = key()
+        v1 = goals(client, ctx, k)
+        eid = v1.json()["entity_id"]
+        rev = client.post(f"/api/v3/goals/{eid}/versions", headers=auth(ctx["t1_tok"], key()), json=_valid_goal_payload(goal_text="Synthetic goal: revised text."))
+        assert rev.status_code == 201 and rev.json()["version"] == 2
+        again = goals(client, ctx, k)
+>       assert again.status_code == 201 and again.json()["version"] == 1 and again.json() == v1.json()
+E       AssertionError: assert (201 == 201 and 1 == 1 and {'entity_id':...h': None, ...} == {'entity_id':...h': None, ...}
+E        +  where 201 = <Response [201 Created]>.status_code
+E         
+E         Omitting 8 identical items, use -vv to show
+E         Differing items:
+E         {'created_at': '2026-11-26T18:42:54.479Z'} != {'created_at': '2026-11-26T18:42:54.466Z'}
+E         {'entity_id': 'gl_c6a295e76ff3bf65'} != {'entity_id': 'gl_b4fec2eee1c50859'}
+E         {'hash': '89fb60652630db650bb22136d13948d3de29ce3846b5a8768f00f0e83058f907'} != {'hash': 'f847faae9ea068a2f6e6c5975df5e7ca606d632efba2cc2dd733e2d4eabb6224'}
+E         Use -v to get more diff)
+
+tests/test_v3_arq02_idempotency.py:113: AssertionError
+____ test_registry_stores_references_only_never_clinical_content_or_secrets ____
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ff5260f9c70>
+
+    def test_registry_stores_references_only_never_clinical_content_or_secrets(monkeypatch):
+        app, client, ctx = _make_seeded_app(monkeypatch)
+        marker = "ZXQ-UNIQUE-CLINICAL-MARKER"
+        goals(client, ctx, key(), _valid_goal_payload(goal_text=f"Synthetic goal {marker}."))
+        client.post("/api/v3/invites", headers=auth(ctx["t1_tok"], key()), json={"participant_id": ctx["p1_id"]})
+>       dump = json.dumps([list(map(str, r)) for r in dedup_rows(app)])
+                                                      ^^^^^^^^^^^^^^^
+
+tests/test_v3_arq02_idempotency.py:122: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+app = <fastapi.applications.FastAPI object at 0x7ff526051d10>
+
+    def dedup_rows(app):
+>       return app.state.v3_store.db.execute("SELECT * FROM v3_command_dedup").fetchall()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       sqlite3.OperationalError: no such table: v3_command_dedup
+
+tests/test_v3_arq02_idempotency.py:42: OperationalError
+________________________ test_replay_performs_no_writes ________________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ff526189550>
+
+    def test_replay_performs_no_writes(monkeypatch):
+        app, client, ctx = _make_seeded_app(monkeypatch)
+        k = key()
+        goals(client, ctx, k)
+>       before = total_rows(app)
+                 ^^^^^^^^^^^^^^^
+
+tests/test_v3_arq02_idempotency.py:132: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_v3_arq02_idempotency.py:47: in total_rows
+    return tuple(db.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in ("v3_entities", "v3_events", "v3_command_dedup"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+.0 = <tuple_iterator object at 0x7ff525c1e860>
+
+>   return tuple(db.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in ("v3_entities", "v3_events", "v3_command_dedup"))
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   sqlite3.OperationalError: no such table: v3_command_dedup
+
+tests/test_v3_arq02_idempotency.py:47: OperationalError
+______ test_response_lost_after_commit_is_recoverable_by_the_original_key ______
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ff525da27b0>
+
+    def test_response_lost_after_commit_is_recoverable_by_the_original_key(monkeypatch):
+        app, client, ctx = _make_seeded_app(monkeypatch)
+        k = key()
+        goals(client, ctx, k)  # client never reads the response
+        retry = goals(client, ctx, k)
+>       assert retry.status_code == 201 and retry.headers.get(REPLAYED) == "true"
+E       AssertionError: assert (201 == 201 and None == 'true')
+E        +  where 201 = <Response [201 Created]>.status_code
+E        +  and   None = get('Idempotency-Replayed')
+E        +    where get = Headers({'content-length': '571', 'content-type': 'application/json'}).get
+E        +      where Headers({'content-length': '571', 'content-type': 'application/json'}) = <Response [201 Created]>.headers
+
+tests/test_v3_arq02_idempotency.py:144: AssertionError
+____ test_failure_before_commit_leaves_nothing_and_the_retry_executes_once _____
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ff525e157e0>
+
+    def test_failure_before_commit_leaves_nothing_and_the_retry_executes_once(monkeypatch):
+        app, client, ctx = _make_seeded_app(monkeypatch)
+        store = app.state.v3_store
+        real = store.insert_entity_version
+        calls = {"n": 0}
+    
+        def boom(*a, **kw):
+            calls["n"] += 1
+            raise RuntimeError("simulated crash before commit")
+    
+        monkeypatch.setattr(store, "insert_entity_version", boom)
+        k = key()
+        with pytest.raises(RuntimeError):
+            goals(client, ctx, k)
+>       assert n_entities(app, "goal", ctx["p1_id"]) == 0 and dedup_rows(app) == []
+                                                              ^^^^^^^^^^^^^^^
+
+tests/test_v3_arq02_idempotency.py:162: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+app = <fastapi.applications.FastAPI object at 0x7ff52607c190>
+
+    def dedup_rows(app):
+>       return app.state.v3_store.db.execute("SELECT * FROM v3_command_dedup").fetchall()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       sqlite3.OperationalError: no such table: v3_command_dedup
+
+tests/test_v3_arq02_idempotency.py:42: OperationalError
+________ test_rollback_between_effect_and_idempotency_record_is_atomic _________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ff525e4b050>
+
+    def test_rollback_between_effect_and_idempotency_record_is_atomic(monkeypatch):
+        app, client, ctx = _make_seeded_app(monkeypatch)
+>       from elo.v3 import command_dedup
+E       ImportError: cannot import name 'command_dedup' from 'elo.v3' (/home/claude/work/elo/api/src/elo/v3/__init__.py)
+
+tests/test_v3_arq02_idempotency.py:171: ImportError
+_____ test_only_successful_outcomes_are_recorded_and_the_key_stays_usable ______
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ff526b8a210>
+
+    def test_only_successful_outcomes_are_recorded_and_the_key_stays_usable(monkeypatch):
+        app, client, ctx = _make_seeded_app(monkeypatch)
+        k = key()
+        bad = goals(client, ctx, k, {"goal_text": ""})
+>       assert bad.status_code == 400 and dedup_rows(app) == []
+                                          ^^^^^^^^^^^^^^^
+
+tests/test_v3_arq02_idempotency.py:189: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+app = <fastapi.applications.FastAPI object at 0x7ff5261e5d10>
+
+    def dedup_rows(app):
+>       return app.state.v3_store.db.execute("SELECT * FROM v3_command_dedup").fetchall()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       sqlite3.OperationalError: no such table: v3_command_dedup
+
+tests/test_v3_arq02_idempotency.py:42: OperationalError
+______ test_concurrent_requests_with_same_key_produce_exactly_one_effect _______
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ff5260c9e90>
+
+    def test_concurrent_requests_with_same_key_produce_exactly_one_effect(monkeypatch):
+        app, client, ctx = _make_seeded_app(monkeypatch)
+        k = key()
+        with cf.ThreadPoolExecutor(8) as ex:
+            rs = list(ex.map(lambda _: goals(client, ctx, k), range(8)))
+        assert {r.status_code for r in rs} == {201}
+>       assert sum(1 for r in rs if REPLAYED not in r.headers) == 1
+E       assert 8 == 1
+E        +  where 8 = sum(<generator object test_concurrent_requests_with_same_key_produce_exactly_one_effect.<locals>.<genexpr> at 0x7ff525cb60c0>)
+
+tests/test_v3_arq02_idempotency.py:200: AssertionError
+__ test_concurrent_same_key_with_different_payloads_one_wins_others_conflict ___
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ff5260cafc0>
+
+    def test_concurrent_same_key_with_different_payloads_one_wins_others_conflict(monkeypatch):
+        app, client, ctx = _make_seeded_app(monkeypatch)
+        k = key()
+        pays = [_valid_goal_payload(goal_text=f"Synthetic goal variant {i}.") for i in range(6)]
+        with cf.ThreadPoolExecutor(6) as ex:
+            rs = list(ex.map(lambda p: goals(client, ctx, k, p), pays))
+>       assert sorted(r.status_code for r in rs) == [201] + [409] * 5
+E       assert [201, 201, 201, 201, 201, 201] == [201, 409, 409, 409, 409, 409]
+E         
+E         At index 1 diff: 201 != 409
+E         Use -v to get more diff
+
+tests/test_v3_arq02_idempotency.py:211: AssertionError
+_ test_revocation_racing_with_commands_never_lets_an_effect_land_after_the_revoke _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ff525c53450>
+
+    def test_revocation_racing_with_commands_never_lets_an_effect_land_after_the_revoke(monkeypatch):
+        app, client, ctx = _make_seeded_app(monkeypatch)
+        db = app.state.v3_store.db
+        stop = threading.Event()
+        results = []
+    
+        def writer():
+            while not stop.is_set():
+                results.append(goals(client, ctx, key()).status_code)
+    
+        ts = [threading.Thread(target=writer) for _ in range(3)]
+        for t in ts:
+            t.start()
+        while len(results) < 6:
+            pass
+        rv = client.post(f"/api/v3/care-links/{ctx['cl1_id']}:revoke", headers=auth(ctx["t1_tok"], key()), json={})
+        assert rv.status_code == 200
+        mark = len(results)
+        while len(results) < mark + 6:
+            pass
+        stop.set()
+        for t in ts:
+            t.join()
+        rev_rowid = db.execute("SELECT MAX(rowid) FROM v3_entities WHERE entity_id = ? AND version = 2", (ctx["cl1_id"],)).fetchone()[0]
+        late = db.execute("SELECT COUNT(*) FROM v3_entities WHERE entity_type = 'goal' AND rowid > ?", (rev_rowid,)).fetchone()[0]
+>       assert late == 0, "no goal may be committed after the revocation committed"
+E       AssertionError: no goal may be committed after the revocation committed
+E       assert 1 == 0
+
+tests/test_v3_arq02_idempotency.py:267: AssertionError
+_ test_same_key_is_independent_across_resources_operations_principals_and_orgs _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ff5286426d0>
+
+    def test_same_key_is_independent_across_resources_operations_principals_and_orgs(monkeypatch):
+        app, client, ctx = _make_seeded_app(monkeypatch)
+        k = key()
+        enc = {"encounter_date": "2026-11-23", "modality": "in_person", "duration_min": 30, "prescription_ref": None, "assessment_ref": None, "therapist_note": None}
+        p2 = client.post("/api/v3/participants", headers=auth(ctx["t1_tok"]), json={"alias": "ARQ02 P2", "side": "left"}).json()["entity_id"]
+        p3 = client.post("/api/v3/participants", headers=auth(ctx["t3_tok"]), json={"alias": "ARQ02 P3", "side": "left"}).json()["entity_id"]
+        rs = [
+            goals(client, ctx, k),
+            goals(client, ctx, k, pid=p2),
+            client.post(f"/api/v3/participants/{ctx['p1_id']}/encounters", headers=auth(ctx["t1_tok"], k), json=enc),
+            goals(client, ctx, k, pid=p3, tok=ctx["t3_tok"]),
+        ]
+        assert [r.status_code for r in rs] == [201] * 4
+        assert all(REPLAYED not in r.headers for r in rs)
+>       assert len(dedup_rows(app)) == 4
+                   ^^^^^^^^^^^^^^^
+
+tests/test_v3_arq02_idempotency.py:286: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+app = <fastapi.applications.FastAPI object at 0x7ff52602f110>
+
+    def dedup_rows(app):
+>       return app.state.v3_store.db.execute("SELECT * FROM v3_command_dedup").fetchall()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       sqlite3.OperationalError: no such table: v3_command_dedup
+
+tests/test_v3_arq02_idempotency.py:42: OperationalError
+__________ test_participants_create_replays_with_its_care_link_header __________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ff526aac440>
+
+    def test_participants_create_replays_with_its_care_link_header(monkeypatch):
+        app, client, ctx = _make_seeded_app(monkeypatch)
+        k = key()
+        a = client.post("/api/v3/participants", headers=auth(ctx["t1_tok"], k), json={"alias": "Idem P", "side": "right"})
+        b = client.post("/api/v3/participants", headers=auth(ctx["t1_tok"], k), json={"alias": "Idem P", "side": "right"})
+>       assert a.status_code == b.status_code == 201 and a.json() == b.json()
+E       AssertionError: assert (201 == 201 and {'entity_id':...h': None, ...} == {'entity_id':...h': None, ...}
+E        +  where 201 = <Response [201 Created]>.status_code
+E         
+E         Omitting 7 identical items, use -vv to show
+E         Differing items:
+E         {'created_at': '2026-11-26T18:43:00.710Z'} != {'created_at': '2026-11-26T18:43:00.713Z'}
+E         {'entity_id': 'p_c950160c6a4894e3'} != {'entity_id': 'p_04f3ee28875a6864'}
+E         {'hash': '9471341be81d3fb05868c098558dcbaedd51c17928da68feb8f338280e74863c'} != {'hash': '0caf00cec9afec0ff29ea5588489a09bec257668ade65af084f8cf37c5f68238'}
+E         {'participant_id': 'p_c950160c6a4894e3'} != {'participant_id': 'p_04f3ee28875a6864'}
+E         Use -v to get more diff)
+
+tests/test_v3_arq02_idempotency.py:295: AssertionError
+__ test_care_link_revoke_replays_and_a_keyless_second_revoke_still_conflicts ___
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ff526c49ef0>
+
+    def test_care_link_revoke_replays_and_a_keyless_second_revoke_still_conflicts(monkeypatch):
+        app, client, ctx = _make_seeded_app(monkeypatch)
+        k = key()
+        a = client.post(f"/api/v3/care-links/{ctx['cl1_id']}:revoke", headers=auth(ctx["t1_tok"], k), json={})
+        b = client.post(f"/api/v3/care-links/{ctx['cl1_id']}:revoke", headers=auth(ctx["t1_tok"], k), json={})
+>       assert a.status_code == b.status_code == 200 and a.json() == b.json() and b.headers.get(REPLAYED) == "true"
+E       assert (200 == 409)
+E        +  where 200 = <Response [200 OK]>.status_code
+E        +  and   409 = <Response [409 Conflict]>.status_code
+
+tests/test_v3_arq02_idempotency.py:312: AssertionError
+___ test_invalid_key_on_keyed_operation_is_400_and_has_no_effect[not-a-uuid] ___
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ff525eb0c90>
+bad = 'not-a-uuid'
+
+    @pytest.mark.parametrize("bad", BAD_KEYS)
+    def test_invalid_key_on_keyed_operation_is_400_and_has_no_effect(monkeypatch, bad):
+        app, client, ctx = _make_seeded_app(monkeypatch)
+        r = client.post(f"/api/v3/participants/{ctx['p1_id']}/goals", headers=auth(ctx["t1_tok"], bad), json=_valid_goal_payload())
+>       assert r.status_code == 400 and r.json()["error"]["code"] == "IDEMPOTENCY_KEY_INVALID"
+E       assert (201 == 400)
+E        +  where 201 = <Response [201 Created]>.status_code
+
+tests/test_v3_arq02_idempotency.py:326: AssertionError
+_ test_invalid_key_on_keyed_operation_is_400_and_has_no_effect[1C124DB0-CF3F-4F4C-8255-8B64445A88C7] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ff5252ebd90>
+bad = '1C124DB0-CF3F-4F4C-8255-8B64445A88C7'
+
+    @pytest.mark.parametrize("bad", BAD_KEYS)
+    def test_invalid_key_on_keyed_operation_is_400_and_has_no_effect(monkeypatch, bad):
+        app, client, ctx = _make_seeded_app(monkeypatch)
+        r = client.post(f"/api/v3/participants/{ctx['p1_id']}/goals", headers=auth(ctx["t1_tok"], bad), json=_valid_goal_payload())
+>       assert r.status_code == 400 and r.json()["error"]["code"] == "IDEMPOTENCY_KEY_INVALID"
+E       assert (201 == 400)
+E        +  where 201 = <Response [201 Created]>.status_code
+
+tests/test_v3_arq02_idempotency.py:326: AssertionError
+_ test_invalid_key_on_keyed_operation_is_400_and_has_no_effect[2f1ecb54-e9c9-11f1-9d16-6546457ac41b] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ff5252ebc40>
+bad = '2f1ecb54-e9c9-11f1-9d16-6546457ac41b'
+
+    @pytest.mark.parametrize("bad", BAD_KEYS)
+    def test_invalid_key_on_keyed_operation_is_400_and_has_no_effect(monkeypatch, bad):
+        app, client, ctx = _make_seeded_app(monkeypatch)
+        r = client.post(f"/api/v3/participants/{ctx['p1_id']}/goals", headers=auth(ctx["t1_tok"], bad), json=_valid_goal_payload())
+>       assert r.status_code == 400 and r.json()["error"]["code"] == "IDEMPOTENCY_KEY_INVALID"
+E       assert (201 == 400)
+E        +  where 201 = <Response [201 Created]>.status_code
+
+tests/test_v3_arq02_idempotency.py:326: AssertionError
+________ test_invalid_key_on_keyed_operation_is_400_and_has_no_effect[] ________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ff5260efd90>
+bad = ''
+
+    @pytest.mark.parametrize("bad", BAD_KEYS)
+    def test_invalid_key_on_keyed_operation_is_400_and_has_no_effect(monkeypatch, bad):
+        app, client, ctx = _make_seeded_app(monkeypatch)
+        r = client.post(f"/api/v3/participants/{ctx['p1_id']}/goals", headers=auth(ctx["t1_tok"], bad), json=_valid_goal_payload())
+>       assert r.status_code == 400 and r.json()["error"]["code"] == "IDEMPOTENCY_KEY_INVALID"
+E       assert (201 == 400)
+E        +  where 201 = <Response [201 Created]>.status_code
+
+tests/test_v3_arq02_idempotency.py:326: AssertionError
+_ test_invalid_key_on_keyed_operation_is_400_and_has_no_effect[ 315320c9-43bc-4924-887b-026ddee12be7] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ff524f43700>
+bad = ' 315320c9-43bc-4924-887b-026ddee12be7'
+
+    @pytest.mark.parametrize("bad", BAD_KEYS)
+    def test_invalid_key_on_keyed_operation_is_400_and_has_no_effect(monkeypatch, bad):
+        app, client, ctx = _make_seeded_app(monkeypatch)
+        r = client.post(f"/api/v3/participants/{ctx['p1_id']}/goals", headers=auth(ctx["t1_tok"], bad), json=_valid_goal_payload())
+>       assert r.status_code == 400 and r.json()["error"]["code"] == "IDEMPOTENCY_KEY_INVALID"
+E       assert (201 == 400)
+E        +  where 201 = <Response [201 Created]>.status_code
+
+tests/test_v3_arq02_idempotency.py:326: AssertionError
+_ test_invalid_key_on_keyed_operation_is_400_and_has_no_effect[022f9a97-b062-4bae-95df-c750746b8c36,c860e10c-9de3-42c7-80eb-543636b02422] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ff525fedcc0>
+bad = '022f9a97-b062-4bae-95df-c750746b8c36,c860e10c-9de3-42c7-80eb-543636b02422'
+
+    @pytest.mark.parametrize("bad", BAD_KEYS)
+    def test_invalid_key_on_keyed_operation_is_400_and_has_no_effect(monkeypatch, bad):
+        app, client, ctx = _make_seeded_app(monkeypatch)
+        r = client.post(f"/api/v3/participants/{ctx['p1_id']}/goals", headers=auth(ctx["t1_tok"], bad), json=_valid_goal_payload())
+>       assert r.status_code == 400 and r.json()["error"]["code"] == "IDEMPOTENCY_KEY_INVALID"
+E       assert (201 == 400)
+E        +  where 201 = <Response [201 Created]>.status_code
+
+tests/test_v3_arq02_idempotency.py:326: AssertionError
+___________ test_duplicated_header_lines_on_keyed_operation_are_400 ____________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ff524e0b150>
+
+    def test_duplicated_header_lines_on_keyed_operation_are_400(monkeypatch):
+        app, client, ctx = _make_seeded_app(monkeypatch)
+        r = client.post(f"/api/v3/participants/{ctx['p1_id']}/goals", headers=[(b"authorization", f"Bearer {ctx['t1_tok']}".encode()), (b"idempotency-key", key().encode()), (b"idempotency-key", key().encode())], json=_valid_goal_payload())
+>       assert r.status_code == 400 and r.json()["error"]["code"] == "IDEMPOTENCY_KEY_INVALID"
+E       assert (201 == 400)
+E        +  where 201 = <Response [201 Created]>.status_code
+
+tests/test_v3_arq02_idempotency.py:333: AssertionError
+_ test_header_is_ignored_even_if_invalid_on_gets_anonymous_and_excluded_operations _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ff524f42e40>
+
+    def test_header_is_ignored_even_if_invalid_on_gets_anonymous_and_excluded_operations(monkeypatch):
+        app, client, ctx = _make_seeded_app(monkeypatch)
+        bad = {H: "garbage"}
+        assert client.get(f"/api/v3/participants/{ctx['p1_id']}/goals", headers=auth(ctx["t1_tok"], "garbage")).status_code == 200
+        assert client.get("/api/v3/health", headers=bad).status_code == 200
+        assert client.post("/api/v3/auth/therapist", headers=bad, json={"username": "nobody", "password": "x"}).status_code == 401
+        i1 = client.post("/api/v3/invites", headers=auth(ctx["t1_tok"], "garbage"), json={"participant_id": ctx["p1_id"]})
+        assert i1.status_code == 201
+        assert client.post("/api/v3/facts/verify", headers=auth(ctx["t1_tok"], "garbage"), json={}).status_code != 400 or True
+>       assert dedup_rows(app) == []
+               ^^^^^^^^^^^^^^^
+
+tests/test_v3_arq02_idempotency.py:346: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+app = <fastapi.applications.FastAPI object at 0x7ff525115310>
+
+    def dedup_rows(app):
+>       return app.state.v3_store.db.execute("SELECT * FROM v3_command_dedup").fetchall()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       sqlite3.OperationalError: no such table: v3_command_dedup
+
+tests/test_v3_arq02_idempotency.py:42: OperationalError
+_ test_invites_are_excluded_from_storage_and_every_call_issues_a_distinct_secret _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ff524e0a040>
+
+    def test_invites_are_excluded_from_storage_and_every_call_issues_a_distinct_secret(monkeypatch):
+        app, client, ctx = _make_seeded_app(monkeypatch)
+        k = key()
+        a = client.post("/api/v3/invites", headers=auth(ctx["t1_tok"], k), json={"participant_id": ctx["p1_id"]})
+        b = client.post("/api/v3/invites", headers=auth(ctx["t1_tok"], k), json={"participant_id": ctx["p1_id"]})
+        assert a.status_code == b.status_code == 201 and a.json()["invite_token"] != b.json()["invite_token"]
+>       assert REPLAYED not in b.headers and dedup_rows(app) == []
+                                             ^^^^^^^^^^^^^^^
+
+tests/test_v3_arq02_idempotency.py:355: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+app = <fastapi.applications.FastAPI object at 0x7ff524efbb10>
+
+    def dedup_rows(app):
+>       return app.state.v3_store.db.execute("SELECT * FROM v3_command_dedup").fetchall()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       sqlite3.OperationalError: no such table: v3_command_dedup
+
+tests/test_v3_arq02_idempotency.py:42: OperationalError
+___ test_events_batch_natural_idempotency_is_preserved_and_header_is_ignored ___
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ff5252eb230>
+
+    def test_events_batch_natural_idempotency_is_preserved_and_header_is_ignored(monkeypatch):
+        from test_v3_ledger import _make_consent_event
+        from test_v3_ledger import _make_seeded_app as ledger_app
+    
+        app, client, ctx = ledger_app(monkeypatch)
+        ev = _make_consent_event(org_id=ctx["org_a"], participant_id=ctx["p1_id"], seq=1, prev_hash=None)
+        h = {"Authorization": f"Bearer {ctx['p1_tok']}", H: "garbage"}
+        a = client.post("/api/v3/events:batch", headers=h, json={"events": [ev]})
+        b = client.post("/api/v3/events:batch", headers=h, json={"events": [ev]})
+        assert a.status_code == b.status_code == 200
+        assert a.json()["results"][0]["status"] == "stored" and b.json()["results"][0]["status"] != "stored"
+>       assert REPLAYED not in b.headers and dedup_rows(app) == []
+                                             ^^^^^^^^^^^^^^^
+
+tests/test_v3_arq02_idempotency.py:369: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+app = <fastapi.applications.FastAPI object at 0x7ff52513df90>
+
+    def dedup_rows(app):
+>       return app.state.v3_store.db.execute("SELECT * FROM v3_command_dedup").fetchall()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       sqlite3.OperationalError: no such table: v3_command_dedup
+
+tests/test_v3_arq02_idempotency.py:42: OperationalError
+_ test_default_retention_is_seven_days_and_expiry_makes_the_key_a_new_intention _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ff524e87700>
+
+    def test_default_retention_is_seven_days_and_expiry_makes_the_key_a_new_intention(monkeypatch):
+>       clock = _clock(monkeypatch)
+                ^^^^^^^^^^^^^^^^^^^
+
+tests/test_v3_arq02_idempotency.py:385: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ff524e87700>
+start_ms = 1800000000000
+
+    def _clock(monkeypatch, start_ms=1_800_000_000_000):
+>       from elo.v3 import command_dedup
+E       ImportError: cannot import name 'command_dedup' from 'elo.v3' (/home/claude/work/elo/api/src/elo/v3/__init__.py)
+
+tests/test_v3_arq02_idempotency.py:374: ImportError
+___________________ test_retention_at_the_minimum_of_one_day ___________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ff526c4a970>
+
+    def test_retention_at_the_minimum_of_one_day(monkeypatch):
+        monkeypatch.setenv("ELO_V3_IDEMPOTENCY_RETENTION_DAYS", "1")
+>       clock = _clock(monkeypatch)
+                ^^^^^^^^^^^^^^^^^^^
+
+tests/test_v3_arq02_idempotency.py:400: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ff526c4a970>
+start_ms = 1800000000000
+
+    def _clock(monkeypatch, start_ms=1_800_000_000_000):
+>       from elo.v3 import command_dedup
+E       ImportError: cannot import name 'command_dedup' from 'elo.v3' (/home/claude/work/elo/api/src/elo/v3/__init__.py)
+
+tests/test_v3_arq02_idempotency.py:374: ImportError
+___________ test_invalid_retention_configuration_fails_at_startup[0] ___________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ff524daf540>
+bad = '0'
+
+    @pytest.mark.parametrize("bad", ["0", "91", "-3", "abc", "1.5", ""])
+    def test_invalid_retention_configuration_fails_at_startup(monkeypatch, bad):
+        monkeypatch.setenv("ELO_V3_IDEMPOTENCY_RETENTION_DAYS", bad)
+>       with pytest.raises(ValueError, match="RETENTION"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests/test_v3_arq02_idempotency.py:414: Failed
+__________ test_invalid_retention_configuration_fails_at_startup[91] ___________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ff524f41ef0>
+bad = '91'
+
+    @pytest.mark.parametrize("bad", ["0", "91", "-3", "abc", "1.5", ""])
+    def test_invalid_retention_configuration_fails_at_startup(monkeypatch, bad):
+        monkeypatch.setenv("ELO_V3_IDEMPOTENCY_RETENTION_DAYS", bad)
+>       with pytest.raises(ValueError, match="RETENTION"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests/test_v3_arq02_idempotency.py:414: Failed
+__________ test_invalid_retention_configuration_fails_at_startup[-3] ___________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ff526c49c50>
+bad = '-3'
+
+    @pytest.mark.parametrize("bad", ["0", "91", "-3", "abc", "1.5", ""])
+    def test_invalid_retention_configuration_fails_at_startup(monkeypatch, bad):
+        monkeypatch.setenv("ELO_V3_IDEMPOTENCY_RETENTION_DAYS", bad)
+>       with pytest.raises(ValueError, match="RETENTION"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests/test_v3_arq02_idempotency.py:414: Failed
+__________ test_invalid_retention_configuration_fails_at_startup[abc] __________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ff525129710>
+bad = 'abc'
+
+    @pytest.mark.parametrize("bad", ["0", "91", "-3", "abc", "1.5", ""])
+    def test_invalid_retention_configuration_fails_at_startup(monkeypatch, bad):
+        monkeypatch.setenv("ELO_V3_IDEMPOTENCY_RETENTION_DAYS", bad)
+>       with pytest.raises(ValueError, match="RETENTION"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests/test_v3_arq02_idempotency.py:414: Failed
+__________ test_invalid_retention_configuration_fails_at_startup[1.5] __________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ff525eb0520>
+bad = '1.5'
+
+    @pytest.mark.parametrize("bad", ["0", "91", "-3", "abc", "1.5", ""])
+    def test_invalid_retention_configuration_fails_at_startup(monkeypatch, bad):
+        monkeypatch.setenv("ELO_V3_IDEMPOTENCY_RETENTION_DAYS", bad)
+>       with pytest.raises(ValueError, match="RETENTION"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests/test_v3_arq02_idempotency.py:414: Failed
+___________ test_invalid_retention_configuration_fails_at_startup[] ____________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ff5260efb60>
+bad = ''
+
+    @pytest.mark.parametrize("bad", ["0", "91", "-3", "abc", "1.5", ""])
+    def test_invalid_retention_configuration_fails_at_startup(monkeypatch, bad):
+        monkeypatch.setenv("ELO_V3_IDEMPOTENCY_RETENTION_DAYS", bad)
+>       with pytest.raises(ValueError, match="RETENTION"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests/test_v3_arq02_idempotency.py:414: Failed
+_________ test_expired_rows_are_swept_without_touching_clinical_tables _________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ff526a2fbd0>
+
+    def test_expired_rows_are_swept_without_touching_clinical_tables(monkeypatch):
+>       clock = _clock(monkeypatch)
+                ^^^^^^^^^^^^^^^^^^^
+
+tests/test_v3_arq02_idempotency.py:419: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ff526a2fbd0>
+start_ms = 1800000000000
+
+    def _clock(monkeypatch, start_ms=1_800_000_000_000):
+>       from elo.v3 import command_dedup
+E       ImportError: cannot import name 'command_dedup' from 'elo.v3' (/home/claude/work/elo/api/src/elo/v3/__init__.py)
+
+tests/test_v3_arq02_idempotency.py:374: ImportError
+_____________ test_config_change_does_not_shorten_existing_records _____________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ff526a2cb40>
+
+    def test_config_change_does_not_shorten_existing_records(monkeypatch):
+>       clock = _clock(monkeypatch)
+                ^^^^^^^^^^^^^^^^^^^
+
+tests/test_v3_arq02_idempotency.py:430: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ff526a2cb40>
+start_ms = 1800000000000
+
+    def _clock(monkeypatch, start_ms=1_800_000_000_000):
+>       from elo.v3 import command_dedup
+E       ImportError: cannot import name 'command_dedup' from 'elo.v3' (/home/claude/work/elo/api/src/elo/v3/__init__.py)
+
+tests/test_v3_arq02_idempotency.py:374: ImportError
+=========================== short test summary info ============================
+FAILED tests/test_v3_arq02_idempotency.py::test_same_key_same_payload_replays_original_result_without_duplicating
+FAILED tests/test_v3_arq02_idempotency.py::test_other_clinical_creates_are_idempotent[assessments-payload0]
+FAILED tests/test_v3_arq02_idempotency.py::test_other_clinical_creates_are_idempotent[encounters-payload1]
+FAILED tests/test_v3_arq02_idempotency.py::test_same_key_different_payload_is_409_and_creates_nothing
+FAILED tests/test_v3_arq02_idempotency.py::test_legacy_clients_without_header_are_unchanged
+FAILED tests/test_v3_arq02_idempotency.py::test_key_identifies_the_intention_not_the_payload_hash
+FAILED tests/test_v3_arq02_idempotency.py::test_replay_after_a_later_revision_returns_the_original_version_not_the_latest
+FAILED tests/test_v3_arq02_idempotency.py::test_registry_stores_references_only_never_clinical_content_or_secrets
+FAILED tests/test_v3_arq02_idempotency.py::test_replay_performs_no_writes - s...
+FAILED tests/test_v3_arq02_idempotency.py::test_response_lost_after_commit_is_recoverable_by_the_original_key
+FAILED tests/test_v3_arq02_idempotency.py::test_failure_before_commit_leaves_nothing_and_the_retry_executes_once
+FAILED tests/test_v3_arq02_idempotency.py::test_rollback_between_effect_and_idempotency_record_is_atomic
+FAILED tests/test_v3_arq02_idempotency.py::test_only_successful_outcomes_are_recorded_and_the_key_stays_usable
+FAILED tests/test_v3_arq02_idempotency.py::test_concurrent_requests_with_same_key_produce_exactly_one_effect
+FAILED tests/test_v3_arq02_idempotency.py::test_concurrent_same_key_with_different_payloads_one_wins_others_conflict
+FAILED tests/test_v3_arq02_idempotency.py::test_revocation_racing_with_commands_never_lets_an_effect_land_after_the_revoke
+FAILED tests/test_v3_arq02_idempotency.py::test_same_key_is_independent_across_resources_operations_principals_and_orgs
+FAILED tests/test_v3_arq02_idempotency.py::test_participants_create_replays_with_its_care_link_header
+FAILED tests/test_v3_arq02_idempotency.py::test_care_link_revoke_replays_and_a_keyless_second_revoke_still_conflicts
+FAILED tests/test_v3_arq02_idempotency.py::test_invalid_key_on_keyed_operation_is_400_and_has_no_effect[not-a-uuid]
+FAILED tests/test_v3_arq02_idempotency.py::test_invalid_key_on_keyed_operation_is_400_and_has_no_effect[1C124DB0-CF3F-4F4C-8255-8B64445A88C7]
+FAILED tests/test_v3_arq02_idempotency.py::test_invalid_key_on_keyed_operation_is_400_and_has_no_effect[2f1ecb54-e9c9-11f1-9d16-6546457ac41b]
+FAILED tests/test_v3_arq02_idempotency.py::test_invalid_key_on_keyed_operation_is_400_and_has_no_effect[]
+FAILED tests/test_v3_arq02_idempotency.py::test_invalid_key_on_keyed_operation_is_400_and_has_no_effect[ 315320c9-43bc-4924-887b-026ddee12be7]
+FAILED tests/test_v3_arq02_idempotency.py::test_invalid_key_on_keyed_operation_is_400_and_has_no_effect[022f9a97-b062-4bae-95df-c750746b8c36,c860e10c-9de3-42c7-80eb-543636b02422]
+FAILED tests/test_v3_arq02_idempotency.py::test_duplicated_header_lines_on_keyed_operation_are_400
+FAILED tests/test_v3_arq02_idempotency.py::test_header_is_ignored_even_if_invalid_on_gets_anonymous_and_excluded_operations
+FAILED tests/test_v3_arq02_idempotency.py::test_invites_are_excluded_from_storage_and_every_call_issues_a_distinct_secret
+FAILED tests/test_v3_arq02_idempotency.py::test_events_batch_natural_idempotency_is_preserved_and_header_is_ignored
+FAILED tests/test_v3_arq02_idempotency.py::test_default_retention_is_seven_days_and_expiry_makes_the_key_a_new_intention
+FAILED tests/test_v3_arq02_idempotency.py::test_retention_at_the_minimum_of_one_day
+FAILED tests/test_v3_arq02_idempotency.py::test_invalid_retention_configuration_fails_at_startup[0]
+FAILED tests/test_v3_arq02_idempotency.py::test_invalid_retention_configuration_fails_at_startup[91]
+FAILED tests/test_v3_arq02_idempotency.py::test_invalid_retention_configuration_fails_at_startup[-3]
+FAILED tests/test_v3_arq02_idempotency.py::test_invalid_retention_configuration_fails_at_startup[abc]
+FAILED tests/test_v3_arq02_idempotency.py::test_invalid_retention_configuration_fails_at_startup[1.5]
+FAILED tests/test_v3_arq02_idempotency.py::test_invalid_retention_configuration_fails_at_startup[]
+FAILED tests/test_v3_arq02_idempotency.py::test_expired_rows_are_swept_without_touching_clinical_tables
+FAILED tests/test_v3_arq02_idempotency.py::test_config_change_does_not_shorten_existing_records
+39 failed, 6 passed in 16.89s

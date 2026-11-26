@@ -39,6 +39,8 @@ from __future__ import annotations
 import json
 import os
 import re
+from collections.abc import Callable
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
@@ -48,6 +50,17 @@ from fastapi.responses import JSONResponse
 from .auth import AuthService
 from .authz import AuthzScope, authorize
 from .clinical import ClinicalEntityService, extract_entity_payload
+from .command_dedup import (
+    HEADER as IDEM_HEADER,
+)
+from .command_dedup import (
+    REPLAYED_HEADER,
+    RETENTION_HEADER,
+    fingerprint,
+    key_ref,
+    parse_idempotency_header,
+)
+from .command_dedup import log as cmd_log
 from .entities import build_entity, new_id, utc_now_ms
 from .errors import V3Error
 from .evolution import EvolutionTimelineService
@@ -68,7 +81,10 @@ def _reject_non_finite(token: str) -> Any:
 
 
 async def _read_json_object(request: Request, *, allow_empty: bool = False) -> dict[str, Any]:
-    raw = await request.body()
+    return _parse_json_object(await request.body(), allow_empty=allow_empty)
+
+
+def _parse_json_object(raw: bytes, *, allow_empty: bool = False) -> dict[str, Any]:
     if len(raw) > BODY_MAX_BYTES:
         raise V3Error("BATCH_TOO_LARGE", f"Request body exceeds {BODY_MAX_BYTES} bytes.")
     if not raw.strip():
@@ -97,6 +113,37 @@ def _reject_live_data_origin_request(body: dict[str, Any], *, real_data_gate_ope
             raise V3Error("REAL_DATA_GATE_CLOSED", "data_origin 'live' is rejected while real-data gate is closed.")
 
 
+@dataclass
+class _Cmd:
+    """Per-request command state for the synchronous command section (no ``await`` while the tx lock is held)."""
+
+    raw: bytes
+    allow_empty: bool = False
+    _body: dict[str, Any] | None = field(default=None, repr=False)
+
+    def body(self) -> dict[str, Any]:
+        if self._body is None:
+            self._body = _parse_json_object(self.raw, allow_empty=self.allow_empty)
+        return self._body
+
+
+@dataclass
+class _Outcome:
+    status: int
+    body: Any
+    ref: dict[str, Any]  # immutable references only (ids/versions/hashes) - never clinical content
+    headers: dict[str, str] = field(default_factory=dict)
+
+
+def _body_str(cmd: _Cmd, name: str) -> str:
+    """String field of the body, also looking inside the draft/payload wrappers some operations accept."""
+    body = cmd.body()
+    for holder in (body, body.get("draft"), body.get("payload")):
+        if isinstance(holder, dict) and isinstance(holder.get(name), str):
+            return holder[name]
+    return ""
+
+
 def _enforce(decision) -> None:
     if not decision.allowed:
         assert decision.code is not None
@@ -121,13 +168,126 @@ def create_v3_router(
     evolution = EvolutionTimelineService(store)
     router = APIRouter(prefix="/api/v3")
 
+    # ---- ARQ-02 / CMP-07 server pipeline: authorize -> (replay | execute) -> record, in ONE transaction ------
+    def _authorize_participant_ref(pr, resource: str, action: str, participant_id: str, *, by_id: bool = False) -> None:
+        """Re-evaluate participant-scoped access with the existing ``authorize`` engine (replay path)."""
+        participant = store.get_latest_entity(participant_id, entity_type="participant")
+        if participant is None:
+            raise V3Error("NOT_FOUND", "Participant not found.")
+        links = store.latest_care_links(participant_id=participant_id)
+        _enforce(authorize(pr, resource, action, AuthzScope(participant_id=participant_id, org_id=participant["org_id"], is_read_by_id=by_id), links=links, ))
+
+    def _rebuild_entity(ref: dict[str, Any]) -> tuple[Any, dict[str, str]]:
+        for ent in store.get_entity_versions(ref["id"]):
+            if ent["version"] == ref["v"]:  # the ORIGINAL immutable version, never the latest
+                return ent, {}
+        raise V3Error("INTERNAL", "Referenced entity version is missing.")
+
+    def _rebuild_participant(ref: dict[str, Any]) -> tuple[Any, dict[str, str]]:
+        ent, _ = _rebuild_entity({"id": ref["p"], "v": 1})
+        return ent, {"X-Elo-Care-Link-Id": ref["cl"]}
+
+    def _rebuild_event_review(ref: dict[str, Any]) -> tuple[Any, dict[str, str]]:
+        ev = store.get_event_by_id(ref["e"])
+        if ev is None:
+            raise V3Error("INTERNAL", "Referenced event is missing.")
+        return {"event_id": ref["e"], "review": ev}, {}
+
+    def _rebuild_ids(ref: dict[str, Any]) -> tuple[Any, dict[str, str]]:
+        return ref["b"], {}
+
+    class _LostRace(Exception):
+        """Another command committed the same Idempotency-Key first; our staged effect was rolled back."""
+
+        def __init__(self, hit: dict[str, Any]) -> None:
+            self.hit = hit
+
+    async def _command(
+        request: Request,
+        operation_id: str,
+        *,
+        resource_key: str | Callable[[_Cmd], str],
+        authorize_fn: Callable[[Any, _Cmd], Any],
+        execute_fn: Callable[[Any, _Cmd, Any], _Outcome],
+        rebuild_fn: Callable[[dict[str, Any]], tuple[Any, dict[str, str]]],
+        replay_authorize: Callable[[Any, dict[str, Any]], None] | None = None,
+        allow_empty: bool = False,
+    ) -> JSONResponse:
+        principal = auth.require_principal(request)
+        key = parse_idempotency_header(request.headers.getlist(IDEM_HEADER))  # 400 only on keyed operations
+        cmd = _Cmd(await request.body(), allow_empty=allow_empty)
+        info = {RETENTION_HEADER: str(store.dedup.retention_days)} if key else {}
+        # No await below: the synchronous section never yields the event loop while it may hold the tx lock.
+        ctx = authorize_fn(principal, cmd)  # the existing authorization chain, evaluated on current state
+        scope = fp = None
+        if key is not None:
+            rk = resource_key(cmd) if callable(resource_key) else resource_key
+            scope = store.dedup.scope(principal, operation_id, rk)
+            fp = fingerprint(operation_id, rk, cmd.body())
+
+        def replay(hit: dict[str, Any]) -> JSONResponse:
+            if hit["fingerprint"] != fp:
+                cmd_log.info("command op=%s outcome=key_reused key=%s", operation_id, key_ref(key))
+                raise V3Error("IDEMPOTENCY_KEY_REUSED", "Idempotency-Key was already used with a different request.")
+            if replay_authorize is not None:
+                replay_authorize(principal, hit["ref"])  # access is re-evaluated; nothing is disclosed if lost
+            body, hdrs = rebuild_fn(hit["ref"])
+            cmd_log.info("command op=%s outcome=replayed key=%s", operation_id, key_ref(key))
+            return JSONResponse(body, status_code=hit["status"], headers={**hdrs, **info, REPLAYED_HEADER: "true"})
+
+        if key is not None:
+            hit = store.dedup.lookup(scope, key)
+            if hit is not None:
+                return replay(hit)
+        try:
+            with store.command_scope() as sc:
+                out = execute_fn(principal, cmd, ctx)
+                if sc.held:  # an effect is staged in the open transaction (lock kept): finish inside it
+                    authorize_fn(principal, cmd)  # re-check against the current state, race-free
+                    if replay_authorize is not None:
+                        replay_authorize(principal, out.ref)
+                    if key is not None:
+                        late = store.dedup.lookup(scope, key)
+                        if late is not None:
+                            raise _LostRace(late)  # rolls the staged effect back
+                        store.dedup.record(scope, key, fp, out.status, out.ref)
+                resp = JSONResponse(out.body, status_code=out.status, headers={**out.headers, **info})
+        except _LostRace as lost:
+            return replay(lost.hit)
+        if key is not None:
+            cmd_log.info("command op=%s outcome=created key=%s", operation_id, key_ref(key))
+        return resp
+
+    async def _clinical_create(request: Request, op_id: str, entity_type: str, participant_id: str) -> JSONResponse:
+        def exec_(pr, cmd, _ctx):
+            ent = clinical.create(entity_type, participant_id, extract_entity_payload(cmd.body()), pr)
+            return _Outcome(201, ent, {"k": "e", "id": ent["entity_id"], "v": ent["version"]})
+
+        return await _command(
+            request, op_id, resource_key=participant_id,
+            authorize_fn=lambda pr, cmd: clinical.authorize_create(entity_type, participant_id, pr),
+            execute_fn=exec_, rebuild_fn=_rebuild_entity,
+        )
+
+    async def _clinical_revise(request: Request, op_id: str, entity_type: str, entity_id: str) -> JSONResponse:
+        def exec_(pr, cmd, _ctx):
+            ent = clinical.revise(entity_id, extract_entity_payload(cmd.body()), pr, expected_entity_type=entity_type)
+            return _Outcome(201, ent, {"k": "e", "id": ent["entity_id"], "v": ent["version"]})
+
+        return await _command(
+            request, op_id, resource_key=entity_id,
+            authorize_fn=lambda pr, cmd: clinical.authorize_revise(entity_id, pr, expected_entity_type=entity_type),
+            execute_fn=exec_, rebuild_fn=_rebuild_entity,
+        )
+
     # 1. health
     @router.get("/health")
     def health():
-        return {
-            "status": "ok",
-            "versions": {"schema": 3, "catalog": "2", "contracts": "3.0.0"},
-        }
+        # body is frozen by the 3.0.0 contract/tests; A1 exposes the effective retention as a header only.
+        return JSONResponse(
+            {"status": "ok", "versions": {"schema": 3, "catalog": "2", "contracts": "3.0.0"}},
+            headers={RETENTION_HEADER: str(store.dedup.retention_days)},
+        )
 
     # 2. auth.therapist
     @router.post("/auth/therapist")
@@ -195,131 +355,93 @@ def create_v3_router(
     # 5. participants.create
     @router.post("/participants", status_code=201)
     async def participants_create(request: Request):
-        principal = auth.require_principal(request)
-        decision = authorize(
-            principal,
-            "participant (entity)",
-            "create",
-            AuthzScope(org_id=principal.org_id),
-        )
-        _enforce(decision)
+        def authorize_(principal, cmd):
+            _enforce(authorize(principal, "participant (entity)", "create", AuthzScope(org_id=principal.org_id)))
+            _reject_live_data_origin_request(cmd.body(), real_data_gate_open=store.real_data_gate_open)
 
-        body = await _read_json_object(request)
-        _reject_live_data_origin_request(body, real_data_gate_open=store.real_data_gate_open)
+        def exec_(principal, cmd, _ctx):
+            body = cmd.body()
+            # Support either flat {"alias", "side"} or {"payload": {"alias", "side"}}; ignore spoofed principal fields
+            raw_payload = body.get("payload") if isinstance(body.get("payload"), dict) else body
+            payload = {}
+            if "alias" in raw_payload:
+                payload["alias"] = raw_payload["alias"]
+            if "side" in raw_payload:
+                payload["side"] = raw_payload["side"]
 
-        # Support either flat {"alias", "side"} or {"payload": {"alias", "side"}}; ignore spoofed principal fields
-        raw_payload = body.get("payload") if isinstance(body.get("payload"), dict) else body
-        payload = {}
-        if "alias" in raw_payload:
-            payload["alias"] = raw_payload["alias"]
-        if "side" in raw_payload:
-            payload["side"] = raw_payload["side"]
+            requested_pid = body.get("participant_id")
+            if requested_pid is not None:
+                if not isinstance(requested_pid, str) or not _PARTICIPANT_ID_RE.fullmatch(requested_pid):
+                    raise V3Error("PATTERN", "participant_id must match ^p_[A-Za-z0-9-]{8,64}$.")
+                if store.get_entity_versions(requested_pid):
+                    raise V3Error("ENTITY_VERSION_CONFLICT", f"Participant {requested_pid} already exists.")
+                participant_id = requested_pid
+            else:
+                participant_id = new_id("p")
 
-        requested_pid = body.get("participant_id")
-        if requested_pid is not None:
-            if not isinstance(requested_pid, str) or not _PARTICIPANT_ID_RE.fullmatch(requested_pid):
-                raise V3Error("PATTERN", "participant_id must match ^p_[A-Za-z0-9-]{8,64}$.")
-            if store.get_entity_versions(requested_pid):
-                raise V3Error("ENTITY_VERSION_CONFLICT", f"Participant {requested_pid} already exists.")
-            participant_id = requested_pid
-        else:
-            participant_id = new_id("p")
+            now_ms = utc_now_ms()
+            today_iso = datetime.now(timezone.utc).date().isoformat()
+            care_link_id = new_id("cl")
 
-        now_ms = utc_now_ms()
-        today_iso = datetime.now(timezone.utc).date().isoformat()
-        care_link_id = new_id("cl")
+            participant_ent = build_entity(
+                entity_type="participant", entity_id=participant_id, version=1, prev_hash=None,
+                org_id=principal.org_id, participant_id=participant_id, author_role=principal.role,
+                author_id=principal.id, data_origin=store.data_origin, payload=payload, created_at=now_ms,
+            )
+            care_link_ent = build_entity(
+                entity_type="care_link", entity_id=care_link_id, version=1, prev_hash=None,
+                org_id=principal.org_id, participant_id=participant_id, author_role=principal.role,
+                author_id=principal.id, data_origin=store.data_origin,
+                payload={"therapist_id": principal.id, "status": "active", "valid_from": today_iso, "valid_to": None},
+                created_at=now_ms,
+            )
+            store.save_entities_atomic([(participant_ent, []), (care_link_ent, [])])
+            return _Outcome(201, participant_ent, {"k": "pc", "p": participant_id, "cl": care_link_id}, {"X-Elo-Care-Link-Id": care_link_id})
 
-        participant_ent = build_entity(
-            entity_type="participant",
-            entity_id=participant_id,
-            version=1,
-            prev_hash=None,
-            org_id=principal.org_id,
-            participant_id=participant_id,
-            author_role=principal.role,
-            author_id=principal.id,
-            data_origin=store.data_origin,
-            payload=payload,
-            created_at=now_ms,
-        )
-        care_link_ent = build_entity(
-            entity_type="care_link",
-            entity_id=care_link_id,
-            version=1,
-            prev_hash=None,
-            org_id=principal.org_id,
-            participant_id=participant_id,
-            author_role=principal.role,
-            author_id=principal.id,
-            data_origin=store.data_origin,
-            payload={
-                "therapist_id": principal.id,
-                "status": "active",
-                "valid_from": today_iso,
-                "valid_to": None,
-            },
-            created_at=now_ms,
-        )
-        store.save_entities_atomic([(participant_ent, []), (care_link_ent, [])])
-        return JSONResponse(
-            participant_ent,
-            status_code=201,
-            headers={"X-Elo-Care-Link-Id": care_link_id},
+        return await _command(
+            request, "participants.create", resource_key="", authorize_fn=authorize_, execute_fn=exec_,
+            rebuild_fn=_rebuild_participant,
+            # the replay discloses the participant: the caller must still be allowed to read it
+            replay_authorize=lambda pr, ref: _authorize_participant_ref(pr, "participant (entity)", "read", ref["p"], by_id=True),
         )
 
     # 6. care_links.revoke
     @router.post("/care-links/{entity_id}:revoke")
     async def care_links_revoke(entity_id: str, request: Request):
-        principal = auth.require_principal(request)
-        # Role gate first (participant -> 403 FORBIDDEN even before entity lookup)
-        role_decision = authorize(principal, "care_link", "create/revoke", AuthzScope())
-        _enforce(role_decision)
+        def authorize_(principal, cmd):
+            # Role gate first (participant -> 403 FORBIDDEN even before entity lookup)
+            _enforce(authorize(principal, "care_link", "create/revoke", AuthzScope()))
+            _reject_live_data_origin_request(cmd.body(), real_data_gate_open=store.real_data_gate_open)
+            if not _CARE_LINK_ID_RE.fullmatch(entity_id):
+                raise V3Error("NOT_FOUND", "Care link not found.")
+            versions = store.get_entity_versions(entity_id)
+            if not versions or versions[-1]["entity_type"] != "care_link":
+                raise V3Error("NOT_FOUND", "Care link not found.")
+            latest = versions[-1]
+            _enforce(authorize(
+                principal, "care_link", "create/revoke",
+                AuthzScope(org_id=latest["org_id"], participant_id=latest["participant_id"], link_therapist_id=latest["payload"]["therapist_id"]),
+            ))
+            return versions, latest
 
-        body = await _read_json_object(request, allow_empty=True)
-        _reject_live_data_origin_request(body, real_data_gate_open=store.real_data_gate_open)
+        def exec_(principal, cmd, ctx):
+            versions, latest = ctx
+            if latest["payload"]["status"] == "revoked":
+                raise V3Error("CONFLICT_IMMUTABLE", "Care link is already revoked.")
+            v2 = build_entity(
+                entity_type="care_link", entity_id=latest["entity_id"], version=latest["version"] + 1,
+                prev_hash=latest["hash"], org_id=latest["org_id"], participant_id=latest["participant_id"],
+                author_role=principal.role, author_id=principal.id, data_origin=store.data_origin,
+                payload={"therapist_id": latest["payload"]["therapist_id"], "status": "revoked",
+                         "valid_from": latest["payload"]["valid_from"], "valid_to": latest["payload"]["valid_to"]},
+            )
+            store.save_entities_atomic([(v2, versions)])
+            return _Outcome(200, v2, {"k": "e", "id": v2["entity_id"], "v": v2["version"]})
 
-        if not _CARE_LINK_ID_RE.fullmatch(entity_id):
-            raise V3Error("NOT_FOUND", "Care link not found.")
-
-        versions = store.get_entity_versions(entity_id)
-        if not versions or versions[-1]["entity_type"] != "care_link":
-            raise V3Error("NOT_FOUND", "Care link not found.")
-        latest = versions[-1]
-
-        party_decision = authorize(
-            principal,
-            "care_link",
-            "create/revoke",
-            AuthzScope(
-                org_id=latest["org_id"],
-                participant_id=latest["participant_id"],
-                link_therapist_id=latest["payload"]["therapist_id"],
-            ),
+        return await _command(
+            request, "care_links.revoke", resource_key=entity_id, authorize_fn=authorize_, execute_fn=exec_,
+            rebuild_fn=_rebuild_entity, allow_empty=True,
         )
-        _enforce(party_decision)
-
-        if latest["payload"]["status"] == "revoked":
-            raise V3Error("CONFLICT_IMMUTABLE", "Care link is already revoked.")
-
-        v2 = build_entity(
-            entity_type="care_link",
-            entity_id=latest["entity_id"],
-            version=latest["version"] + 1,
-            prev_hash=latest["hash"],
-            org_id=latest["org_id"],
-            participant_id=latest["participant_id"],
-            author_role=principal.role,
-            author_id=principal.id,
-            data_origin=store.data_origin,
-            payload={
-                "therapist_id": latest["payload"]["therapist_id"],
-                "status": "revoked",
-                "valid_from": latest["payload"]["valid_from"],
-                "valid_to": latest["payload"]["valid_to"],
-            },
-        )
-        store.save_entities_atomic([(v2, versions)])
-        return JSONResponse(v2, status_code=200)
 
     # 7. events.batch (S0-04, D-S0-04-1, D-S0-04-2)
     @router.post("/events:batch")
@@ -396,22 +518,12 @@ def create_v3_router(
     # 9. assessments.create (S1a-01)
     @router.post("/participants/{participant_id}/assessments", status_code=201)
     async def assessments_create(participant_id: str, request: Request):
-        principal = auth.require_principal(request)
-        clinical.authorize_create("functional_assessment", participant_id, principal)
-        body = await _read_json_object(request)
-        payload = extract_entity_payload(body)
-        ent = clinical.create("functional_assessment", participant_id, payload, principal)
-        return JSONResponse(ent, status_code=201)
+        return await _clinical_create(request, "assessments.create", "functional_assessment", participant_id)
 
     # 10. assessments.revise (S1a-01, D-S1a-01-1)
     @router.post("/assessments/{entity_id}/versions", status_code=201)
     async def assessments_revise(entity_id: str, request: Request):
-        principal = auth.require_principal(request)
-        clinical.authorize_revise(entity_id, principal, expected_entity_type="functional_assessment")
-        body = await _read_json_object(request)
-        payload = extract_entity_payload(body)
-        ent = clinical.revise(entity_id, payload, principal, expected_entity_type="functional_assessment")
-        return JSONResponse(ent, status_code=201)
+        return await _clinical_revise(request, "assessments.revise", "functional_assessment", entity_id)
 
     # 11. assessments.list (S1a-01)
     @router.get("/participants/{participant_id}/assessments")
@@ -423,22 +535,12 @@ def create_v3_router(
     # 12. goals.create (S1a-02, D-S1a-02-1)
     @router.post("/participants/{participant_id}/goals", status_code=201)
     async def goals_create(participant_id: str, request: Request):
-        principal = auth.require_principal(request)
-        clinical.authorize_create("goal", participant_id, principal)
-        body = await _read_json_object(request)
-        payload = extract_entity_payload(body)
-        ent = clinical.create("goal", participant_id, payload, principal)
-        return JSONResponse(ent, status_code=201)
+        return await _clinical_create(request, "goals.create", "goal", participant_id)
 
     # 13. goals.revise (S1a-02, D-S1a-01-1/-2, D-S1a-02-1)
     @router.post("/goals/{entity_id}/versions", status_code=201)
     async def goals_revise(entity_id: str, request: Request):
-        principal = auth.require_principal(request)
-        clinical.authorize_revise(entity_id, principal, expected_entity_type="goal")
-        body = await _read_json_object(request)
-        payload = extract_entity_payload(body)
-        ent = clinical.revise(entity_id, payload, principal, expected_entity_type="goal")
-        return JSONResponse(ent, status_code=201)
+        return await _clinical_revise(request, "goals.revise", "goal", entity_id)
 
     # 14. goals.list (S1a-02, D-S1a-02-1)
     @router.get("/participants/{participant_id}/goals")
@@ -450,12 +552,7 @@ def create_v3_router(
     # 15. encounters.create (S1a-03, D-S1a-03-1)
     @router.post("/participants/{participant_id}/encounters", status_code=201)
     async def encounters_create(participant_id: str, request: Request):
-        principal = auth.require_principal(request)
-        clinical.authorize_create("encounter", participant_id, principal)
-        body = await _read_json_object(request)
-        payload = extract_entity_payload(body)
-        ent = clinical.create("encounter", participant_id, payload, principal)
-        return JSONResponse(ent, status_code=201)
+        return await _clinical_create(request, "encounters.create", "encounter", participant_id)
 
     # 16. encounters.list (S1a-03)
     @router.get("/participants/{participant_id}/encounters")
@@ -467,31 +564,27 @@ def create_v3_router(
     # 17. reassessments.create (S1a-03, D-S1a-03-1)
     @router.post("/participants/{participant_id}/reassessments", status_code=201)
     async def reassessments_create(participant_id: str, request: Request):
-        principal = auth.require_principal(request)
-        clinical.authorize_create("reassessment", participant_id, principal)
-        body = await _read_json_object(request)
-        payload = extract_entity_payload(body)
-        ent = clinical.create("reassessment", participant_id, payload, principal)
-        return JSONResponse(ent, status_code=201)
+        return await _clinical_create(request, "reassessments.create", "reassessment", participant_id)
 
     # 18. instrumental.create (S1a-03)
     @router.post("/participants/{participant_id}/instrumental-measurements", status_code=201)
     async def instrumental_create(participant_id: str, request: Request):
-        principal = auth.require_principal(request)
-        clinical.authorize_create("instrumental_measurement", participant_id, principal)
-        body = await _read_json_object(request)
-        payload = extract_entity_payload(body)
-        ent = clinical.create("instrumental_measurement", participant_id, payload, principal)
-        return JSONResponse(ent, status_code=201)
+        return await _clinical_create(request, "instrumental.create", "instrumental_measurement", participant_id)
 
     # 19. prescriptions.publish (S1a-04, D-S1a-04-1)
     @router.post("/prescriptions", status_code=201)
     async def prescriptions_publish(request: Request):
-        principal = auth.require_principal(request)
-        prescriptions.authorize_publish_role(principal)
-        body = await _read_json_object(request)
-        result = prescriptions.publish(body, principal)
-        return JSONResponse(result, status_code=201)
+        def exec_(pr, cmd, _ctx):
+            result = prescriptions.publish(cmd.body(), pr)
+            ev = store.get_event_by_id(result["event_id"])
+            return _Outcome(201, result, {"k": "b", "b": result, "p": ev["scope"]["participant_id"]})
+
+        return await _command(
+            request, "prescriptions.publish", resource_key=lambda c: _body_str(c, "participant_id"),
+            authorize_fn=lambda pr, cmd: prescriptions.authorize_publish_role(pr), execute_fn=exec_,
+            rebuild_fn=_rebuild_ids,
+            replay_authorize=lambda pr, ref: _authorize_participant_ref(pr, "prescription", "publish", ref["p"]),
+        )
 
     # 20. prescriptions.current (S1a-04)
     @router.get("/participants/{participant_id}/prescription/current")
@@ -539,20 +632,32 @@ def create_v3_router(
     # 25. reviews.record (S1b-03, D-S1b-03-1)
     @router.post("/reviews", status_code=201)
     async def reviews_record(request: Request):
-        principal = auth.require_principal(request)
-        reviews.authorize_review_role(principal)
-        body = await _read_json_object(request)
-        result = reviews.record_review(body, principal)
-        return JSONResponse(result, status_code=201)
+        def exec_(pr, cmd, _ctx):
+            result = reviews.record_review(cmd.body(), pr)
+            ev = result["review"]
+            return _Outcome(201, result, {"k": "rv", "e": result["event_id"], "p": ev["scope"]["participant_id"]})
+
+        return await _command(
+            request, "reviews.record", resource_key=lambda c: _body_str(c, "fact_id"),
+            authorize_fn=lambda pr, cmd: reviews.authorize_review_role(pr), execute_fn=exec_,
+            rebuild_fn=_rebuild_event_review,
+            replay_authorize=lambda pr, ref: _authorize_participant_ref(pr, "review", "record", ref["p"]),
+        )
 
     # 26. summaries.publish (S1b-03, D-S1b-03-1)
     @router.post("/summaries", status_code=201)
     async def summaries_publish(request: Request):
-        principal = auth.require_principal(request)
-        reviews.authorize_summary_publish_role(principal)
-        body = await _read_json_object(request)
-        result, status_code = reviews.publish_summary(body, principal)
-        return JSONResponse(result, status_code=status_code)
+        def exec_(pr, cmd, _ctx):
+            result, status_code = reviews.publish_summary(cmd.body(), pr)
+            ev = store.get_event_by_id(result["event_id"])
+            return _Outcome(status_code, result, {"k": "b", "b": result, "p": ev["scope"]["participant_id"]})
+
+        return await _command(
+            request, "summaries.publish", resource_key=lambda c: _body_str(c, "participant_id"),
+            authorize_fn=lambda pr, cmd: reviews.authorize_summary_publish_role(pr), execute_fn=exec_,
+            rebuild_fn=_rebuild_ids,
+            replay_authorize=lambda pr, ref: _authorize_participant_ref(pr, "summary", "publish", ref["p"]),
+        )
 
     # 27. summaries.get (S1b-03, D-S1b-03-1)
     @router.get("/summaries/{summary_id}")
@@ -578,11 +683,17 @@ def create_v3_router(
     # 29. evolution.publish (S1-01, D-S1-01-3, R6, R7, R10, R12, R14)
     @router.post("/evolution", status_code=201)
     async def evolution_publish(request: Request):
-        principal = auth.require_principal(request)
-        evolution.authorize_publish_role(principal)
-        body = await _read_json_object(request)
-        result, status_code = evolution.publish_evolution(body, principal)
-        return JSONResponse(result, status_code=status_code)
+        def exec_(pr, cmd, _ctx):
+            result, status_code = evolution.publish_evolution(cmd.body(), pr)
+            ev = store.get_event_by_id(result["event_id"])
+            return _Outcome(status_code, result, {"k": "b", "b": result, "p": ev["scope"]["participant_id"]})
+
+        return await _command(
+            request, "evolution.publish", resource_key=lambda c: _body_str(c, "participant_id"),
+            authorize_fn=lambda pr, cmd: evolution.authorize_publish_role(pr), execute_fn=exec_,
+            rebuild_fn=_rebuild_ids,
+            replay_authorize=lambda pr, ref: _authorize_participant_ref(pr, "evolution", "series read / publish", ref["p"]),
+        )
 
     # 30. evolution.get (S1-01, D-S1-01-5, R7, R8, R9, R13)
     @router.get("/evolution/{evolution_id}")

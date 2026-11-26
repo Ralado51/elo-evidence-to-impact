@@ -11,3 +11,12 @@
 - **Commit:** o commit HEAD desta entrega (SHA informado na mensagem de entrega; um commit não contém o próprio SHA)
 - **Limitações/risco residual:** PD-01, PD-05, PD-07, PD-08; picker no locale do navegador; dados históricos inválidos não migrados
 - **Sem alteração de contrato/API, schemas, regras clínicas ou escopo.**
+
+## ARQ-02 — CommandController + idempotência transacional
+- **Componentes:** CMP-07, CMP-08, CMP-25 (guardas/harness de ARQ-02)
+- **Defeitos relacionados:** D04, S1-03, FIX-02, FIX-18 — **status oficiais não alterados; sem marcação de homologado** (ver `ARCHITECTURE_IMPACT_ANALYSIS.md`)
+- **Decisões:** PD-02 ratificada (Q1–Q6) → AD-07..AD-11; adendo A1 (contracts 3.1.0) em `contracts/CL06_3-A1/`
+- **Arquivos novos:** `api/src/elo/v3/command_dedup.py`, `web/v3/command_controller.mjs`, `contracts/CL06_3-A1/**`, testes (`test_v3_arq02_idempotency.py`, `test_v3_arq02_contract_a1.py`, `command_controller.test.mjs`, `s1_arq02_commands.mjs`), `docs/arch/evidence/arq02_*`
+- **Arquivos modificados:** `api/src/elo/v3/{errors,router,store}.py`; `web/v3/{api_client,therapist_app,i18n_pt,i18n_en}.mjs`; `scripts/gateway.mjs`; docs `docs/arch/*`
+- **Testes:** ver `TEST_EVIDENCE.md` (antes/depois)
+- **Preservados:** `contracts/CL06_3-r1` byte a byte; testes existentes não alterados; PD-01, PD-05, PD-07, PD-08 pendentes; ARQ-03 e S2 não iniciados; sem push/deploy.

@@ -1,0 +1,401 @@
+{
+ "catalog_version": "3",
+ "codes": {
+  "TYPE": {
+   "http": 400,
+   "layer": "schema",
+   "meaning": "Wrong JSON type, or undefined."
+  },
+  "UNKNOWN_FIELD": {
+   "http": 400,
+   "layer": "schema",
+   "meaning": "Key not declared by the contract (objects are closed)."
+  },
+  "MISSING_FIELD": {
+   "http": 400,
+   "layer": "schema",
+   "meaning": "Required key absent."
+  },
+  "NULL_NOT_ALLOWED": {
+   "http": 400,
+   "layer": "schema",
+   "meaning": "null in a field that is not nullable."
+  },
+  "NON_FINITE": {
+   "http": 400,
+   "layer": "schema",
+   "meaning": "NaN or ±Infinity."
+  },
+  "OUT_OF_RANGE": {
+   "http": 400,
+   "layer": "schema",
+   "meaning": "Number outside the declared range."
+  },
+  "ENUM": {
+   "http": 400,
+   "layer": "schema",
+   "meaning": "Value outside the closed enumeration."
+  },
+  "PATTERN": {
+   "http": 400,
+   "layer": "schema",
+   "meaning": "String does not match the declared pattern."
+  },
+  "LENGTH": {
+   "http": 400,
+   "layer": "schema",
+   "meaning": "String or array length outside bounds."
+  },
+  "LITERAL": {
+   "http": 400,
+   "layer": "schema",
+   "meaning": "Value differs from the required constant."
+  },
+  "INVALID_CHARACTERS": {
+   "http": 400,
+   "layer": "schema",
+   "meaning": "Control characters or lone surrogates."
+  },
+  "DUPLICATE_ITEM": {
+   "http": 400,
+   "layer": "schema",
+   "meaning": "Repeated item in a set-like array."
+  },
+  "NOT_SORTED": {
+   "http": 400,
+   "layer": "schema",
+   "meaning": "Array required to be strictly ascending."
+  },
+  "NON_CANONICAL": {
+   "http": 400,
+   "layer": "schema",
+   "meaning": "Value cannot be canonicalized."
+  },
+  "UNKNOWN_TYPE": {
+   "http": 400,
+   "layer": "semantic",
+   "meaning": "Event type or fact type not in the closed registry/catalog."
+  },
+  "SCHEMA_VERSION_UNSUPPORTED": {
+   "http": 400,
+   "layer": "semantic",
+   "meaning": "schema_version is not 3 (version 2 is read-only legacy)."
+  },
+  "VERSION_MISMATCH": {
+   "http": 400,
+   "layer": "semantic",
+   "meaning": "Catalog, algorithm or verifier version incompatible."
+  },
+  "INVALID_INSTANT": {
+   "http": 400,
+   "layer": "semantic",
+   "meaning": "Timestamp matches the pattern but does not exist."
+  },
+  "ACTOR_NOT_ALLOWED": {
+   "http": 400,
+   "layer": "semantic",
+   "meaning": "Actor role not allowed for the event type."
+  },
+  "SOURCE_NOT_ALLOWED": {
+   "http": 400,
+   "layer": "semantic",
+   "meaning": "Source type not allowed for the event type."
+  },
+  "SCOPE_INVALID": {
+   "http": 400,
+   "layer": "semantic",
+   "meaning": "Scope keys missing/forbidden for the type, or inconsistent with stream/params."
+  },
+  "IDENTITY_MISMATCH": {
+   "http": 400,
+   "layer": "semantic",
+   "meaning": "Actor id differs from scope participant, or ids disagree across fields."
+  },
+  "STREAM_MISMATCH": {
+   "http": 400,
+   "layer": "semantic",
+   "meaning": "stream_id inconsistent with type or scope."
+  },
+  "RULE_VIOLATION": {
+   "http": 400,
+   "layer": "semantic",
+   "meaning": "Cross-field rule of a payload violated (see detail)."
+  },
+  "EVENT_ID_INVALID": {
+   "http": 400,
+   "layer": "integrity",
+   "meaning": "event_id ≠ sha256(canonical({stream_id, seq}))."
+  },
+  "HASH_INVALID": {
+   "http": 400,
+   "layer": "integrity",
+   "meaning": "hash ≠ sha256(canonical(envelope without hash))."
+  },
+  "HASH_CONFLICT": {
+   "http": 409,
+   "layer": "integrity",
+   "meaning": "Same event_id already stored with a different hash. Never overwritten."
+  },
+  "CHAIN_BROKEN": {
+   "http": 409,
+   "layer": "integrity",
+   "meaning": "prev_hash ≠ hash of the event at seq-1."
+  },
+  "GENESIS_INVALID": {
+   "http": 400,
+   "layer": "integrity",
+   "meaning": "prev_hash must be null iff seq = 1."
+  },
+  "BATCH_UNORDERED": {
+   "http": 400,
+   "layer": "stream",
+   "meaning": "Batch not sorted by (stream_id, seq) ascending."
+  },
+  "OUT_OF_ORDER": {
+   "http": 400,
+   "layer": "stream",
+   "meaning": "Monotonic time or seq regressed within a stream."
+  },
+  "SEQ_GAP": {
+   "http": 200,
+   "layer": "stream",
+   "meaning": "WARNING: preceding seq missing; event stored, stream marked incomplete."
+  },
+  "DUPLICATE": {
+   "http": 200,
+   "layer": "stream",
+   "meaning": "INFO: identical event already stored; no-op (idempotent)."
+  },
+  "CLOCK_REGRESSION": {
+   "http": 200,
+   "layer": "stream",
+   "meaning": "WARNING: occurred_at decreased within a stream (civil clock); order is defined by seq."
+  },
+  "INVALID_TRANSITION": {
+   "http": 409,
+   "layer": "stream",
+   "meaning": "Event not allowed in the current session phase."
+  },
+  "SOURCE_INCONSISTENT": {
+   "http": 409,
+   "layer": "stream",
+   "meaning": "Session events disagree on source/mode/scope with session.started."
+  },
+  "CALIBRATION_MISMATCH": {
+   "http": 409,
+   "layer": "stream",
+   "meaning": "Cycle/observation cites a calibration that is not the effective one."
+  },
+  "OVER_TARGET": {
+   "http": 409,
+   "layer": "stream",
+   "meaning": "cycle.accepted beyond the frozen target."
+  },
+  "COMPLETION_INCONSISTENT": {
+   "http": 409,
+   "layer": "stream",
+   "meaning": "session.completed without reaching target, or target reached without completion."
+  },
+  "PRESCRIPTION_NOT_FOUND": {
+   "http": 409,
+   "layer": "stream",
+   "meaning": "Referenced prescription revision not published."
+  },
+  "CONFLICT_IMMUTABLE": {
+   "http": 409,
+   "layer": "stream",
+   "meaning": "Published revision/summary cannot change."
+  },
+  "UNAUTHENTICATED": {
+   "http": 401,
+   "layer": "auth",
+   "meaning": "Missing or invalid bearer token."
+  },
+  "INVITE_INVALID": {
+   "http": 401,
+   "layer": "auth",
+   "meaning": "Invite unknown, used, expired or revoked."
+  },
+  "FORBIDDEN": {
+   "http": 403,
+   "layer": "auth",
+   "meaning": "Role not allowed for the endpoint."
+  },
+  "SCOPE_VIOLATION": {
+   "http": 403,
+   "layer": "auth",
+   "meaning": "Principal not entitled to this participant/scope, or actor ≠ principal."
+  },
+  "CONSENT_REQUIRED": {
+   "http": 403,
+   "layer": "auth",
+   "meaning": "No active consent for camera/session events."
+  },
+  "REF_MISSING": {
+   "http": 200,
+   "layer": "verifier",
+   "meaning": "Evidence reference does not exist in the ledger."
+  },
+  "REF_OUT_OF_SCOPE": {
+   "http": 200,
+   "layer": "verifier",
+   "meaning": "Evidence exists but belongs to another participant/session/prescription/exercise."
+  },
+  "REF_WRONG_TYPE": {
+   "http": 200,
+   "layer": "verifier",
+   "meaning": "Evidence event type not admissible for the fact type."
+  },
+  "PRECONDITION_FAILED": {
+   "http": 200,
+   "layer": "verifier",
+   "meaning": "Fact preconditions not met (e.g., session not terminal)."
+  },
+  "EVIDENCE_SET_MISMATCH": {
+   "http": 200,
+   "layer": "verifier",
+   "meaning": "evidence_refs differ from the exact required set (missing or extra)."
+  },
+  "RECOMPUTE_MISMATCH": {
+   "http": 200,
+   "layer": "verifier",
+   "meaning": "Recomputed params differ from proposed params."
+  },
+  "CONTENT_HASH_STALE": {
+   "http": 409,
+   "layer": "review",
+   "meaning": "Review/summary cites a content_hash that is not the fact's current one."
+  },
+  "FACT_NOT_APPROVED": {
+   "http": 422,
+   "layer": "review",
+   "meaning": "Summary includes a fact whose effective decision is not approve."
+  },
+  "FACT_NOT_SUMMARY_ELIGIBLE": {
+   "http": 422,
+   "layer": "review",
+   "meaning": "Fact type cannot appear in summaries (F09)."
+  },
+  "NOT_FOUND": {
+   "http": 404,
+   "layer": "api",
+   "meaning": "Resource not found or not visible to the principal."
+  },
+  "BATCH_TOO_LARGE": {
+   "http": 413,
+   "layer": "api",
+   "meaning": "More than 500 events, or body > 2 MiB."
+  },
+  "INTERNAL": {
+   "http": 500,
+   "layer": "api",
+   "meaning": "Unexpected server error (no details leaked)."
+  },
+  "HANDEDNESS_INCOMPATIBLE_ACCEPTED": {
+   "http": 409,
+   "layer": "stream",
+   "meaning": "cycle.accepted with handedness label different from the prescribed side; must be cycle.rejected(handedness_incompatible) (PD-04)."
+  },
+  "LIMITS_EXCEEDED": {
+   "http": 400,
+   "layer": "semantic",
+   "meaning": "Prescription exceeds the versioned technical limits (sets, repetitions or product) of limits_version."
+  },
+  "EXECUTION_MODE_MISMATCH": {
+   "http": 400,
+   "layer": "semantic",
+   "meaning": "execution_mode inconsistent with source.type or with session.started source_mode (PD-03)."
+  },
+  "ORIGIN_REF_REQUIRED": {
+   "http": 400,
+   "layer": "semantic",
+   "meaning": "data_origin experimental_capture or imported_v1 requires origin_ref (evidence pointer)."
+  },
+  "REAL_DATA_GATE_CLOSED": {
+   "http": 403,
+   "layer": "auth",
+   "meaning": "data_origin live rejected: the real-data gate (security, privacy, retention, legal basis) is not open (PD-05)."
+  },
+  "ROLE_NOT_ALLOWED": {
+   "http": 403,
+   "layer": "auth",
+   "meaning": "Only roles participant and therapist exist (PD-08); any other role is rejected."
+  },
+  "ENTITY_VERSION_CONFLICT": {
+   "http": 409,
+   "layer": "stream",
+   "meaning": "Entity version is not previous+1, or an existing version would be overwritten."
+  },
+  "ENTITY_CHAIN_BROKEN": {
+   "http": 409,
+   "layer": "integrity",
+   "meaning": "Entity prev_hash differs from the hash of the previous version."
+  },
+  "ENTITY_HASH_INVALID": {
+   "http": 400,
+   "layer": "integrity",
+   "meaning": "Entity hash differs from sha256(canonical(entity without hash))."
+  },
+  "GOAL_CONFIRMATION_REQUIRED": {
+   "http": 400,
+   "layer": "semantic",
+   "meaning": "achieved_confirmed requires confirmed_by (therapist) and confirmed_at (RN014)."
+  },
+  "MICROPHONE_CONSENT_REQUIRED": {
+   "http": 403,
+   "layer": "auth",
+   "meaning": "voice_to_text draft without active microphone consent (RN012)."
+  },
+  "DRAFT_NOT_CONFIRMED": {
+   "http": 409,
+   "layer": "review",
+   "meaning": "A draft cannot become a record or fact without professional/participant confirmation."
+  },
+  "COMPARABILITY_VIOLATION": {
+   "http": 400,
+   "layer": "semantic",
+   "meaning": "Evolution series mixes observations whose technical criteria differ (cmp rules)."
+  },
+  "UNREVIEWED_FACT_IN_EVOLUTION": {
+   "http": 409,
+   "layer": "review",
+   "meaning": "Evolution cites a fact not effectively approved for its current content_hash."
+  },
+  "LEGACY_STREAM_READ_ONLY": {
+   "http": 409,
+   "layer": "stream",
+   "meaning": "schema_version 2 stream: no v3 event may be appended."
+  },
+  "IDEMPOTENCY_KEY_INVALID": {
+   "http": 400,
+   "layer": "idempotency",
+   "meaning": "Idempotency-Key is not a single lowercase UUID v4."
+  },
+  "IDEMPOTENCY_KEY_REUSED": {
+   "http": 409,
+   "layer": "idempotency",
+   "meaning": "Same key reused with a different canonical request."
+  }
+ },
+ "added_in_v3": [
+  "HANDEDNESS_INCOMPATIBLE_ACCEPTED",
+  "LIMITS_EXCEEDED",
+  "EXECUTION_MODE_MISMATCH",
+  "ORIGIN_REF_REQUIRED",
+  "REAL_DATA_GATE_CLOSED",
+  "ROLE_NOT_ALLOWED",
+  "ENTITY_VERSION_CONFLICT",
+  "ENTITY_CHAIN_BROKEN",
+  "ENTITY_HASH_INVALID",
+  "GOAL_CONFIRMATION_REQUIRED",
+  "MICROPHONE_CONSENT_REQUIRED",
+  "DRAFT_NOT_CONFIRMED",
+  "COMPARABILITY_VIOLATION",
+  "UNREVIEWED_FACT_IN_EVOLUTION",
+  "LEGACY_STREAM_READ_ONLY"
+ ],
+ "added_in_3_1": [
+  "IDEMPOTENCY_KEY_INVALID",
+  "IDEMPOTENCY_KEY_REUSED"
+ ]
+}

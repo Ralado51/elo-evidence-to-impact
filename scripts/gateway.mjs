@@ -23,7 +23,10 @@ http.createServer(async (req, res) => {
       const chunks = []; for await (const c of req) chunks.push(c);
       const headers = {}; for (const [k, v] of Object.entries(req.headers)) if (!["host", "content-length"].includes(k) && typeof v === "string") headers[k] = v;
       const r = await fetch(`http://127.0.0.1:${apiPort}${u.pathname}${u.search}`, { method: req.method, headers, body: ["GET", "HEAD"].includes(req.method) ? undefined : Buffer.concat(chunks) });
-      res.writeHead(r.status, { "content-type": r.headers.get("content-type") || "application/json" });
+      // Idempotency headers (contracts 3.1.0) must survive the proxy in the response direction.
+      const out = { "content-type": r.headers.get("content-type") || "application/json" };
+      for (const h of ["idempotency-replayed", "idempotency-retention-days"]) if (r.headers.get(h) !== null) out[h] = r.headers.get(h);
+      res.writeHead(r.status, out);
       res.end(Buffer.from(await r.arrayBuffer()));
     } catch (e) { res.writeHead(502); res.end("API indisponível: " + e.message); }
     return;

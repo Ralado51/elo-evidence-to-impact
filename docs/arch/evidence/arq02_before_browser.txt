@@ -1,0 +1,10 @@
+FAIL CC-1 duplo clique em 'Salvar meta': 1 envio, 1 registro (D04/S1-03) :: envios=2 / 
+FAIL CC-2 Enter + clique simultâneos: 1 envio, 1 registro :: envios=2 / 
+FAIL CC-3 chave Idempotency-Key enviada e nova a cada intenção :: ,
+FAIL CC-4 resposta perdida após commit: mesma chave no reenvio, replay, sem duplicata, sem sucesso+erro juntos :: sem duplicata / 
+PASS CC-5 falha antes do commit (erro 5xx simulado sem chegar à API): reenvio com mesma chave cria 1 registro
+FAIL CC-6 após a janela segura: sem reenvio automático, estado 'resultado desconhecido', nova tentativa só por ação explícita :: nenhum reenvio após a janela / 
+PASS CC-7 erro definitivo do servidor: só erro visível; depois sucesso: só sucesso (FIX-18)
+PASS CC-8 geração de convite: duplo clique gera 1 convite; segredo não vai ao registro de idempotência
+FAIL CC-9 cabeçalhos pelo gateway: Idempotency-Retention-Days em /health e Replayed em chamada direta :: {"content-type":"application/json","date":"Thu, 26 Nov 2026 19:03:44 GMT","connection":"keep-alive","keep-alive":"timeout=5","transfer-encoding":"chunked"}
+{"total":9,"passed":3,"failed":["CC-1 duplo clique em 'Salvar meta': 1 envio, 1 registro (D04/S1-03)","CC-2 Enter + clique simultâneos: 1 envio, 1 registro","CC-3 chave Idempotency-Key enviada e nova a cada intenção","CC-4 resposta perdida após commit: mesma chave no reenvio, replay, sem duplicata, sem sucesso+erro juntos","CC-6 após a janela segura: sem reenvio automático, estado 'resultado desconhecido', nova tentativa só por ação explícita","CC-9 cabeçalhos pelo gateway: Idempotency-Retention-Days em /health e Replayed em chamada direta"]}

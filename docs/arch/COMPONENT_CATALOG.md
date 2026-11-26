@@ -20,3 +20,23 @@ Catálogo vivo dos componentes **implementados**. Os 25 componentes propostos es
 
 ## CMP-03 (parcial) — FieldError
 `setFieldError` em `date_field.mjs`: `<p id="{id}-error" class="field-error">`, `aria-invalid`, `aria-describedby`, mensagem `Msg` retraduzível, foco + anúncio assertivo no primeiro erro. **Ainda local às datas**; generalização em ARQ-04.
+
+## CMP-08 — Idempotência transacional (ARQ-02, servidor)
+
+**Responsabilidade:** garantir que a mesma intenção (chave UUID v4) produza um único efeito e que repetições devolvam o resultado original, sem guardar corpos clínicos.
+| Arquivo | Interface pública |
+|---|---|
+| `api/src/elo/v3/command_dedup.py` | `CommandDedupStore.{scope,lookup,record,sweep}`, `parse_idempotency_header`, `fingerprint`, `resolve_retention_days`, `key_ref` |
+| `api/src/elo/v3/store.py` | tabela `v3_command_dedup`, `V3Store.command_scope()`, `_CommandConnection` |
+| `api/src/elo/v3/router.py` | pipeline `_command` (auth → cabeçalho → autorização → corpo → lookup → execução → reautorização/registro → commit único) |
+**Regras:** escopo `(org, principal, operação, recurso, chave)`; só 2xx; referências imutáveis (entidade id+versão, evento, ids); replay reautoriza; chave expirada = intenção nova; retenção 7 dias (1–90), `expires_at` fixo na criação; logs só com `key_ref`.
+**Não faz:** `invites.create`, `auth.*`, `facts.verify`, `events.batch` (idempotência natural do ledger).
+**Testes:** `api/tests/test_v3_arq02_idempotency.py` (45), `api/tests/test_v3_arq02_contract_a1.py` (5).
+
+## CMP-07 — CommandController (ARQ-02, cliente)
+
+**Responsabilidade:** ciclo de vida de um comando de formulário: single-flight, anti-rajada (conteúdo idêntico), chave por intenção, reuso em falha ambígua, janela segura, estado "desconhecido".
+**Interface:** `createCommandController({now,uuid,retentionDays,marginMs,burstMs})` → `run(formId, send, {signature})`, `singleFlightOnly`, `startNewIntention`, `stateOf`, `setRetentionDays`, `windowMs`.
+**Integração:** `therapist_app.mjs` (`cmd()` em 7 formulários + convite), `api_client.mjs` (`idempotencyKey`, `health()`), mensagens `th.js.cmd_*` (pt/en).
+**Não faz:** persistir payloads ou chaves; reenviar após a janela; reconciliação automática (ARQ-05).
+**Testes:** `web/tests/command_controller.test.mjs` (12), `web/tests/browser/s1_arq02_commands.mjs` (CC-1..9).

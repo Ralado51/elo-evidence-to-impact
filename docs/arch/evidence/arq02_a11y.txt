@@ -1,0 +1,907 @@
+{
+  "harness": "elo-v3-browser-a11y",
+  "headless": true,
+  "passed": true,
+  "failed_checks": [],
+  "server_isolation": {
+    "passed": true,
+    "host": "127.0.0.1",
+    "probes": [
+      {
+        "path": "/../README.md",
+        "status": 403,
+        "blocked": true
+      },
+      {
+        "path": "/%2e%2e/README.md",
+        "status": 403,
+        "blocked": true
+      },
+      {
+        "path": "/v3/../../README.md",
+        "status": 403,
+        "blocked": true
+      },
+      {
+        "path": "/etc/passwd",
+        "status": 404,
+        "blocked": true
+      }
+    ],
+    "failures": []
+  },
+  "pages": [
+    {
+      "id": "v3-index",
+      "path": "/v3/index.html",
+      "passed": true,
+      "failed_checks": [],
+      "checks": {
+        "accessibility_tree": {
+          "passed": true,
+          "counts": {
+            "main": 1,
+            "banner": 1,
+            "navigation": 1,
+            "h1": 1,
+            "live_regions": 1,
+            "interactive_named": 14,
+            "interactive_total": 14
+          },
+          "failures": []
+        },
+        "keyboard": {
+          "passed": true,
+          "skip_link": {
+            "tag": "a",
+            "href": "#main",
+            "outline_style": "solid",
+            "outline_width_px": 3
+          },
+          "tab_cycle": {
+            "expected_tab_stops": 13,
+            "visited_tab_stops": 13,
+            "total_interactive_elements": 14,
+            "wrapped_to_start": true,
+            "radio_groups_checked": 1
+          },
+          "failures": []
+        },
+        "target_size": {
+          "passed": true,
+          "checked_count": 14,
+          "excepted_count": 0,
+          "min_width_px": 48,
+          "min_height_px": 48,
+          "failures": []
+        },
+        "contrast": {
+          "passed": true,
+          "checked_text_nodes": 39,
+          "min_ratio": 7.46,
+          "failures": []
+        },
+        "reflow_and_zoom": {
+          "passed": true,
+          "viewports": [
+            {
+              "viewport": "320x640@1x",
+              "scroll_width": 320,
+              "client_width": 320,
+              "horizontal_overflow": false,
+              "clipped_count": 0
+            },
+            {
+              "viewport": "640x800@2x",
+              "scroll_width": 640,
+              "client_width": 640,
+              "horizontal_overflow": false,
+              "clipped_count": 0
+            }
+          ],
+          "failures": []
+        },
+        "reduced_motion": {
+          "passed": true,
+          "checked_elements": 89,
+          "max_duration_ms": 0.01,
+          "failures": []
+        },
+        "live_region": {
+          "passed": true,
+          "live_region_id": "elo-live-region",
+          "announcements_tested": 3,
+          "outside_mutations": 0,
+          "failures": []
+        },
+        "network_isolation": {
+          "passed": true,
+          "outbound_blocked_count": 0,
+          "requests": [
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/a11y.mjs",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/base.css",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/index.html",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/tokens.css",
+              "allowed": true
+            }
+          ],
+          "failures": []
+        }
+      }
+    },
+    {
+      "id": "v3-therapist",
+      "path": "/v3/therapist.html",
+      "passed": true,
+      "failed_checks": [],
+      "checks": {
+        "accessibility_tree": {
+          "passed": true,
+          "counts": {
+            "main": 1,
+            "banner": 1,
+            "navigation": 1,
+            "h1": 1,
+            "live_regions": 1,
+            "interactive_named": 54,
+            "interactive_total": 54
+          },
+          "failures": []
+        },
+        "keyboard": {
+          "passed": true,
+          "skip_link": {
+            "tag": "a",
+            "href": "#main",
+            "outline_style": "solid",
+            "outline_width_px": 3
+          },
+          "tab_cycle": {
+            "expected_tab_stops": 58,
+            "visited_tab_stops": 58,
+            "total_interactive_elements": 58,
+            "wrapped_to_start": true,
+            "radio_groups_checked": 0
+          },
+          "failures": []
+        },
+        "target_size": {
+          "passed": true,
+          "checked_count": 61,
+          "excepted_count": 0,
+          "min_width_px": 82.44,
+          "min_height_px": 48,
+          "failures": []
+        },
+        "contrast": {
+          "passed": true,
+          "checked_text_nodes": 109,
+          "min_ratio": 8.03,
+          "failures": []
+        },
+        "reflow_and_zoom": {
+          "passed": true,
+          "viewports": [
+            {
+              "viewport": "320x640@1x",
+              "scroll_width": 320,
+              "client_width": 320,
+              "horizontal_overflow": false,
+              "clipped_count": 0
+            },
+            {
+              "viewport": "640x800@2x",
+              "scroll_width": 640,
+              "client_width": 640,
+              "horizontal_overflow": false,
+              "clipped_count": 0
+            }
+          ],
+          "failures": []
+        },
+        "reduced_motion": {
+          "passed": true,
+          "checked_elements": 284,
+          "max_duration_ms": 0.001,
+          "failures": []
+        },
+        "live_region": {
+          "passed": true,
+          "live_region_id": "elo-live-region",
+          "announcements_tested": 3,
+          "outside_mutations": 0,
+          "failures": []
+        },
+        "network_isolation": {
+          "passed": true,
+          "outbound_blocked_count": 0,
+          "requests": [
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/a11y.mjs",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/api_client.mjs",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/base.css",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/build-info.json",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/canonical.mjs",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/civil_date.mjs",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/command_controller.mjs",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/date_field.mjs",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/i18n_en.mjs",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/i18n_pt.mjs",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/i18n.mjs",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/therapist_app.mjs",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/therapist_model.mjs",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/therapist.css",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/therapist.html",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/tokens.css",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/ui_messages.mjs",
+              "allowed": true
+            }
+          ],
+          "failures": []
+        }
+      }
+    },
+    {
+      "id": "v3-participant",
+      "path": "/v3/participant.html",
+      "passed": true,
+      "failed_checks": [],
+      "checks": {
+        "accessibility_tree": {
+          "passed": true,
+          "counts": {
+            "main": 1,
+            "banner": 1,
+            "navigation": 1,
+            "h1": 1,
+            "live_regions": 1,
+            "interactive_named": 28,
+            "interactive_total": 28
+          },
+          "failures": []
+        },
+        "keyboard": {
+          "passed": true,
+          "skip_link": {
+            "tag": "a",
+            "href": "#main",
+            "outline_style": "solid",
+            "outline_width_px": 3
+          },
+          "tab_cycle": {
+            "expected_tab_stops": 25,
+            "visited_tab_stops": 25,
+            "total_interactive_elements": 25,
+            "wrapped_to_start": true,
+            "radio_groups_checked": 0
+          },
+          "failures": []
+        },
+        "target_size": {
+          "passed": true,
+          "checked_count": 29,
+          "excepted_count": 0,
+          "min_width_px": 92.45,
+          "min_height_px": 48,
+          "failures": []
+        },
+        "contrast": {
+          "passed": true,
+          "checked_text_nodes": 63,
+          "min_ratio": 8.03,
+          "failures": []
+        },
+        "reflow_and_zoom": {
+          "passed": true,
+          "viewports": [
+            {
+              "viewport": "320x640@1x",
+              "scroll_width": 320,
+              "client_width": 320,
+              "horizontal_overflow": false,
+              "clipped_count": 0
+            },
+            {
+              "viewport": "640x800@2x",
+              "scroll_width": 640,
+              "client_width": 640,
+              "horizontal_overflow": false,
+              "clipped_count": 0
+            }
+          ],
+          "failures": []
+        },
+        "reduced_motion": {
+          "passed": true,
+          "checked_elements": 133,
+          "max_duration_ms": 0.001,
+          "failures": []
+        },
+        "live_region": {
+          "passed": true,
+          "live_region_id": "elo-live-region",
+          "announcements_tested": 3,
+          "outside_mutations": 0,
+          "failures": []
+        },
+        "network_isolation": {
+          "passed": true,
+          "outbound_blocked_count": 0,
+          "requests": [
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/a11y.mjs",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/base.css",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/build-info.json",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/canonical.mjs",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/civil_date.mjs",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/i18n_en.mjs",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/i18n_pt.mjs",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/i18n.mjs",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/participant_api.mjs",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/participant_app.mjs",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/participant_model.mjs",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/participant_stage.mjs",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/participant.css",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/participant.html",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/therapist_model.mjs",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/tokens.css",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/ui_messages.mjs",
+              "allowed": true
+            }
+          ],
+          "failures": []
+        }
+      }
+    },
+    {
+      "id": "v3-painel",
+      "path": "/v3/painel.html",
+      "passed": true,
+      "failed_checks": [],
+      "checks": {
+        "accessibility_tree": {
+          "passed": true,
+          "counts": {
+            "main": 1,
+            "banner": 1,
+            "navigation": 1,
+            "h1": 1,
+            "live_regions": 1,
+            "interactive_named": 7,
+            "interactive_total": 7
+          },
+          "failures": []
+        },
+        "keyboard": {
+          "passed": true,
+          "skip_link": {
+            "tag": "a",
+            "href": "#main",
+            "outline_style": "solid",
+            "outline_width_px": 3
+          },
+          "tab_cycle": {
+            "expected_tab_stops": 8,
+            "visited_tab_stops": 8,
+            "total_interactive_elements": 8,
+            "wrapped_to_start": true,
+            "radio_groups_checked": 0
+          },
+          "failures": []
+        },
+        "target_size": {
+          "passed": true,
+          "checked_count": 8,
+          "excepted_count": 0,
+          "min_width_px": 70.88,
+          "min_height_px": 48,
+          "failures": []
+        },
+        "contrast": {
+          "passed": true,
+          "checked_text_nodes": 17,
+          "min_ratio": 8.03,
+          "failures": []
+        },
+        "reflow_and_zoom": {
+          "passed": true,
+          "viewports": [
+            {
+              "viewport": "320x640@1x",
+              "scroll_width": 320,
+              "client_width": 320,
+              "horizontal_overflow": false,
+              "clipped_count": 0
+            },
+            {
+              "viewport": "640x800@2x",
+              "scroll_width": 640,
+              "client_width": 640,
+              "horizontal_overflow": false,
+              "clipped_count": 0
+            }
+          ],
+          "failures": []
+        },
+        "reduced_motion": {
+          "passed": true,
+          "checked_elements": 99,
+          "max_duration_ms": 0.01,
+          "failures": []
+        },
+        "live_region": {
+          "passed": true,
+          "live_region_id": "elo-live-region",
+          "announcements_tested": 3,
+          "outside_mutations": 0,
+          "failures": []
+        },
+        "network_isolation": {
+          "passed": true,
+          "outbound_blocked_count": 0,
+          "requests": [
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/a11y.mjs",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/api_client.mjs",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/base.css",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/build-info.json",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/civil_date.mjs",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/i18n_en.mjs",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/i18n_pt.mjs",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/i18n.mjs",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/painel_app.mjs",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/painel_model.mjs",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/painel.css",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/painel.html",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/therapist_model.mjs",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/tokens.css",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/ui_messages.mjs",
+              "allowed": true
+            }
+          ],
+          "failures": []
+        }
+      }
+    },
+    {
+      "id": "s2-contador",
+      "path": "/s2/contador.html",
+      "passed": true,
+      "failed_checks": [],
+      "checks": {
+        "accessibility_tree": {
+          "passed": true,
+          "counts": {
+            "main": 1,
+            "banner": 1,
+            "navigation": 1,
+            "h1": 1,
+            "live_regions": 1,
+            "interactive_named": 11,
+            "interactive_total": 11
+          },
+          "failures": []
+        },
+        "keyboard": {
+          "passed": true,
+          "skip_link": {
+            "tag": "a",
+            "href": "#main",
+            "outline_style": "solid",
+            "outline_width_px": 3
+          },
+          "tab_cycle": {
+            "expected_tab_stops": 9,
+            "visited_tab_stops": 9,
+            "total_interactive_elements": 9,
+            "wrapped_to_start": true,
+            "radio_groups_checked": 0
+          },
+          "failures": []
+        },
+        "target_size": {
+          "passed": true,
+          "checked_count": 12,
+          "excepted_count": 0,
+          "min_width_px": 77.11,
+          "min_height_px": 48,
+          "failures": []
+        },
+        "contrast": {
+          "passed": true,
+          "checked_text_nodes": 32,
+          "min_ratio": 8.03,
+          "failures": []
+        },
+        "reflow_and_zoom": {
+          "passed": true,
+          "viewports": [
+            {
+              "viewport": "320x640@1x",
+              "scroll_width": 320,
+              "client_width": 320,
+              "horizontal_overflow": false,
+              "clipped_count": 0
+            },
+            {
+              "viewport": "640x800@2x",
+              "scroll_width": 640,
+              "client_width": 640,
+              "horizontal_overflow": false,
+              "clipped_count": 0
+            }
+          ],
+          "failures": []
+        },
+        "reduced_motion": {
+          "passed": true,
+          "checked_elements": 72,
+          "max_duration_ms": 0.001,
+          "failures": []
+        },
+        "live_region": {
+          "passed": true,
+          "live_region_id": "elo-live-region",
+          "announcements_tested": 3,
+          "outside_mutations": 0,
+          "failures": []
+        },
+        "network_isolation": {
+          "passed": true,
+          "outbound_blocked_count": 0,
+          "requests": [
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/s2/contador_app.mjs",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/s2/contador_model.mjs",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/s2/contador.css",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/s2/contador.html",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/s2/counter.js",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/a11y.mjs",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/base.css",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/build-info.json",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/civil_date.mjs",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/i18n_en.mjs",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/i18n_pt.mjs",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/i18n.mjs",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/participant.css",
+              "allowed": true
+            },
+            {
+              "method": "GET",
+              "origin_class": "loopback",
+              "path": "/v3/tokens.css",
+              "allowed": true
+            }
+          ],
+          "failures": []
+        }
+      }
+    }
+  ],
+  "timings_ms": {
+    "total_ms": 7016.68,
+    "pages": {
+      "v3-index": 1091.92,
+      "v3-therapist": 1859.25,
+      "v3-participant": 1325.09,
+      "v3-painel": 1148.48,
+      "s2-contador": 1177.15
+    }
+  }
+}

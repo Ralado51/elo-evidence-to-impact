@@ -8,6 +8,7 @@
 
 import { announce } from "./a11y.mjs";
 import { createV3Client, V3ApiError } from "./api_client.mjs";
+import { createCommandController } from "./command_controller.mjs";
 import { hashCanonical } from "./canonical.mjs";
 import { renderErrorTechnical } from "./ui_messages.mjs";
 import { validateDateFields } from "./date_field.mjs";
@@ -133,6 +134,16 @@ export function initTherapistApp() {
     getToken: () => state.session?.token || null,
   });
 
+  // CMP-07: one Idempotency-Key per business intention, single-flight, bounded retry window (ARQ-02).
+  const commands = createCommandController();
+  async function syncRetention() {
+    try {
+      const res = await client.health();
+      commands.setRetentionDays(res.headers.get("idempotency-retention-days"));
+    } catch {
+      /* keep the contract minimum (1 day) */
+    }
+  }
   const errorBanner = el("error-banner");
   const errorBannerText = el("error-banner-text");
   const successBanner = el("success-banner");
@@ -188,6 +199,41 @@ export function initTherapistApp() {
     }
   }
 
+  // Runs one keyed command. Success and error are mutually exclusive; ambiguous results keep the same key.
+  async function cmd(formId, send, onOk, signature) {
+    errorBanner.querySelector("#btn-cmd-new-intention")?.remove();
+    const out = await commands.run(formId, send, { signature });
+    if (out.status === "ignored") return;
+    if (out.status === "ok") {
+      try {
+        await onOk(out.result);
+      } catch (err) {
+        handleApiError(err);
+      }
+      return;
+    }
+    if (out.status === "ambiguous") {
+      showError("RESULT_UNCONFIRMED", tm("th.js.cmd_retry"));
+      return;
+    }
+    if (out.status === "unknown") {
+      showError("RESULT_UNKNOWN", tm("th.js.cmd_unknown"));
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.id = "btn-cmd-new-intention";
+      btn.className = "btn btn-secondary target";
+      bindText(btn, tm("th.js.cmd_new_intention"));
+      btn.addEventListener("click", () => {
+        commands.startNewIntention(formId);
+        btn.remove();
+        clearError();
+        announce(tm("th.js.cmd_new_intention_done"));
+      });
+      errorBanner.appendChild(btn);
+      return;
+    }
+    handleApiError(out.error);
+  }
   function handleApiError(err) {
     const apiErr =
       err instanceof V3ApiError
@@ -536,14 +582,14 @@ export function initTherapistApp() {
     if (!requireParticipant()) return;
     const rawNote = (entry.draftNote || "").trim();
     const note = rawNote.length > 0 ? rawNote : null;
-    try {
-      const res = await client.recordReview({
-        participant_id: state.participantId,
-        fact_id: entry.fact.fact_id,
-        content_hash: entry.contentHash,
-        decision,
-        note,
-      });
+    const reviewBody = {
+      participant_id: state.participantId,
+      fact_id: entry.fact.fact_id,
+      content_hash: entry.contentHash,
+      decision,
+      note,
+    };
+    await cmd(`review:${entry.fact.fact_id}:${decision}`, (key) => client.recordReview(reviewBody, { idempotencyKey: key }), async (res) => {
       if (decision === "approve" || decision === "reject") {
         entry.effectiveReview = {
           decision,
@@ -560,9 +606,7 @@ export function initTherapistApp() {
       renderFactsList();
       updatePublishGates();
       showSuccess(tm("th.js.review_saved", { decision: lref("decision", decision), name: lref("fact", entry.fact.type) }));
-    } catch (err) {
-      handleApiError(err);
-    }
+    }, reviewBody);
   }
 
   function renderEvolutionSeries() {
@@ -834,6 +878,7 @@ export function initTherapistApp() {
           t("th.js.session_bar", { id: res.data.principal.id, role: label("role", res.data.principal.role), org: res.data.principal.org_id })
         );
       });
+      syncRetention();
       showSuccess(tm("th.js.signed_in", { id: res.data.principal.id }));
       restoreContext();
     } catch (err) {
@@ -851,8 +896,7 @@ export function initTherapistApp() {
       showError("MISSING_FIELD", tm("th.js.need_alias"));
       return;
     }
-    try {
-      const res = await client.createParticipant(alias, side);
+    await cmd("participant", (key) => client.createParticipant(alias, side, { idempotencyKey: key }), async (res) => {
       const ent = res.data;
       const careLinkId = res.headers.get("x-elo-care-link-id") || "";
       setActiveParticipant(ent.entity_id, ent.payload.alias, careLinkId, ent.payload.side);
@@ -880,9 +924,7 @@ export function initTherapistApp() {
 
       showSuccess(tm("th.js.registered", { alias: ent.payload.alias }));
       refreshParticipantList("");
-    } catch (err) {
-      handleApiError(err);
-    }
+    }, [alias, side]);
   });
 
   // Step 2b (support/advanced): select by identifier. The identifier must belong to the authorized list
@@ -939,7 +981,10 @@ export function initTherapistApp() {
     el("btn-create-invite").disabled = true;
     try {
       const ttl = Number(el("invite-ttl").value) || 3600;
-      const res = await client.createInvite(state.participantId, ttl);
+      const inv = await commands.singleFlightOnly("invite", () => client.createInvite(state.participantId, ttl));
+      if (inv.status === "ignored") return;
+      if (inv.status === "error") throw inv.error;
+      const res = inv.result;
       const link = new URL("participant.html", window.location.href);
       link.hash = `invite=${encodeURIComponent(res.data.invite_token)}`;
       renderBox("invite-result", (box) => {
@@ -1007,8 +1052,7 @@ export function initTherapistApp() {
       ],
       therapist_note: noteText.length > 0 ? noteText : null,
     };
-    try {
-      const res = await client.createAssessment(state.participantId, payload);
+    await cmd("assessment", (key) => client.createAssessment(state.participantId, payload, { idempotencyKey: key }), async (res) => {
       const ent = res.data;
       renderBox("assessment-result", (box) => {
         const originLabel = formatOriginLabel(ent.data_origin);
@@ -1030,9 +1074,7 @@ export function initTherapistApp() {
         );
       });
       showSuccess(tm("th.js.assess_saved"));
-    } catch (err) {
-      handleApiError(err);
-    }
+    }, payload);
   });
 
   // Step 4: Create functional goal
@@ -1054,8 +1096,7 @@ export function initTherapistApp() {
       confirmed_by: null,
       confirmed_at: null,
     };
-    try {
-      const res = await client.createGoal(state.participantId, payload);
+    await cmd("goal", (key) => client.createGoal(state.participantId, payload, { idempotencyKey: key }), async (res) => {
       const ent = res.data;
       renderBox("goal-result", (box) => {
         const originLabel = formatOriginLabel(ent.data_origin);
@@ -1077,9 +1118,7 @@ export function initTherapistApp() {
         );
       });
       showSuccess(tm("th.js.goal_saved"));
-    } catch (err) {
-      handleApiError(err);
-    }
+    }, payload);
   });
 
   // Step 5: Publish prescription (organizar-a-mesa, report-only)
@@ -1102,8 +1141,7 @@ export function initTherapistApp() {
       min_calibration_span: null,
       instructions_ptbr: el("rx-instructions").value.trim(),
     };
-    try {
-      const res = await client.publishPrescription(draft);
+    await cmd("prescription", (key) => client.publishPrescription(draft, { idempotencyKey: key }), async (res) => {
       const rxData = res.data;
       const curRes = await client.getCurrentPrescription(state.participantId);
       const rxEvent = curRes.data;
@@ -1130,9 +1168,7 @@ export function initTherapistApp() {
         appendParagraph(box, t("th.js.audit_event_only", { id: rxData.event_id }), "mono");
       });
       showSuccess(tm("th.js.rx_saved", { rev: rxData.revision }));
-    } catch (err) {
-      handleApiError(err);
-    }
+    }, draft);
   });
 
   // Step 6: Load verified facts & resolve execution_mode from evidence
@@ -1200,20 +1236,18 @@ export function initTherapistApp() {
     }
     const periodFrom = el("summary-period-from").value;
     const periodTo = el("summary-period-to").value;
-    try {
-      const pubRes = await client.publishSummary({
-        participant_id: state.participantId,
-        items,
-        period: { from: periodFrom, to: periodTo },
-        note_refs: [],
-      });
+    const summaryBody = {
+      participant_id: state.participantId,
+      items,
+      period: { from: periodFrom, to: periodTo },
+      note_refs: [],
+    };
+    await cmd("summary", (key) => client.publishSummary(summaryBody, { idempotencyKey: key }), async (pubRes) => {
       const getRes = await client.getSummary(pubRes.data.summary_id);
       state.publishedSummary = getRes.data;
       renderPublishedSummary(getRes.data);
       showSuccess(tm("th.js.summary_ok"));
-    } catch (err) {
-      handleApiError(err);
-    }
+    }, summaryBody);
   });
 
   // Step 7b: Load comparable evolution series (cmp-v1)
@@ -1253,19 +1287,17 @@ export function initTherapistApp() {
     const periodFrom = el("evolution-period-from").value;
     const periodTo = el("evolution-period-to").value;
     const seriesKeys = publishableSeries.map((s) => s.series_key_hash);
-    try {
-      const pubRes = await client.publishEvolution({
-        participant_id: state.participantId,
-        period: { from: periodFrom, to: periodTo },
-        series_keys: seriesKeys,
-      });
+    const evolutionBody = {
+      participant_id: state.participantId,
+      period: { from: periodFrom, to: periodTo },
+      series_keys: seriesKeys,
+    };
+    await cmd("evolution", (key) => client.publishEvolution(evolutionBody, { idempotencyKey: key }), async (pubRes) => {
       const getRes = await client.getEvolution(pubRes.data.evolution_id);
       state.publishedEvolution = getRes.data;
       renderPublishedEvolution(getRes.data);
       showSuccess(tm("th.js.evo_ok"));
-    } catch (err) {
-      handleApiError(err);
-    }
+    }, evolutionBody);
   });
 
   // Step 8: Load participant timeline
@@ -1310,7 +1342,10 @@ export function initTherapistApp() {
   });
   updateSessionBar();
   updatePublishGates();
-  if (state.session?.token) restoreContext();
+  if (state.session?.token) {
+    syncRetention();
+    restoreContext();
+  }
 
   if (!state.session?.token && PROTECTED_HASHES.has(window.location.hash)) {
     redirectToSignIn(tm("th.js.session_required")

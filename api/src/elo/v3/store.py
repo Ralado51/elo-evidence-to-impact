@@ -8,10 +8,13 @@ import json
 import secrets
 import sqlite3
 import threading
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from .authz import CareLinkView, Principal
+from .command_dedup import CommandDedupStore, resolve_retention_days
 from .entities import (
     build_entity,
     utc_now_ms,
@@ -66,6 +69,20 @@ CREATE TRIGGER IF NOT EXISTS v3_entities_no_update BEFORE UPDATE ON v3_entities
     BEGIN SELECT RAISE(ABORT, 'v3_entities is append-only'); END;
 CREATE TRIGGER IF NOT EXISTS v3_entities_no_delete BEFORE DELETE ON v3_entities
     BEGIN SELECT RAISE(ABORT, 'v3_entities is append-only'); END;
+CREATE TABLE IF NOT EXISTS v3_command_dedup (
+    org_id TEXT NOT NULL,
+    principal_id TEXT NOT NULL,
+    operation_id TEXT NOT NULL,
+    resource_key TEXT NOT NULL,
+    idem_key TEXT NOT NULL,
+    fingerprint TEXT NOT NULL,
+    status_code INTEGER NOT NULL,
+    result_ref TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    expires_at INTEGER NOT NULL,
+    PRIMARY KEY (org_id, principal_id, operation_id, resource_key, idem_key)
+);
+CREATE INDEX IF NOT EXISTS idx_v3_command_dedup_expires ON v3_command_dedup (expires_at);
 """
 
 SCRYPT_N = 2**14
@@ -100,6 +117,39 @@ def verify_password_scrypt(password: str, kdf: str, salt_hex: str, hash_hex: str
     return hmac.compare_digest(dk.hex(), hash_hex)
 
 
+class _CommandConnection:
+    """Proxy over the sqlite3 connection that lets one *command scope* (ARQ-02) own the commit.
+
+    Store/ledger write methods keep their own ``with _tx_lock: BEGIN IMMEDIATE ... commit()`` (so optimistic
+    concurrency such as ``ENTITY_VERSION_CONFLICT`` on stale reads is unchanged). Inside a command scope, the
+    calling thread's ``commit()`` is deferred and the transaction lock is *kept* until the scope ends, so the
+    authorization re-check, the effect and the idempotency record land in ONE commit. A ``rollback()`` is always
+    real and poisons the scope. Other threads and all other attributes pass through untouched.
+    """
+
+    def __init__(self, raw: sqlite3.Connection, lock: threading.RLock) -> None:
+        self._raw = raw
+        self._lock = lock
+        self._tl = threading.local()
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._raw, name)
+
+    def commit(self) -> None:
+        tl = self._tl
+        if getattr(tl, "active", False):
+            if not tl.held:
+                self._lock.acquire()  # outlives the store method's own ``with _tx_lock``
+                tl.held = True
+            return
+        self._raw.commit()
+
+    def rollback(self) -> None:
+        if getattr(self._tl, "active", False):
+            self._tl.poisoned = True
+        self._raw.rollback()
+
+
 class V3Store:
     """SQLite store for v3 auth artifacts and CL06.3 versioned entities."""
 
@@ -111,13 +161,55 @@ class V3Store:
         real_data_gate_open: bool = False,
     ) -> None:
         self._tx_lock = threading.RLock()
-        self.db = sqlite3.connect(path, check_same_thread=False)
+        self.db = _CommandConnection(sqlite3.connect(path, check_same_thread=False), self._tx_lock)
         with self._tx_lock:
             self.db.execute("PRAGMA busy_timeout = 5000")
             self.db.executescript(V3_SCHEMA)
         self.data_origin = data_origin
         self.real_data_gate_open = real_data_gate_open
         self.ledger = EventLedger(self.db, real_data_gate_open=real_data_gate_open, lock=self._tx_lock)
+        self.dedup = CommandDedupStore(self.db, lock=self._tx_lock, retention_days=resolve_retention_days())
+
+    @contextmanager
+    def command_scope(self) -> Iterator[Any]:
+        """Scope of one keyed command. ``scope.held`` is True once an effect is staged in the open transaction
+        (lock kept). The caller then re-authorizes and records idempotency *inside* it; leaving normally commits
+        everything at once, any exception rolls everything back (effect included).
+
+        Closes the revocation-vs-execution race: a revocation either commits before our lock (the re-check
+        denies and the effect rolls back) or waits for it (the command legitimately happened first).
+        """
+        conn = self.db
+        tl = conn._tl
+        tl.active, tl.held, tl.poisoned = True, False, False
+        try:
+            yield tl
+            if tl.poisoned:
+                raise V3Error("INTERNAL", "Command transaction was rolled back; nothing was committed.")
+        except BaseException:
+            tl.active = False
+            try:
+                conn._raw.rollback()
+            finally:
+                if tl.held:
+                    tl.held = False
+                    self._tx_lock.release()
+            raise
+        tl.active = False
+        try:
+            conn._raw.commit()
+        except BaseException:
+            conn._raw.rollback()
+            raise
+        finally:
+            if tl.held:
+                tl.held = False
+                self._tx_lock.release()
+
+    def get_event_by_id(self, event_id: str) -> dict[str, Any] | None:
+        with self._tx_lock:
+            row = self.db.execute("SELECT data FROM v3_events WHERE event_id = ?", (event_id,)).fetchone()
+        return json.loads(row[0]) if row else None
 
     # --- CL06.3 append-only event ledger delegation ---
     def append(

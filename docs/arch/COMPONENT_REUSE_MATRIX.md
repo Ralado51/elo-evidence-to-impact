@@ -10,8 +10,8 @@ Base: baseline `ed5099356d38050a51f9b5de1e1c09ca57b2ce4a`. Estratégia = a da pl
 | CMP-04 | Data civil e intervalos | NEW + ADAPT | therapist.html:147; i18n.mjs:104; schema assessment | ARQ-01 | ARQ-01: IMPLEMENTADO (parcial: ver limites) |
 | CMP-05 | Form state e ValidationRegistry | ADAPT | entities.validate, validation.py, ClinicalEntitySpec | ARQ-01 | ARQ-01: parcial (camada de datas civis, servidor); FormController em ARQ-02/03 |
 | CMP-06 | Catálogos e controles de domínio | ADAPT + NEW | Catálogo de limites, Goal, instrumentos | ARQ-03 | não iniciado |
-| CMP-07 | Ciclo de vida do comando | NEW + ADAPT | Handlers de submit atuais | ARQ-02 | não iniciado |
-| CMP-08 | Idempotência transacional | ADAPT + NEW | ledger.py/reviews.py; create clinical.py:482 | ARQ-02 | não iniciado |
+| CMP-07 | Ciclo de vida do comando | NEW + ADAPT | Handlers de submit atuais | ARQ-02 | **implementado** (`web/v3/command_controller.mjs`) |
+| CMP-08 | Idempotência transacional | ADAPT + NEW | ledger.py/reviews.py; create clinical.py:482 | ARQ-02 | **implementado** (`command_dedup.py`, `store.command_scope`) |
 | CMP-09 | Identidade, policy, consentimento e privacidade | ADAPT | auth.py, authz.py, store.py, validation.py | ARQ-06 | não iniciado |
 | CMP-10 | Contexto e cliente API | ADAPT | api_client.mjs, participant_api.mjs, therapist/painel apps | ARQ-04 | não iniciado |
 | CMP-11 | Sessão de atividade e segurança | ADAPT | participant_model/stage/app.mjs, session_rules.py | ARQ-05 | não iniciado |
@@ -28,6 +28,6 @@ Base: baseline `ed5099356d38050a51f9b5de1e1c09ca57b2ce4a`. Estratégia = a da pl
 | CMP-22 | Remote e agenda | ADAPT + NEW | Encounter, Clinical e Progress | ARQ-10 | não iniciado |
 | CMP-23 | Persistência/migração/auditoria | REUSE + ADAPT | store.py, ledger.py, contratos, vetores | ARQ-07 | não iniciado |
 | CMP-24 | Exportação e notificações | NEW + ADAPT | Templates/serviços candidatos | ARQ-10 | não iniciado |
-| CMP-25 | Test harness / guardas de arquitetura | ADAPT | pytest, node:test, harness browser, fixtures | Transversal | não iniciado |
+| CMP-25 | Test harness / guardas de arquitetura | ADAPT | pytest, node:test, harness browser, fixtures | Transversal | em andamento: ARQ-01 e ARQ-02 acrescentam testes/guardas (ver `TEST_EVIDENCE.md`) |
 
 Nenhum componente classificado REBUILD: evolução incremental é segura em todos os casos analisados. Os ativos de CMP-14..16 (`web/s2`, `web/hand.js`, `web/counter.js`) pertencem a S2+ e não foram inspecionados a fundo (fora de escopo).

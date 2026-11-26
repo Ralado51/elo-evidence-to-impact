@@ -17,3 +17,5 @@ CMP-18/19 ─► CMP-17, CMP-04
 ```
 
 Ordem de entrega (do mandato): ARQ-01 → 02 → 03 → 04 → 05 → 06 → 07. Dependência dura: ARQ-02 (idempotência) requer decisão de contrato (PD-02) antes de implementar.
+
+ARQ-02 (implementado): `command_controller.mjs` ─► `api_client.mjs` (envia `Idempotency-Key`) ─► gateway ─► `router._command` ─► `CommandDedupStore` ─► `store.command_scope` ─► `elo.canonical.hash_canonical` / `authorize()` existentes.

@@ -1,0 +1,53 @@
+HTTP 404 http://127.0.0.1:8080/api/v3/participants/p_70573c0683b69588/prescription/current
+HTTP 404 http://127.0.0.1:8080/api/v3/participants/p_62d01ac0ba127bab/prescription/current
+HTTP 404 http://127.0.0.1:8080/api/v3/participants/p_e3e8acc406b5d05a/prescription/current
+HTTP 404 http://127.0.0.1:8080/api/v3/participants/p_ff15f6e3f663a27e/prescription/current
+{
+  "passed": true,
+  "results": [
+    {
+      "id": "E02-1 apelidos sensíveis a rótulos: sucesso, resumo e lista preservam o texto literal em PT→EN→PT×3",
+      "ok": true
+    },
+    {
+      "id": "E02-2 seleção pela lista mantém o apelido literal na mensagem (PT/EN)",
+      "ok": true
+    },
+    {
+      "id": "E02-3 painel: carregar cada apelido e alternar idioma não altera o apelido (live region e página)",
+      "ok": true
+    },
+    {
+      "id": "E03-1 padrão nunca editado acompanha o idioma (PT→EN→PT repetido)",
+      "ok": true
+    },
+    {
+      "id": "E03-2 digitado diferente do padrão e digitado IDÊNTICO ao padrão (parcial/partial) permanecem",
+      "ok": true
+    },
+    {
+      "id": "E03-3 apagado manualmente permanece vazio",
+      "ok": true
+    },
+    {
+      "id": "E03-4 colado da área de transferência permanece (inclusive texto igual ao padrão)",
+      "ok": true
+    },
+    {
+      "id": "E03-5 textarea (nota): editada preservada; nunca editada acompanha; sem requisições na troca",
+      "ok": true
+    },
+    {
+      "id": "E03-6 troca de participante reinicia o formulário (padrão localizado volta a ser gerenciado)",
+      "ok": true
+    },
+    {
+      "id": "E03-7 recarga: campo não persistido volta ao padrão no idioma escolhido",
+      "ok": true
+    },
+    {
+      "id": "E03-8 dados persistidos e identificadores intactos (lista de participantes via API)",
+      "ok": true
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+FAILED tests/test_v3_arq02_idempotency.py::test_invalid_retention_configuration_fails_at_startup[]
+FAILED tests/test_v3_arq02_idempotency.py::test_expired_rows_are_swept_without_touching_clinical_tables
+FAILED tests/test_v3_arq02_idempotency.py::test_config_change_does_not_shorten_existing_records
+38 failed, 7 passed in 19.02s

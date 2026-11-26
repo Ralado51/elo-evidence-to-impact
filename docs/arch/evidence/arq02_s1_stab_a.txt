@@ -1,0 +1,37 @@
+{
+  "passed": true,
+  "results": [
+    {
+      "id": "A1 cadastro aparece na lista sem digitar identificador",
+      "ok": true
+    },
+    {
+      "id": "A2 pesquisa filtra e mensagem de vazio",
+      "ok": true
+    },
+    {
+      "id": "A3 convite fica desativado sem participante e clique duplo gera um convite só",
+      "ok": true
+    },
+    {
+      "id": "A4 link do convite abre a tela do participante já preenchido e sem o código na barra",
+      "ok": true
+    },
+    {
+      "id": "A5 convite é de uso único",
+      "ok": true
+    },
+    {
+      "id": "A6 contexto sobrevive à recarga da página",
+      "ok": true
+    },
+    {
+      "id": "A7 trocar de participante limpa resultados e convite do anterior",
+      "ok": true
+    },
+    {
+      "id": "A8 sair limpa lista e contexto",
+      "ok": true
+    }
+  ]
+}

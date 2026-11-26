@@ -93,6 +93,9 @@ export function createV3Client(options = {}) {
     if (reqOptions.body !== undefined) {
       headers["Content-Type"] = "application/json";
     }
+    if (reqOptions.idempotencyKey) {
+      headers["Idempotency-Key"] = reqOptions.idempotencyKey;
+    }
     if (useAuth) {
       const token = getToken();
       if (!token) {
@@ -161,6 +164,9 @@ export function createV3Client(options = {}) {
   }
 
   return {
+    health() {
+      return request("GET", "/api/v3/health", { auth: false });
+    },
     loginTherapist(username, password) {
       return request("POST", "/api/v3/auth/therapist", {
         auth: false,
@@ -177,30 +183,34 @@ export function createV3Client(options = {}) {
     createInvite(participantId, ttlSeconds = 3600) {
       return request("POST", "/api/v3/invites", { body: { participant_id: participantId, ttl_seconds: ttlSeconds } });
     },
-    createParticipant(alias, side) {
+    createParticipant(alias, side, opts = {}) {
       return request("POST", "/api/v3/participants", {
         body: { alias, side },
+        idempotencyKey: opts.idempotencyKey,
       });
     },
-    createAssessment(participantId, payload) {
+    createAssessment(participantId, payload, opts = {}) {
       return request("POST", `/api/v3/participants/${encodeURIComponent(participantId)}/assessments`, {
         body: payload,
+        idempotencyKey: opts.idempotencyKey,
       });
     },
     listAssessments(participantId) {
       return request("GET", `/api/v3/participants/${encodeURIComponent(participantId)}/assessments`);
     },
-    createGoal(participantId, payload) {
+    createGoal(participantId, payload, opts = {}) {
       return request("POST", `/api/v3/participants/${encodeURIComponent(participantId)}/goals`, {
         body: payload,
+        idempotencyKey: opts.idempotencyKey,
       });
     },
     listGoals(participantId) {
       return request("GET", `/api/v3/participants/${encodeURIComponent(participantId)}/goals`);
     },
-    publishPrescription(draft) {
+    publishPrescription(draft, opts = {}) {
       return request("POST", "/api/v3/prescriptions", {
         body: draft,
+        idempotencyKey: opts.idempotencyKey,
       });
     },
     getCurrentPrescription(participantId) {
@@ -219,14 +229,16 @@ export function createV3Client(options = {}) {
     getFactEvidence(factId) {
       return request("GET", `/api/v3/facts/${encodeURIComponent(factId)}/evidence`);
     },
-    recordReview(payload) {
+    recordReview(payload, opts = {}) {
       return request("POST", "/api/v3/reviews", {
         body: payload,
+        idempotencyKey: opts.idempotencyKey,
       });
     },
-    publishSummary(payload) {
+    publishSummary(payload, opts = {}) {
       return request("POST", "/api/v3/summaries", {
         body: payload,
+        idempotencyKey: opts.idempotencyKey,
       });
     },
     getSummary(summaryId) {
@@ -242,9 +254,10 @@ export function createV3Client(options = {}) {
         `/api/v3/participants/${encodeURIComponent(participantId)}/evolution/series${suffix}`
       );
     },
-    publishEvolution(payload) {
+    publishEvolution(payload, opts = {}) {
       return request("POST", "/api/v3/evolution", {
         body: payload,
+        idempotencyKey: opts.idempotencyKey,
       });
     },
     getEvolution(evolutionId) {

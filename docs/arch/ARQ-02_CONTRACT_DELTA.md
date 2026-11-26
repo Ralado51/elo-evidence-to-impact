@@ -1,6 +1,6 @@
 # ARQ-02 — Delta normativo proposto: idempotência de comandos (PD-02)
 
-**Status:** PROPOSTA PARA APROVAÇÃO DO PO. Nenhum arquivo de `contracts/` foi alterado e nenhum código de ARQ-02 foi escrito.
+**Status:** RATIFICADO pelo PO (Q1–Q6, com a ressalva de Q4 e a alteração de Q6) e implementado; texto normativo final em `contracts/CL06_3-A1/AMENDMENT_A1_IDEMPOTENCY.md`. (O texto abaixo é a proposta original, preservada como registro; em caso de divergência, vale o adendo A1.)
 **Base:** `ed5099356…` / `eaeaf30` · contratos CL06.3-r1 (`contracts_version 3.0.0`) · proposta de contrato do PO de 26/11/2026.
 
 ## 0. Fontes consultadas (Drive) e compatibilidade com a arquitetura aprovada

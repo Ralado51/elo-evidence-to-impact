@@ -1,0 +1,538 @@
+TAP version 13
+# Subtest: Row 1: tokens.css custom properties match tokens.json bidirectionally
+ok 1 - Row 1: tokens.css custom properties match tokens.json bidirectionally
+  ---
+  duration_ms: 2.433099
+  type: 'test'
+  ...
+# Subtest: Row 2: text pairs >= 4.5:1 and large-text pairs >= 3:1 used only on large text
+ok 2 - Row 2: text pairs >= 4.5:1 and large-text pairs >= 3:1 used only on large text
+  ---
+  duration_ms: 1.812305
+  type: 'test'
+  ...
+# Subtest: Row 3: UI pairs >= 3:1 and focus token >= 3:1 against every background token
+ok 3 - Row 3: UI pairs >= 3:1 and focus token >= 3:1 against every background token
+  ---
+  duration_ms: 0.344476
+  type: 'test'
+  ...
+# Subtest: Row 4: every colour/border pair used in base.css is declared in tokens.json
+ok 4 - Row 4: every colour/border pair used in base.css is declared in tokens.json
+  ---
+  duration_ms: 1.849466
+  type: 'test'
+  ...
+# Subtest: Row 5: interactive selectors have min-height and min-width >= 3rem (48px)
+ok 5 - Row 5: interactive selectors have min-height and min-width >= 3rem (48px)
+  ---
+  duration_ms: 0.483534
+  type: 'test'
+  ...
+# Subtest: Row 6: visible :focus-visible outline >= 3px solid with offset and no outline suppression
+ok 6 - Row 6: visible :focus-visible outline >= 3px solid with offset and no outline suppression
+  ---
+  duration_ms: 0.847463
+  type: 'test'
+  ...
+# Subtest: Row 7: prefers-reduced-motion neutralises animation, transition, and scroll-behavior
+ok 7 - Row 7: prefers-reduced-motion neutralises animation, transition, and scroll-behavior
+  ---
+  duration_ms: 0.611853
+  type: 'test'
+  ...
+# Subtest: Row 8: zoom-friendly rem font sizes, no wide fixed containers, unlocked viewport
+ok 8 - Row 8: zoom-friendly rem font sizes, no wide fixed containers, unlocked viewport
+  ---
+  duration_ms: 1.319369
+  type: 'test'
+  ...
+# Subtest: Row 9: shell structure (pt-BR, skip link first, landmarks, single h1, ordered headings)
+ok 9 - Row 9: shell structure (pt-BR, skip link first, landmarks, single h1, ordered headings)
+  ---
+  duration_ms: 0.915217
+  type: 'test'
+  ...
+# Subtest: Row 10: every control has a non-empty accessible name and decorative icons sit with visible text
+ok 10 - Row 10: every control has a non-empty accessible name and decorative icons sit with visible text
+  ---
+  duration_ms: 2.139398
+  type: 'test'
+  ...
+# Subtest: Row 11: native interactive controls, no tabindex > 0, no click handler on non-interactive elements
+ok 11 - Row 11: native interactive controls, no tabindex > 0, no click handler on non-interactive elements
+  ---
+  duration_ms: 0.394279
+  type: 'test'
+  ...
+# Subtest: Row 12: status pattern includes icon + colour + distinct text label per variant
+ok 12 - Row 12: status pattern includes icon + colour + distinct text label per variant
+  ---
+  duration_ms: 0.40685
+  type: 'test'
+  ...
+# Subtest: Row 13: single live region in shell and announce() clears/re-sets polite and assertive messages
+ok 13 - Row 13: single live region in shell and announce() clears/re-sets polite and assertive messages
+  ---
+  duration_ms: 0.719671
+  type: 'test'
+  ...
+# Subtest: Row 16: no package.json or lock files and a11y.mjs uses browser built-ins only
+ok 14 - Row 16: no package.json or lock files and a11y.mjs uses browser built-ins only
+  ---
+  duration_ms: 0.20258
+  type: 'test'
+  ...
+# Subtest: canonical vector C01-key-order
+ok 15 - canonical vector C01-key-order
+  ---
+  duration_ms: 2.433487
+  type: 'test'
+  ...
+# Subtest: canonical vector C02-numbers-cl061
+ok 16 - canonical vector C02-numbers-cl061
+  ---
+  duration_ms: 1.343684
+  type: 'test'
+  ...
+# Subtest: canonical vector C03-unicode
+ok 17 - canonical vector C03-unicode
+  ---
+  duration_ms: 0.185223
+  type: 'test'
+  ...
+# Subtest: canonical vector C04-escapes
+ok 18 - canonical vector C04-escapes
+  ---
+  duration_ms: 0.087712
+  type: 'test'
+  ...
+# Subtest: canonical vector C05-event-id-slot
+ok 19 - canonical vector C05-event-id-slot
+  ---
+  duration_ms: 0.189566
+  type: 'test'
+  ...
+# Subtest: canonical vector N01-zero-and-negzero
+ok 20 - canonical vector N01-zero-and-negzero
+  ---
+  duration_ms: 0.077176
+  type: 'test'
+  ...
+# Subtest: canonical vector N02-rfc8785-333333333.33333329
+ok 21 - canonical vector N02-rfc8785-333333333.33333329
+  ---
+  duration_ms: 0.063592
+  type: 'test'
+  ...
+# Subtest: canonical vector N03-1e30
+ok 22 - canonical vector N03-1e30
+  ---
+  duration_ms: 0.103771
+  type: 'test'
+  ...
+# Subtest: canonical vector N04-4.50
+ok 23 - canonical vector N04-4.50
+  ---
+  duration_ms: 0.212303
+  type: 'test'
+  ...
+# Subtest: canonical vector N05-2e-3
+ok 24 - canonical vector N05-2e-3
+  ---
+  duration_ms: 0.298514
+  type: 'test'
+  ...
+# Subtest: canonical vector N06-1e-27
+ok 25 - canonical vector N06-1e-27
+  ---
+  duration_ms: 0.101812
+  type: 'test'
+  ...
+# Subtest: canonical vector N07-1e20-boundary
+ok 26 - canonical vector N07-1e20-boundary
+  ---
+  duration_ms: 0.049977
+  type: 'test'
+  ...
+# Subtest: canonical vector N08-small-boundary
+ok 27 - canonical vector N08-small-boundary
+  ---
+  duration_ms: 0.045064
+  type: 'test'
+  ...
+# Subtest: canonical vector N09-max-double
+ok 28 - canonical vector N09-max-double
+  ---
+  duration_ms: 0.081151
+  type: 'test'
+  ...
+# Subtest: canonical vector N10-min-subnormal
+ok 29 - canonical vector N10-min-subnormal
+  ---
+  duration_ms: 0.061713
+  type: 'test'
+  ...
+# Subtest: canonical vector N11-safe-int
+ok 30 - canonical vector N11-safe-int
+  ---
+  duration_ms: 0.041917
+  type: 'test'
+  ...
+# Subtest: canonical vector N12-0.1+0.2
+ok 31 - canonical vector N12-0.1+0.2
+  ---
+  duration_ms: 0.042644
+  type: 'test'
+  ...
+# Subtest: canonical vector N13-float-int
+ok 32 - canonical vector N13-float-int
+  ---
+  duration_ms: 0.039901
+  type: 'test'
+  ...
+# Subtest: canonical vector N14-int-beyond-safe-parsed-as-double
+ok 33 - canonical vector N14-int-beyond-safe-parsed-as-double
+  ---
+  duration_ms: 0.086488
+  type: 'test'
+  ...
+# Subtest: canonical vector S01-astral-key-order
+ok 34 - canonical vector S01-astral-key-order
+  ---
+  duration_ms: 0.057928
+  type: 'test'
+  ...
+# Subtest: canonical vector S02-control-chars
+ok 35 - canonical vector S02-control-chars
+  ---
+  duration_ms: 0.036613
+  type: 'test'
+  ...
+# Subtest: canonical vector S03-slash-and-nonascii
+ok 36 - canonical vector S03-slash-and-nonascii
+  ---
+  duration_ms: 0.035758
+  type: 'test'
+  ...
+# Subtest: canonical vector S04-empty
+ok 37 - canonical vector S04-empty
+  ---
+  duration_ms: 0.05111
+  type: 'test'
+  ...
+# Subtest: canonical vector S05-nested-order
+ok 38 - canonical vector S05-nested-order
+  ---
+  duration_ms: 0.044163
+  type: 'test'
+  ...
+# Subtest: canonical must_reject X01-nan
+ok 39 - canonical must_reject X01-nan
+  ---
+  duration_ms: 0.407935
+  type: 'test'
+  ...
+# Subtest: canonical must_reject X02-infinity
+ok 40 - canonical must_reject X02-infinity
+  ---
+  duration_ms: 0.15597
+  type: 'test'
+  ...
+# Subtest: canonical must_reject X03-lone-surrogate
+ok 41 - canonical must_reject X03-lone-surrogate
+  ---
+  duration_ms: 0.063149
+  type: 'test'
+  ...
+# Subtest: additional must_reject edge cases (-Infinity, key lone surrogate)
+ok 42 - additional must_reject edge cases (-Infinity, key lone surrogate)
+  ---
+  duration_ms: 0.097666
+  type: 'test'
+  ...
+# Subtest: ledger v3: 22 event_ids, hashes, prev_hash chains, and evolution content_hash
+ok 43 - ledger v3: 22 event_ids, hashes, prev_hash chains, and evolution content_hash
+  ---
+  duration_ms: 2.882731
+  type: 'test'
+  ...
+# Subtest: stream chain detects deliberately broken prev_hash link
+ok 44 - stream chain detects deliberately broken prev_hash link
+  ---
+  duration_ms: 0.799024
+  type: 'test'
+  ...
+# Subtest: stream chain detects duplicate seq conflict
+ok 45 - stream chain detects duplicate seq conflict
+  ---
+  duration_ms: 0.867406
+  type: 'test'
+  ...
+# Subtest: double click / Enter+click: second submit is ignored while in flight
+ok 46 - double click / Enter+click: second submit is ignored while in flight
+  ---
+  duration_ms: 1.033955
+  type: 'test'
+  ...
+# Subtest: new intention after success gets a new key even with identical content
+ok 47 - new intention after success gets a new key even with identical content
+  ---
+  duration_ms: 1.418474
+  type: 'test'
+  ...
+# Subtest: ambiguous failure keeps and reuses the same key (lost response after commit)
+ok 48 - ambiguous failure keeps and reuses the same key (lost response after commit)
+  ---
+  duration_ms: 0.306274
+  type: 'test'
+  ...
+# Subtest: 5xx and 408 are ambiguous; 4xx and 409 close the intention
+ok 49 - 5xx and 408 are ambiguous; 4xx and 409 close the intention
+  ---
+  duration_ms: 0.190515
+  type: 'test'
+  ...
+# Subtest: window is min(24h, retention - margin); default assumes 1 day
+ok 50 - window is min(24h, retention - margin); default assumes 1 day
+  ---
+  duration_ms: 0.164062
+  type: 'test'
+  ...
+# Subtest: after the window: unknown state, NO automatic resend, no silent new key; explicit new intention clears
+ok 51 - after the window: unknown state, NO automatic resend, no silent new key; explicit new intention clears
+  ---
+  duration_ms: 0.279868
+  type: 'test'
+  ...
+# Subtest: forms are isolated from each other
+ok 52 - forms are isolated from each other
+  ---
+  duration_ms: 0.176457
+  type: 'test'
+  ...
+# Subtest: startNewIntention refuses while a command is in flight
+ok 53 - startNewIntention refuses while a command is in flight
+  ---
+  duration_ms: 0.104681
+  type: 'test'
+  ...
+# Subtest: singleFlightOnly: no key, nothing retained, second call ignored
+ok 54 - singleFlightOnly: no key, nothing retained, second call ignored
+  ---
+  duration_ms: 0.335147
+  type: 'test'
+  ...
+# Subtest: burst guard: a repeat right after success is ignored; after the guard it is a new intention
+ok 55 - burst guard: a repeat right after success is ignored; after the guard it is a new intention
+  ---
+  duration_ms: 0.457961
+  type: 'test'
+  ...
+# Subtest: burst guard never blocks when the clock moves backwards
+ok 56 - burst guard never blocks when the clock moves backwards
+  ---
+  duration_ms: 0.21611
+  type: 'test'
+  ...
+# Subtest: burst guard compares content: different content right after a success is a new intention
+ok 57 - burst guard compares content: different content right after a success is a new intention
+  ---
+  duration_ms: 0.174244
+  type: 'test'
+  ...
+# Subtest: valid vectors parse and keep their exact text
+ok 58 - valid vectors parse and keep their exact text
+  ---
+  duration_ms: 0.987132
+  type: 'test'
+  ...
+# Subtest: invalid and non-string vectors are rejected (no normalization to another day)
+ok 59 - invalid and non-string vectors are rejected (no normalization to another day)
+  ---
+  duration_ms: 0.277613
+  type: 'test'
+  ...
+# Subtest: leap years follow the Gregorian rule
+ok 60 - leap years follow the Gregorian rule
+  ---
+  duration_ms: 0.08924
+  type: 'test'
+  ...
+# Subtest: range vectors: inverted only when both bounds are real and end < start
+ok 61 - range vectors: inverted only when both bounds are real and end < start
+  ---
+  duration_ms: 1.092345
+  type: 'test'
+  ...
+# Subtest: DateField problems: required, incomplete native entry, impossible text, inverted range, ok
+ok 62 - DateField problems: required, incomplete native entry, impossible text, inverted range, ok
+  ---
+  duration_ms: 0.283602
+  type: 'test'
+  ...
+# Subtest: formatIsoDate never shifts an impossible date to a real one
+ok 63 - formatIsoDate never shifts an impossible date to a real one
+  ---
+  duration_ms: 14.252111
+  type: 'test'
+  ...
+# Subtest: FIX-26: pt-BR and en catalogs have exactly the same keys and placeholders
+ok 64 - FIX-26: pt-BR and en catalogs have exactly the same keys and placeholders
+  ---
+  duration_ms: 4.23277
+  type: 'test'
+  ...
+# Subtest: FIX-25: no internal code appears in any catalog text
+ok 65 - FIX-25: no internal code appears in any catalog text
+  ---
+  duration_ms: 3.450081
+  type: 'test'
+  ...
+# Subtest: FIX-27: every key used by the pages and scripts exists in both catalogs
+ok 66 - FIX-27: every key used by the pages and scripts exists in both catalogs
+  ---
+  duration_ms: 2.743286
+  type: 'test'
+  ...
+# Subtest: FIX-27: pages have no visible operational text outside the catalog (no code in parentheses)
+ok 67 - FIX-27: pages have no visible operational text outside the catalog (no code in parentheses)
+  ---
+  duration_ms: 0.73421
+  type: 'test'
+  ...
+# Subtest: FIX-31: label mapping requested by the PO (pt-BR)
+ok 68 - FIX-31: label mapping requested by the PO (pt-BR)
+  ---
+  duration_ms: 0.693051
+  type: 'test'
+  ...
+# Subtest: FIX-28: RULE_VIOLATION and other API errors become specific messages; technical details stay separate
+ok 69 - FIX-28: RULE_VIOLATION and other API errors become specific messages; technical details stay separate
+  ---
+  duration_ms: 0.638379
+  type: 'test'
+  ...
+# Subtest: FIX-29/30: language switch, normalization, localized dates and numbers; canonical values unchanged
+ok 70 - FIX-29/30: language switch, normalization, localized dates and numbers; canonical values unchanged
+  ---
+  duration_ms: 17.422153
+  type: 'test'
+  ...
+# Subtest: FIX-32: unknown enum values never leak the raw code
+ok 71 - FIX-32: unknown enum values never leak the raw code
+  ---
+  duration_ms: 0.125905
+  type: 'test'
+  ...
+# Subtest: participant_model builds hash-chained report-only session events with valid shapes
+ok 72 - participant_model builds hash-chained report-only session events with valid shapes
+  ---
+  duration_ms: 10.313697
+  type: 'test'
+  ...
+# Subtest: participant_model basic report choices map 'Não sei / prefiro não dizer' to unreported
+ok 73 - participant_model basic report choices map 'Não sei / prefiro não dizer' to unreported
+  ---
+  duration_ms: 0.307565
+  type: 'test'
+  ...
+# Subtest: participant_model strips hashes/actor ids from prescription view and resolves origin labels
+ok 74 - participant_model strips hashes/actor ids from prescription view and resolves origin labels
+  ---
+  duration_ms: 1.429219
+  type: 'test'
+  ...
+# Subtest: participant_api allows strictly participant-permitted contract routes and flags rejected batch items
+ok 75 - participant_api allows strictly participant-permitted contract routes and flags rejected batch items
+  ---
+  duration_ms: 35.011137
+  type: 'test'
+  ...
+# Subtest: Row 4/5/8/10/12 static invariants on web/v3/participant*
+ok 76 - Row 4/5/8/10/12 static invariants on web/v3/participant*
+  ---
+  duration_ms: 1.448864
+  type: 'test'
+  ...
+# Subtest: s2/counter.js is identical to web/counter.js
+ok 77 - s2/counter.js is identical to web/counter.js
+  ---
+  duration_ms: 0.891001
+  type: 'test'
+  ...
+# Subtest: synthetic 3 s cycle counts 10 reps in ~30 s
+ok 78 - synthetic 3 s cycle counts 10 reps in ~30 s
+  ---
+  duration_ms: 2.207805
+  type: 'test'
+  ...
+# Subtest: summarize empty
+ok 79 - summarize empty
+  ---
+  duration_ms: 1.421705
+  type: 'test'
+  ...
+# Subtest: canonical.mjs matches all CL06.3 canonical-vectors.v3.json vectors
+ok 80 - canonical.mjs matches all CL06.3 canonical-vectors.v3.json vectors
+  ---
+  duration_ms: 13.324988
+  type: 'test'
+  ...
+# Subtest: therapist_model origin labels mirror limitations.v2.json
+ok 81 - therapist_model origin labels mirror limitations.v2.json
+  ---
+  duration_ms: 0.454631
+  type: 'test'
+  ...
+# Subtest: therapist_model execution modes show a localized label and never the canonical code
+ok 82 - therapist_model execution modes show a localized label and never the canonical code
+  ---
+  duration_ms: 0.203919
+  type: 'test'
+  ...
+# Subtest: therapist_model review gate blocks unreviewed, annotated, rejected, stale, and non-eligible facts
+ok 83 - therapist_model review gate blocks unreviewed, annotated, rejected, stale, and non-eligible facts
+  ---
+  duration_ms: 1.836163
+  type: 'test'
+  ...
+# Subtest: therapist_model error formatter surfaces contract error codes cleanly
+ok 84 - therapist_model error formatter surfaces contract error codes cleanly
+  ---
+  duration_ms: 0.243419
+  type: 'test'
+  ...
+# Subtest: therapist_model forbidden-output scanner flags cmp-v1 violations and passes v3 UI copy
+ok 85 - therapist_model forbidden-output scanner flags cmp-v1 violations and passes v3 UI copy
+  ---
+  duration_ms: 2.194471
+  type: 'test'
+  ...
+# Subtest: api_client strictly allows declared /api/v3 contract routes and rejects /api/v1
+ok 86 - api_client strictly allows declared /api/v3 contract routes and rejects /api/v1
+  ---
+  duration_ms: 36.017158
+  type: 'test'
+  ...
+# Subtest: Row 8 legacy isolation: web/v3 contains zero imports/links to legacy web/*.js, web/index.html, or /api/v1
+ok 87 - Row 8 legacy isolation: web/v3 contains zero imports/links to legacy web/*.js, web/index.html, or /api/v1
+  ---
+  duration_ms: 3.476204
+  type: 'test'
+  ...
+# Subtest: Row 6 coverage: every web/v3/*.html file is listed in web/tests/browser/pages.json
+ok 88 - Row 6 coverage: every web/v3/*.html file is listed in web/tests/browser/pages.json
+  ---
+  duration_ms: 0.51968
+  type: 'test'
+  ...
+1..88
+# tests 88
+# suites 0
+# pass 88
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 807.954843

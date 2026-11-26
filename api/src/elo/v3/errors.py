@@ -75,6 +75,14 @@ EMITTABLE_ERROR_CODES: dict[str, int] = {
     "INTERNAL": 500,
 }
 
+# A1 (contracts 3.1.0) additive codes. Kept apart from the frozen 3.0.0 mapping above so the 3.0.0 package,
+# its catalog and its tests stay byte-identical; both mappings are accepted by ``V3Error``.
+A1_ERROR_CODES: dict[str, int] = {
+    "IDEMPOTENCY_KEY_INVALID": 400,
+    "IDEMPOTENCY_KEY_REUSED": 409,
+}
+ALL_EMITTABLE_ERROR_CODES: dict[str, int] = {**EMITTABLE_ERROR_CODES, **A1_ERROR_CODES}
+
 # Warning/informational item codes emitted only inside HTTP 200 events:batch item results.
 ITEM_WARNING_CODES: dict[str, int] = {
     "SEQ_GAP": 200,
@@ -125,11 +133,11 @@ class V3Error(Exception):
     """Structured CL06.3 v3 API error."""
 
     def __init__(self, code: str, message: str, details: Any = None) -> None:
-        if code not in EMITTABLE_ERROR_CODES:
+        if code not in ALL_EMITTABLE_ERROR_CODES:
             raise ValueError(f"Unregistered v3 error code: {code}")
         self.code = code
         self.message = message
-        self.http_status = EMITTABLE_ERROR_CODES[code]
+        self.http_status = ALL_EMITTABLE_ERROR_CODES[code]
         self.details = details
         super().__init__(f"{code}: {message}")
 
