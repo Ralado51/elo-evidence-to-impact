@@ -41,7 +41,8 @@ export function goalTargetViolations(goalRules, target) {
   if (!s.numeric) return value !== null || unit !== null ? [{ rule: "goal.descriptive_no_numeric", path: value !== null ? TV : TU }] : [];
   if (value === null) return [{ rule: "goal.count_value_required", path: TV }];
   if (typeof value !== "number" || !Number.isFinite(value) || !Number.isInteger(value)) return [{ rule: "goal.count_integer", path: TV }];
-  if (value < s.min) return [{ rule: "goal.count_floor", path: TV }];
+  if (value < s.min) return [{ rule: "goal.count_floor", path: TV, params: { min: s.min } }];
+  if (value > s.max) return [{ rule: "goal.count_ceiling", path: TV, params: { max: s.max } }]; // FIX-38: limit read from the catalog
   if (unit !== null && unit !== s.unit) return [{ rule: "goal.count_unit_compatible", path: TU }];
   return [];
 }
@@ -73,8 +74,7 @@ FIELD_FOR_PATH["$.payload.instrument"] = "assessment-instrument-id";
 const NUMERIC = ["integer", "number"];
 
 /** Parse the raw text for a value_type. Invalid text stays a string/NaN so the rule reports it; nothing is coerced silently. */
-export function parseItemValue(valueType, raw, notAssessed) {
-  if (notAssessed) return null;
+export function parseItemValue(valueType, raw) {
   const s = String(raw ?? "").trim();
   if (s === "") return null;
   if (NUMERIC.includes(valueType)) return Number(s);
@@ -82,9 +82,27 @@ export function parseItemValue(valueType, raw, notAssessed) {
   return s;
 }
 
-export function buildItem({ key, valueType, rawValue, unit, notAssessed, assistance, source = "therapist_observed" }) {
+/** The four states of an item (FIX-39 / P-05): observed value (zero included), unknown, not assessed. Absence is never inferred from an empty field. */
+export const ITEM_STATES = Object.freeze(["observed", "unknown", "not_assessed"]);
+
+export function buildItem({ key, valueType, rawValue, unit, state = "observed", assistance, source = "therapist_observed" }) {
   const numeric = NUMERIC.includes(valueType);
-  return { item_key: key, value_type: valueType, value: parseItemValue(valueType, rawValue, notAssessed), unit: numeric && unit ? unit : null, source, assistance, not_assessed: !!notAssessed };
+  const observed = state === "observed";
+  return {
+    item_key: key,
+    value_type: valueType,
+    value: observed ? parseItemValue(valueType, rawValue) : null,
+    unit: numeric && unit ? unit : null,
+    source,
+    assistance,
+    not_assessed: state === "not_assessed",
+  };
+}
+
+/** UI guard (not a contract rule): an observed value must be filled in; absence must be chosen explicitly. */
+export function itemStateViolations({ state, rawValue }) {
+  if (state === "observed" && String(rawValue ?? "").trim() === "") return [{ rule: "item.observed_requires_value", path: "$.payload.items[0].value" }];
+  return [];
 }
 
 /** Same rule ids/paths as the server (assessment-item-rules.v1). */
@@ -124,4 +142,19 @@ export function doseViolations(limits, { sets, reps, perWeek }) {
   if (!out.length && sets * reps > limits.max_product) out.push({ rule: "dose.product_max", field: "rx-reps" });
   if (!int(perWeek) || perWeek < SESSIONS_PER_WEEK.min || perWeek > SESSIONS_PER_WEEK.max) out.push({ rule: "dose.sessions_week_range", field: "rx-sessions-week" });
   return out;
+}
+
+// ---- ValidationRegistry wiring (front): one registry, same rule ids as the server ----
+import { createRegistry } from "./validation_registry.mjs";
+
+FIELD_FOR_PATH["$.payload.goal_text"] = "goal-text";
+
+/** Registers goal and assessment-item rules. Scopes: "goal" -> {goal_text, target}; "assessment_item" -> {state, rawValue, item}. */
+export function createDomainRegistry(catalogs) {
+  const reg = createRegistry();
+  reg.register("goal", (g) => (String(g.goal_text ?? "").trim() === "" ? [{ rule: "goal.text_required", path: "$.payload.goal_text" }] : []));
+  reg.register("goal", (g) => goalTargetViolations(catalogs.goalRules, g.target));
+  reg.register("assessment_item", (a) => itemStateViolations(a));
+  reg.register("assessment_item", (a) => (itemStateViolations(a).length ? [] : itemViolations([a.item])));
+  return reg;
 }

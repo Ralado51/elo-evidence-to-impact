@@ -123,6 +123,26 @@
     "unit": "sessions"
    },
    "ok": true
+  },
+  {
+   "id": "V-G14",
+   "target": {
+    "kind": "session_count",
+    "value": 100001,
+    "unit": "sessions"
+   },
+   "ok": false,
+   "rule": "goal.count_ceiling"
+  },
+  {
+   "id": "V-G15",
+   "target": {
+    "kind": "repetitions",
+    "value": 100001,
+    "unit": "reps"
+   },
+   "ok": false,
+   "rule": "goal.count_ceiling"
   }
  ],
  "instrument": [

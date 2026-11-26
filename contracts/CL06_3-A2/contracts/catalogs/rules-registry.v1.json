@@ -16,6 +16,10 @@
    "code": "OUT_OF_RANGE"
   },
   {
+   "id": "goal.count_ceiling",
+   "code": "OUT_OF_RANGE"
+  },
+  {
    "id": "goal.count_unit_compatible",
    "code": "ENUM"
   },

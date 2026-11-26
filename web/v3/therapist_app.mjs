@@ -14,7 +14,7 @@ import { renderErrorTechnical } from "./ui_messages.mjs";
 import { validateDateFields } from "./date_field.mjs";
 import { setFieldError } from "./field_error.mjs";
 import { violationFromApiError } from "./validation_registry.mjs";
-import { loadCatalogs, instrumentEntries, instrumentFromSelection, instrumentViolations, doseViolations, buildItem, itemViolations, goalTargetSpec, buildGoalTarget, goalTargetViolations, FIELD_FOR_PATH } from "./domain_fields.mjs";
+import { loadCatalogs, instrumentEntries, instrumentFromSelection, instrumentViolations, doseViolations, buildItem, createDomainRegistry, goalTargetSpec, buildGoalTarget, goalTargetViolations, FIELD_FOR_PATH } from "./domain_fields.mjs";
 import { applyI18n, initI18n, t, tm, lref, bindText, label, formatDate, formatDateTime, formatIsoDate } from "./i18n.mjs";
 import {
   canPublishEvolution,
@@ -1099,21 +1099,23 @@ export function initTherapistApp() {
       el("assessment-instrument-id").focus();
       return;
     }
+    const itemState = el("assessment-item-state").value;
     const items = [buildItem({
       key: el("assessment-item-key").value.trim(),
       valueType: el("assessment-item-value-type").value,
       rawValue: el("assessment-item-value").value,
       unit: el("assessment-item-unit").value,
-      notAssessed: el("assessment-item-not-assessed").checked,
+      state: itemState,
       assistance: el("assessment-item-assistance").value,
     })];
-    const itemProblems = itemViolations(items);
+    const itemProblems = domainRegistry().evaluate("assessment_item", { state: itemState, rawValue: el("assessment-item-value").value, item: items[0] });
     if (itemProblems.length) {
       const first = itemProblems[0];
       const input = el(FIELD_FOR_PATH[first.path.replace(/items\[\d+\]/, "items[0]")] || "assessment-item-value");
-      setFieldError(input, tm(`rule.${first.rule}`));
+      const msg = tm(`rule.${first.rule}`, first.params);
+      setFieldError(input, msg);
       input.focus();
-      announce(tm(`rule.${first.rule}`), { politeness: "assertive" });
+      announce(msg, { politeness: "assertive" });
       return;
     }
     const noteText = el("assessment-note").value.trim();
@@ -1158,13 +1160,14 @@ export function initTherapistApp() {
     if (!domainCatalogs.goalRules) Object.assign(domainCatalogs, await loadCatalogs());
     const kind = el("goal-target-kind").value;
     const target = buildGoalTarget(domainCatalogs.goalRules, kind, el("goal-target-value").value);
-    const problems = goalTargetViolations(domainCatalogs.goalRules, target);
+    const problems = domainRegistry().evaluate("goal", { goal_text: el("goal-text").value, target });
     if (problems.length) {
       const first = problems[0];
       const input = el(FIELD_FOR_PATH[first.path]);
-      setFieldError(input, tm(`rule.${first.rule}`));
+      const msg = tm(`rule.${first.rule}`, first.params);
+      setFieldError(input, msg);
       input.focus();
-      announce(tm(`rule.${first.rule}`), { politeness: "assertive" });
+      announce(msg, { politeness: "assertive" });
       return;
     }
     const payload = {
@@ -1450,15 +1453,17 @@ export function initTherapistApp() {
 
   initI18n();
   // GoalTargetField: kind drives value/unit availability; the unit is derived and read-only (A2-02).
+  let domainReg = null;
+  function domainRegistry() { return domainReg || (domainReg = createDomainRegistry(domainCatalogs)); }
   function applyMeasurement() {
     const numeric = ["integer", "number"].includes(el("assessment-item-value-type").value);
     const unit = el("assessment-item-unit");
     unit.disabled = !numeric;
     if (!numeric) unit.value = "";
-    const na = el("assessment-item-not-assessed").checked;
+    const absent = el("assessment-item-state").value !== "observed";
     const v = el("assessment-item-value");
-    v.disabled = na;
-    if (na) v.value = "";
+    v.disabled = absent;
+    if (absent) v.value = "";
   }
   function applyUnits() {
     const sel = el("assessment-item-unit");
@@ -1497,11 +1502,13 @@ export function initTherapistApp() {
     if (!spec.numeric) v.value = "";
     else if (v.value === "") v.value = "3";
     v.min = String(spec.min ?? 0);
+    if (spec.max != null) v.max = String(spec.max); else v.removeAttribute("max");
   }
   loadCatalogs().then((c) => { Object.assign(domainCatalogs, c); applyGoalKind(); applyInstrument(); applyUnits(); applyMeasurement(); }).catch(() => {});
   el("goal-target-kind").addEventListener("change", applyGoalKind);
   el("assessment-item-value-type").addEventListener("change", applyMeasurement);
-  el("assessment-item-not-assessed").addEventListener("change", applyMeasurement);
+  el("assessment-item-state").addEventListener("change", applyMeasurement);
+  for (const fid of ["form-assessment", "form-goal"]) el(fid)?.addEventListener("reset", () => setTimeout(() => { applyMeasurement(); if (domainCatalogs.goalRules) applyGoalKind(); }, 0));
   el("assessment-instrument-id").addEventListener("change", syncInstrument);
   document.addEventListener("elo:lang", () => {
     // Re-render dynamic content in the new language without touching what the user typed.

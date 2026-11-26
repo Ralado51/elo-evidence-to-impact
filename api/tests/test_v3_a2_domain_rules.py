@@ -160,3 +160,18 @@ def test_goal_http_deadline_optional_valid_invalid_and_history(monkeypatch):
     syntax = client.post(url, headers=h, json={**base, "deadline": "31/12/2026"})
     assert syntax.status_code == 400 and syntax.json()["error"]["code"] == "PATTERN"
     assert len(app.state.v3_store.list_latest_entities("goal", ctx["p1_id"])) == 2
+
+
+# --- FIX-38: ceiling comes from the catalog; boundary 100000 accepted, 100001 rejected (schema code on HTTP) --------
+def test_fix38_ceiling_boundaries_http_and_rule(monkeypatch):
+    from elo.v3.domain_rules import load_a2_catalog
+    ceiling = load_a2_catalog("catalogs/goal-target-rules.v1.json")["kinds"]["session_count"]["value"]["max"]
+    assert ceiling == 100000
+    app, client, ctx = _make_seeded_app(monkeypatch)
+    ok = _post(client, ctx, {"kind": "session_count", "value": ceiling, "unit": "sessions"})
+    assert ok.status_code == 201
+    over = _post(client, ctx, {"kind": "session_count", "value": ceiling + 1, "unit": "sessions"})
+    assert over.status_code == 400 and over.json()["error"]["code"] == "OUT_OF_RANGE"
+    got = [x.rule for x in DOMAIN_RULES.evaluate("goal", _goal({"kind": "repetitions", "value": ceiling + 1, "unit": "reps"}))]
+    assert got == ["goal.count_ceiling"]
+    assert len(app.state.v3_store.list_latest_entities("goal", ctx["p1_id"])) == 1

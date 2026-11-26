@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { goalTargetSpec, buildGoalTarget, goalTargetViolations } from "../v3/domain_fields.mjs";
+import { itemStateViolations, createDomainRegistry, goalTargetSpec, buildGoalTarget, goalTargetViolations } from "../v3/domain_fields.mjs";
 
 const rules = JSON.parse(readFileSync(new URL("../v3/catalogs/goal-target-rules.v1.json", import.meta.url), "utf8"));
 const vec = JSON.parse(readFileSync(new URL("../../contracts/CL06_3-A2/contracts/fixtures/a2-vectors.json", import.meta.url), "utf8"));
@@ -56,8 +56,9 @@ test("JS-A2-06: item vectors give the same first rule as the server", () => {
 test("JS-A2-07: MeasurementField keeps zero, unknown and not-assessed apart; unit only on numeric", () => {
   const base = { key: "grip_key", assistance: "none" };
   assert.equal(buildItem({ ...base, valueType: "number", rawValue: "0", unit: "deg" }).value, 0);
-  assert.equal(buildItem({ ...base, valueType: "number", rawValue: "", unit: "deg" }).value, null);
-  const na = buildItem({ ...base, valueType: "number", rawValue: "7", unit: "deg", notAssessed: true });
+  assert.equal(buildItem({ ...base, valueType: "number", rawValue: "", unit: "deg", state: "unknown" }).value, null);
+  assert.equal(buildItem({ ...base, valueType: "number", rawValue: "", unit: "deg", state: "unknown" }).not_assessed, false);
+  const na = buildItem({ ...base, valueType: "number", rawValue: "7", unit: "deg", state: "not_assessed" });
   assert.deepEqual([na.value, na.not_assessed], [null, true]);
   assert.equal(buildItem({ ...base, valueType: "category", rawValue: "x", unit: "deg" }).unit, null);
   assert.equal(parseItemValue("boolean", "true"), true);
@@ -78,4 +79,22 @@ test("JS-A2-08: DoseField guard mirrors limits.v1 (10/100/product 100) and weekl
   assert.equal(doseViolations(limits, { ...ok, perWeek: 15 })[0].rule, "dose.sessions_week_range");
   assert.equal(doseViolations(limits, { ...ok, sets: 2.5 })[0].rule, "dose.sets_range");
   assert.equal(doseViolations(limits, { ...ok, reps: NaN })[0].rule, "dose.reps_range");
+});
+
+test("JS-FIX39: an empty observed value is a violation; absence must be chosen explicitly; zero stays valid", () => {
+  assert.equal(itemStateViolations({ state: "observed", rawValue: "" })[0].rule, "item.observed_requires_value");
+  assert.equal(itemStateViolations({ state: "observed", rawValue: "0" }).length, 0);
+  assert.equal(itemStateViolations({ state: "unknown", rawValue: "" }).length, 0);
+  assert.equal(itemStateViolations({ state: "not_assessed", rawValue: "" }).length, 0);
+});
+
+test("JS-FIX38/40: ceiling comes from the catalog; empty goal text is a field violation", () => {
+  const max = goalTargetSpec(rules, "session_count").max;
+  assert.equal(max, 100000);
+  const hi = goalTargetViolations(rules, buildGoalTarget(rules, "session_count", String(max + 1)));
+  assert.deepEqual([hi[0].rule, hi[0].params.max], ["goal.count_ceiling", max]);
+  const reg = createDomainRegistry({ goalRules: rules });
+  const t = buildGoalTarget(rules, "session_count", "3");
+  assert.equal(reg.evaluate("goal", { goal_text: "   ", target: t })[0].rule, "goal.text_required");
+  assert.deepEqual(reg.evaluate("goal", { goal_text: "ok", target: t }), []);
 });

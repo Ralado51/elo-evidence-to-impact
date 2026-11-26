@@ -106,7 +106,7 @@ await check("BR-A2-08 item: tipo numérico habilita unidade do registro; não av
   await t.waitForSelector("#assessment-item-value-error:not([hidden])");
   assert.equal(await t.evaluate(() => document.activeElement.id), "assessment-item-value");
   assert.equal(count(/assessments/), before);
-  await t.check("#assessment-item-not-assessed");
+  await t.selectOption("#assessment-item-state", "not_assessed");
   assert.equal(await t.isDisabled("#assessment-item-value"), true);
 });
 await check("BR-A2-09 item não avaliado é gravado com valor nulo e flag; zero observado é gravado como 0", async () => {
@@ -118,7 +118,7 @@ await check("BR-A2-09 item não avaliado é gravado com valor nulo e flag; zero 
   await t.waitForTimeout(800);
   let last = (await assessments()).at(-1).payload.items[0];
   assert.deepEqual([last.value, last.not_assessed, last.unit], [null, true, "deg"]);
-  await t.uncheck("#assessment-item-not-assessed");
+  await t.selectOption("#assessment-item-state", "observed");
   await t.fill("#assessment-item-key", "wrist_flexion");
   await t.fill("#assessment-item-value", "0");
   await t.click("#btn-create-assessment");

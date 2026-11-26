@@ -94,6 +94,8 @@ def goal_target_rules(entity: dict[str, Any]) -> list[Violation]:
         return [Violation("goal.count_integer", _TV, f"A {kind} goal value must be a whole number.")]
     if value < vs["min"]:
         return [Violation("goal.count_floor", _TV, f"A {kind} goal value must be at least {vs['min']}.")]
+    if value > vs["max"]:  # FIX-38: the ceiling comes from the versioned catalog (technical, not clinical)
+        return [Violation("goal.count_ceiling", _TV, f"A {kind} goal value must be at most {vs['max']}.")]
     if unit not in spec["unit"]["allowed"]:
         return [Violation("goal.count_unit_compatible", _TU, f"The unit of a {kind} goal must be empty or '{spec['unit']['derived']}'.")]
     return []

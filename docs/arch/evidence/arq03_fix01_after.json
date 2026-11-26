@@ -1,0 +1,69 @@
+{
+ "fix40_empty_goal_text": {
+  "requests_sent": 0,
+  "field": {
+   "ariaInvalid": "true",
+   "describedby": "goal-text-error",
+   "focused": "goal-text"
+  },
+  "field_error_visible": true,
+  "error": null
+ },
+ "fix38_value_100001": {
+  "requests_sent": 0,
+  "field": {
+   "ariaInvalid": "true",
+   "describedby": "goal-target-value-error",
+   "focused": "goal-target-value"
+  },
+  "field_error_visible": true,
+  "error": null,
+  "persisted_last_value": null
+ },
+ "fix38_value_100000": {
+  "requests_sent": 1,
+  "field": {
+   "ariaInvalid": null,
+   "describedby": null,
+   "focused": "btn-create-goal"
+  },
+  "field_error_visible": false,
+  "error": null,
+  "persisted_last_value": 100000
+ },
+ "fix39_numeric_empty_not_flagged": {
+  "requests_sent": 0,
+  "payload_item": null,
+  "persisted_item": null,
+  "error": null
+ },
+ "fix39_zero_control": {
+  "requests_sent": 1,
+  "payload_item": {
+   "item_key": "zero_control",
+   "value_type": "number",
+   "value": 0,
+   "unit": "deg",
+   "source": "therapist_observed",
+   "assistance": "some",
+   "not_assessed": false
+  },
+  "persisted_item": {
+   "item_key": "zero_control",
+   "value_type": "number",
+   "value": 0,
+   "unit": "deg",
+   "source": "therapist_observed",
+   "assistance": "some",
+   "not_assessed": false
+  }
+ },
+ "d01_guide_en": [
+  "Go at your own pace. If you feel pain or tiredness, stop at any time: one tap is enough.",
+  "If you feel pain, use the “Stop because of pain” button; if you feel tiredness, use the “Stop because of tiredness” button."
+ ],
+ "d01_guide_pt": [
+  "Go at your own pace. If you feel pain or tiredness, stop at any time: one tap is enough.",
+  "If you feel pain, use the “Stop because of pain” button; if you feel tiredness, use the “Stop because of tiredness” button."
+ ]
+}

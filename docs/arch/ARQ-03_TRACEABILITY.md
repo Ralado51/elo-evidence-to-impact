@@ -15,3 +15,12 @@
 | A2-01 `effective_reviews` | preservado | `test_v3_fix03_effective_reviews`, `s1_arq02_fix03*` |
 | Contratos congelados | não editados | `test_frozen_packages_untouched` |
 | Paridade de catálogos | `sync_catalogs.py` | `test_web_catalogs_in_sync`, JS-A2-05 |
+
+## FIX-01 (homologação independente)
+
+| Item | Implementação | Testes |
+|---|---|---|
+| FIX-38 limite superior | `goal.count_ceiling` (servidor, `OUT_OF_RANGE`, id novo em `rules-registry` — **pendente de ratificação**); front lê `max` do catálogo; `max` hard-coded removido do HTML | PY `test_fix38_ceiling_boundaries_http_and_rule`, vetores V-G14/15; JS-FIX38/40; BR-FIX-38 |
+| FIX-39 quatro estados | select `assessment-item-state` (observado/desconhecido/não avaliado); regra de UI `item.observed_requires_value` (sem código de contrato); `buildItem({state})` | JS-A2-07, JS-FIX39; BR-A2-08/09 (atualizados), BR-FIX-39 |
+| FIX-40 descrição vazia | `goal.text_required` (UI) via `createDomainRegistry` + `setFieldError` | JS-FIX38/40; BR-FIX-40 |
+| FIX-17/D01 | `pa.guide.4` PT/EN | BR-FIX-D01 |

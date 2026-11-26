@@ -197,7 +197,12 @@
 <select disabled="" id="assessment-item-unit" name="item_unit"><option data-i18n="th.opt.assessment-item-unit.none" value="">Sem unidade</option></select>
 </div>
 <div class="field">
-<label for="assessment-item-not-assessed"><input id="assessment-item-not-assessed" name="item_not_assessed" type="checkbox"/> <span data-i18n="th.label.assessment-item-not-assessed">Item não avaliado (sem valor)</span></label>
+<label data-i18n="th.label.assessment-item-state" for="assessment-item-state">Situação do valor</label>
+<select id="assessment-item-state" name="item_state">
+<option data-i18n="th.opt.assessment-item-state.observed" value="observed">Valor observado</option>
+<option data-i18n="th.opt.assessment-item-state.unknown" value="unknown">Desconhecido (sem valor informado)</option>
+<option data-i18n="th.opt.assessment-item-state.not_assessed" value="not_assessed">Não avaliado</option>
+</select>
 </div>
 <div class="field">
 <label data-i18n="th.label.assessment-item-assistance" for="assessment-item-assistance">Ajuda observada</label>
@@ -246,7 +251,7 @@
 </div>
 <div class="field">
 <label data-i18n="th.label.goal-target-value" for="goal-target-value">Valor do alvo</label>
-<input id="goal-target-value" max="100000" min="1" name="target_value" step="1" type="number" value="3"/>
+<input id="goal-target-value" name="target_value" step="1" type="number" value="3"/>
 </div>
 <div class="field">
 <label data-i18n="th.label.goal-target-unit" for="goal-target-unit">Unidade do alvo</label>
