@@ -63,6 +63,120 @@ ELO_PYTHON="${ELO_PYTHON:-python3}" node web/tests/browser/participant_journey.m
 
 Optional overrides: `ELO_PYTHON=<path/to/python3>`, `ELO_PLAYWRIGHT_DIR=<path/to/playwright>` (or `PW=<path/to/playwright>`). Exits `0` if and only if every check passes.
 
+### Integrated end-to-end journey harness (`web/tests/browser/e2e_journey.mjs`, S1-05)
+
+- Drives the complete S1 product loop across both `web/v3/therapist.html` and `web/v3/participant.html` against a live loopback `/api/v3` server on synthetic data (`ELO_V3_DATA_ORIGIN=synthetic_fixture`), in both **pointer** and **keyboard-only** (`pointer_events_used: 0`) passes.
+- Covers registration/care link, assessment, goal, `"Organizar a mesa"` report-only prescription, two participant report-only sessions with zero-typing reports, pre-review publication blocks (UI + API), fact approval, summary & two-session `cmp-v1` evolution publication (including R2/R11 assistance transition and unreported-session barrier check), participant simplified views, R4 therapist timeline order/labels, S0-03 `validate_event` + CL06.3 `elo_ref.py` + S1b-01 phase-rule checks, zero camera/microphone calls, and zero `/api/v1`, legacy, or pediatric exposure.
+- Run from the repository root:
+
+```bash
+ELO_PYTHON="${ELO_PYTHON:-python3}" node web/tests/browser/e2e_journey.mjs
+```
+
+Optional overrides: `ELO_PYTHON=<path/to/python3>`, `ELO_PLAYWRIGHT_DIR=<path/to/playwright>` (or `PW=<path/to/playwright>`). Exits `0` if and only if every check passes.
+
+## Run locally
+
+All local execution uses **synthetic data only** (`ELO_V3_DATA_ORIGIN=synthetic_fixture`); never use real patient or pediatric data. Run all commands below from the repository root in WSL.
+
+### 1. Prepare shell environment (WSL)
+
+Ensure Node 24+, the PO-installed `playwright-core` directory, and a Python interpreter with the API dependencies (`fastapi`, `uvicorn`, `jsonschema`) are selected (nothing is installed):
+
+```bash
+export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"
+export ELO_PLAYWRIGHT_DIR="${ELO_PLAYWRIGHT_DIR:-$HOME/hackathons/elo-platform/workspace/tools/playwright}"
+if [ -z "${ELO_PYTHON:-}" ]; then
+  for py in "$(command -v python3)" "$PWD/api/.venv/bin/python3" "$PWD/.venv/bin/python3" \
+    "$HOME/hackathons/elo-platform/workspace/scratch/"*/venv/bin/python3; do
+    if [ -x "$py" ] && "$py" -c "import fastapi, uvicorn, jsonschema" 2>/dev/null; then
+      export ELO_PYTHON="$py"
+      break
+    fi
+  done
+fi
+```
+
+### 2. Start the `/api/v3` API (Terminal 1, loopback only)
+
+```bash
+mkdir -p /tmp/elo-v3-local
+PYTHONPATH="$PWD/api/src${PYTHONPATH:+:$PYTHONPATH}" \
+ELO_DATA_DIR="/tmp/elo-v3-local" \
+ELO_V3_DATA_ORIGIN="synthetic_fixture" \
+ELO_V3_THERAPIST_SEEDS='[{"therapist_id":"t_localdemo01","username":"terapeuta_demo","password":"senha-sintetica-demo","org_id":"o_localdemo01","display_label":"Terapeuta Sintético Demo"}]' \
+"$ELO_PYTHON" -m uvicorn --factory elo.api:app_factory --host 127.0.0.1 --port 8000
+```
+
+Verify the API health endpoint:
+
+```bash
+curl -fsS http://127.0.0.1:8000/api/v3/health
+```
+
+### 3. Serve `web/v3` and proxy `/api/v3/*` (Terminal 2, loopback only)
+
+Serves only `web/v3/**` at `/v3/*` and proxies `/api/v3/*` to `http://127.0.0.1:8000` (legacy root routes and `/api/v1/*` return `404`):
+
+```bash
+node -e '
+const fs = require("node:fs");
+const http = require("node:http");
+const path = require("node:path");
+const v3Dir = path.resolve("web/v3");
+const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".mjs": "text/javascript; charset=utf-8", ".json": "application/json; charset=utf-8" };
+http.createServer(async (req, res) => {
+  const u = new URL(req.url || "/", "http://127.0.0.1");
+  if (u.pathname.startsWith("/api/v3/")) {
+    const chunks = [];
+    for await (const c of req) chunks.push(c);
+    const headers = {};
+    for (const [k, v] of Object.entries(req.headers)) {
+      if (k.toLowerCase() !== "host" && k.toLowerCase() !== "content-length" && typeof v === "string") headers[k] = v;
+    }
+    const up = await fetch(`http://127.0.0.1:8000${u.pathname}${u.search}`, {
+      method: req.method,
+      headers,
+      body: req.method === "GET" || req.method === "HEAD" ? undefined : Buffer.concat(chunks),
+    });
+    const out = {};
+    up.headers.forEach((v, k) => { if (k.toLowerCase() !== "transfer-encoding") out[k] = v; });
+    res.writeHead(up.status, out);
+    res.end(Buffer.from(await up.arrayBuffer()));
+    return;
+  }
+  if (u.pathname.startsWith("/v3/")) {
+    const fp = path.resolve(v3Dir, u.pathname.slice(4));
+    if (fp.startsWith(v3Dir + path.sep) && fs.existsSync(fp) && fs.statSync(fp).isFile()) {
+      res.writeHead(200, { "content-type": mime[path.extname(fp)] || "application/octet-stream" });
+      res.end(fs.readFileSync(fp));
+      return;
+    }
+  }
+  res.writeHead(404);
+  res.end("Not found");
+}).listen(8080, "127.0.0.1", () => console.log("web/v3 listening on http://127.0.0.1:8080/v3/therapist.html"));
+'
+```
+
+Verify the `web/v3` screens respond (and legacy `/index.html` is not served):
+
+```bash
+curl -fsS -I http://127.0.0.1:8080/v3/therapist.html
+curl -fsS -I http://127.0.0.1:8080/v3/participant.html
+```
+
+### 4. Run the browser suites H, J, P, and E (Terminal 3)
+
+Each suite spawns its own isolated loopback API/gateway on ephemeral ports using synthetic data and exits `0` only if every check passes:
+
+```bash
+node web/tests/browser/run.mjs
+node web/tests/browser/therapist_journey.mjs
+node web/tests/browser/participant_journey.mjs
+node web/tests/browser/e2e_journey.mjs
+```
+
 ## Build notes
 
 The Dockerfile fetches `@mediapipe/tasks-vision@1.2.3` and the hand model at build time, so the app serves them itself and the CSP stays `'self'`
