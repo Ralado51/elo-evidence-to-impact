@@ -8,12 +8,12 @@ Contratos congelados 3.0.0 (`CL06_3-r1`) e 3.1.0 (`CL06_3-A1`) **intactos** (man
 |---|---|---|
 | F0 | Baseline verde (Python 478 + 1 falha externa preexistente; JS 100); sondas "antes" | a42f37a |
 | F1 | `contracts/CL06_3-A2` (catálogos, schema `goal`+`deadline`, vetores, manifesto), `scripts/sync_catalogs.py`, paridade | 79031d1 |
-| F2 | ValidationRegistry (servidor `domain_rules.py`, front `validation_registry.mjs`), `field_error.mjs` extraído do DateField; hook de escrita sem regras = no-op provado | (F2) |
-| F3 | FIX-03: regras `goal.*` (alt. C), GoalTargetField (unidade derivada, `measure_value` oculto na UI) | (F3) |
-| F4 | FIX-19/20: `instrument.registry_mismatch`, InstrumentSelector | (F4) |
-| F5 | FIX-21: R1–R5, MeasurementField (zero/desconhecido/não avaliado distintos) | (F5) |
-| F6 | DoseField: guarda do front derivada de `limits.v1` | (F6) |
-| F7 | `goal.deadline` opcional (A2-03); regressão integrada; relatório; bundle | (F7) |
+| F2 | ValidationRegistry (servidor `domain_rules.py`, front `validation_registry.mjs`), `field_error.mjs` extraído do DateField; hook de escrita sem regras = no-op provado | 80cfff6 |
+| F3 | FIX-03: regras `goal.*` (alt. C), GoalTargetField (unidade derivada, `measure_value` oculto na UI) | f53cd5b |
+| F4 | FIX-19/20: `instrument.registry_mismatch`, InstrumentSelector | e093b69 |
+| F5 | FIX-21: R1–R5, MeasurementField (zero/desconhecido/não avaliado distintos) | 21b203c |
+| F6 | DoseField: guarda do front derivada de `limits.v1` | f7397e7 |
+| F7 | `goal.deadline` opcional (A2-03); regressão integrada; relatório; bundle | 075f3c2, c508456 |
 
 ## 2. Comportamento resultante (sondas antes → depois: `evidence/arq03_before.txt`, `arq03_after.txt`)
 Escritas novas agora recusadas, com **códigos existentes** e `error.details = {rule, path}` (sem novo código): unidade incompatível em metas de contagem (`ENUM`), valor fracionário (`TYPE`), zero/negativo (`OUT_OF_RANGE`), contagem sem valor e descritiva com valor (`RULE_VIOLATION`), instrumento/versão/situação fora do registro (`RULE_VIOLATION`), itens com tipo/unidade/não-avaliado/chave duplicada incoerentes. Inalterados: `measure_value` na API (D-04), medição instrumental (D-07), limites de dose (D-09), leituras, replay idempotente e registros legados (nunca revalidados).
