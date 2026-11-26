@@ -815,7 +815,10 @@ async function runPointerPass(browser, contractMatchers) {
     assert.equal(await page.locator("#error-banner").getAttribute("role"), "alert");
     assert.equal(await page.locator("#success-banner").isHidden(), true);
     assert.equal(await page.locator("#elo-live-region").getAttribute("aria-live"), "assertive");
-    assert.ok((await page.locator("#elo-live-region").textContent()).includes("CONSENT_REQUIRED"));
+    { // S1 Etapa E: the announcement is a friendly message (no internal code); the code stays in data-error-code.
+      const live = await page.locator("#elo-live-region").textContent();
+      assert.ok(live.trim().length > 10 && !live.includes("CONSENT_REQUIRED"), `live region must be a friendly message: ${live}`);
+    }
 
     // --- Row 3 forced FORBIDDEN (D-S1-04-1): server-authored event through events:batch ---
     await page.route(
@@ -856,7 +859,10 @@ async function runPointerPass(browser, contractMatchers) {
     await page.waitForSelector('#error-banner[data-error-code="FORBIDDEN"]:not([hidden])');
     assert.equal(await page.locator("#error-banner").getAttribute("role"), "alert");
     assert.equal(await page.locator("#success-banner").isHidden(), true);
-    assert.ok((await page.locator("#elo-live-region").textContent()).includes("FORBIDDEN"));
+    { // S1 Etapa E: the announcement is a friendly message (no internal code); the code stays in data-error-code.
+      const live = await page.locator("#elo-live-region").textContent();
+      assert.ok(live.trim().length > 10 && !live.includes("FORBIDDEN"), `live region must be a friendly message: ${live}`);
+    }
 
     // --- Step 3 & 4a: Normal report-only session + zero-typing basic report ("unreported") ---
     await assertBasicReportRequiresNoTyping(page);

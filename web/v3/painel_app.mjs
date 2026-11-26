@@ -7,10 +7,12 @@
 
 import { announce } from "./a11y.mjs";
 import { createV3Client } from "./api_client.mjs";
-import { TIMELINE_KIND_LABEL_PTBR, formatApiErrorMessage } from "./therapist_model.mjs";
+import { describeApiError } from "./therapist_model.mjs";
+import { initI18n, t, label as enumLabel, formatDateTime } from "./i18n.mjs";
+import { renderErrorTechnical } from "./ui_messages.mjs";
 import {
   ASSISTANCE_LEVELS,
-  EXECUTION_LABEL_PTBR,
+  executionLabel,
   chainFromSeries,
   chartGeometry,
   computeKpis,
@@ -67,14 +69,17 @@ function rememberPatient(id, alias) {
 
 function showError(error) {
   const banner = $("error-banner");
-  $("error-banner-text").textContent = formatApiErrorMessage(error);
+  const info = describeApiError(error);
+  $("error-banner-text").textContent = info.message;
+  renderErrorTechnical(banner, info.technical);
   banner.hidden = false;
-  announce(`Erro: ${formatApiErrorMessage(error)}`, { politeness: "assertive" });
+  announce(info.message, { politeness: "assertive" });
 }
 
 function clearError() {
   $("error-banner").hidden = true;
   $("error-banner-text").textContent = "";
+  renderErrorTechnical($("error-banner"), "");
 }
 
 function el(tag, props = {}, children = []) {
@@ -125,7 +130,7 @@ function renderRecents() {
   const ul = $("recents-list");
   ul.replaceChildren();
   for (const r of list) {
-    const btn = el("button", { type: "button", class: "btn btn-secondary target", text: `${r.alias || "Paciente"} (${r.id})` });
+    const btn = el("button", { type: "button", class: "btn btn-secondary target", text: r.alias || t("pn.js.participant") });
     btn.addEventListener("click", () => openPatient(r.id));
     ul.append(el("li", {}, [btn]));
   }
@@ -138,14 +143,14 @@ function renderKpis(kpis) {
   ul.replaceChildren();
   const level = (l) => (l ? ASSISTANCE_LEVELS[l].label : "—");
   const items = [
-    [String(kpis.sessions), "Sessões relatadas"],
-    [`${kpis.completed} de ${kpis.executionTotal}`, "Atividades completas"],
-    [level(kpis.firstLevel), "Ajuda na 1ª sessão"],
-    [level(kpis.latestLevel), "Ajuda na última sessão"],
+    [String(kpis.sessions), t("pn.js.kpi_sessions")],
+    [t("pn.js.of", { a: kpis.completed, b: kpis.executionTotal }), t("pn.js.kpi_complete")],
+    [level(kpis.firstLevel), t("pn.js.kpi_first")],
+    [level(kpis.latestLevel), t("pn.js.kpi_last")],
   ];
-  for (const [value, label] of items) {
+  for (const [value, text] of items) {
     ul.append(
-      el("li", { class: "kpi" }, [el("span", { class: "kpi-value", text: value }), el("span", { class: "kpi-label", text: label })])
+      el("li", { class: "kpi" }, [el("span", { class: "kpi-value", text: value }), el("span", { class: "kpi-label", text })])
     );
   }
 }
@@ -160,7 +165,7 @@ function renderChart(chain, executions) {
   const host = $("evolution-chart");
   host.replaceChildren();
   if (chain.length === 0) {
-    host.append(el("p", { class: "elo-muted", text: "Nenhuma sessão aprovada ainda. Aprove os fatos para ver a evolução." }));
+    host.append(el("p", { class: "elo-muted", text: t("pn.js.no_chart") }));
     $("evolution-chart-desc").textContent = "";
     return;
   }
@@ -169,9 +174,9 @@ function renderChart(chain, executions) {
   for (const lvl of ["full", "some", "none"]) {
     const y = g.yByLevel[lvl];
     root.append(svg("line", { class: "grid-line", x1: g.padLeft, x2: g.width - g.padRight, y1: y, y2: y }));
-    const t = svg("text", { class: "axis-label", x: g.padLeft - 12, y: y + 5, "text-anchor": "end" });
-    t.textContent = ASSISTANCE_LEVELS[lvl].label;
-    root.append(t);
+    const ax = svg("text", { class: "axis-label", x: g.padLeft - 12, y: y + 5, "text-anchor": "end" });
+    ax.textContent = ASSISTANCE_LEVELS[lvl].label;
+    root.append(ax);
   }
   root.append(
     svg("polyline", {
@@ -188,36 +193,28 @@ function renderChart(chain, executions) {
         : svg("circle", { ...common, cx: p.x, cy: p.y, r: p.level === "full" ? 10 : 9 });
     root.append(node);
     const tx = svg("text", { class: "tick-label", x: p.x, y: g.height - 28, "text-anchor": "middle" });
-    tx.textContent = `Sessão ${p.index}`;
+    tx.textContent = t("pn.js.session_n", { n: p.index });
     root.append(tx);
     const ex = svg("text", { class: "tick-label", x: p.x, y: g.height - 10, "text-anchor": "middle" });
-    ex.textContent = EXECUTION_LABEL_PTBR[executions[p.index - 1]] ? shorten(EXECUTION_LABEL_PTBR[executions[p.index - 1]]) : "";
+    ex.textContent = executions[p.index - 1] ? executionLabel(executions[p.index - 1]) : "";
     root.append(ex);
   }
   host.append(root);
   const levelsText = chain
-    .map((c, i) => `sessão ${i + 1}: ${ASSISTANCE_LEVELS[c.level].label.toLowerCase()}`)
+    .map((c, i) => t("pn.js.chart_item", { n: i + 1, level: ASSISTANCE_LEVELS[c.level].label.toLowerCase() }))
     .join("; ");
-  $("evolution-chart-desc").textContent = `Gráfico da ajuda relatada por sessão (${levelsText}). Quanto mais baixo, menos ajuda foi relatada.`;
+  $("evolution-chart-desc").textContent = t("pn.js.chart_desc", { items: levelsText });
   host.setAttribute("aria-label", $("evolution-chart-desc").textContent);
-}
-
-function shorten(label) {
-  return label === "Atividade completa" ? "Completa" : label === "Parte da atividade" ? "Parcial" : label === "Não realizou" ? "Não fez" : "—";
 }
 
 function renderTransitions(chain) {
   const ul = $("transition-list");
   ul.replaceChildren();
-  for (const t of transitionsFromChain(chain)) {
-    const text =
-      t.direction === "less_help_reported"
-        ? "↓ menos ajuda relatada"
-        : t.direction === "more_help_reported"
-          ? "↑ mais ajuda relatada"
-          : "= sem mudança";
-    const cls = t.direction === "less_help_reported" ? "chip chip-good" : t.direction === "more_help_reported" ? "chip chip-warn" : "chip chip-same";
-    ul.append(el("li", { class: cls, text: `Sessão ${t.from} → ${t.to}: ${text}` }));
+  for (const tr of transitionsFromChain(chain)) {
+    const arrow = tr.direction === "less_help_reported" ? "↓ " : tr.direction === "more_help_reported" ? "↑ " : "= ";
+    const text = arrow + enumLabel("transition", tr.direction).toLowerCase();
+    const cls = tr.direction === "less_help_reported" ? "chip chip-good" : tr.direction === "more_help_reported" ? "chip chip-warn" : "chip chip-same";
+    ul.append(el("li", { class: cls, text: t("pn.js.transition", { from: tr.from, to: tr.to, text }) }));
   }
 }
 
@@ -225,16 +222,16 @@ function renderSessions(chain, executions) {
   const ol = $("session-list");
   ol.replaceChildren();
   chain.forEach((c, i) => {
-    const exec = EXECUTION_LABEL_PTBR[executions[i]] || "Não informado";
+    const exec = executionLabel(executions[i] || "unreported");
     ol.append(
       el("li", { class: "session-row" }, [
-        el("span", { class: "session-n", text: `Sessão ${i + 1}` }),
+        el("span", { class: "session-n", text: t("pn.js.session_n", { n: i + 1 }) }),
         el("span", { class: "chip", text: exec }),
         el("span", { class: `chip ${c.level === "none" ? "chip-good" : c.level === "full" ? "chip-warn" : "chip-same"}`, text: ASSISTANCE_LEVELS[c.level].label }),
       ])
     );
   });
-  if (chain.length === 0) ol.append(el("li", { class: "elo-muted", text: "Nenhuma sessão aprovada ainda." }));
+  if (chain.length === 0) ol.append(el("li", { class: "elo-muted", text: t("pn.js.no_sessions") }));
 }
 
 function renderApproved(facts, approvedIds) {
@@ -243,7 +240,7 @@ function renderApproved(facts, approvedIds) {
   const rows = facts.filter((f) => approvedIds.has(f.fact_id) && f.rendered?.text_ptbr);
   const preferred = rows.filter((f) => f.type === "F04" || f.type === "F03");
   for (const f of preferred) {
-    const lim = (f.rendered.limitations_ptbr || []).map((t) => el("li", { text: t }));
+    const lim = (f.rendered.limitations_ptbr || []).map((txt) => el("li", { text: txt }));
     ul.append(
       el("li", { class: "approved-item", "data-fact-type": f.type }, [
         el("p", { text: f.rendered.text_ptbr }),
@@ -251,18 +248,18 @@ function renderApproved(facts, approvedIds) {
       ])
     );
   }
-  if (preferred.length === 0) ul.append(el("li", { class: "elo-muted", text: "Nenhum fato aprovado ainda." }));
+  if (preferred.length === 0) ul.append(el("li", { class: "elo-muted", text: t("pn.js.no_evidence") }));
 }
 
 function renderTimeline(items) {
   const ol = $("timeline-list");
   ol.replaceChildren();
   for (const it of items) {
-    const when = new Date(it.occurred_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+    const when = formatDateTime(it.occurred_at);
     ol.append(
       el("li", {}, [
-        el("span", { class: "when", text: `${when} ${it.origin_label || ""}` }),
-        el("span", { text: TIMELINE_KIND_LABEL_PTBR[it.kind] || it.kind }),
+        el("span", { class: "when", text: when }),
+        el("span", { text: enumLabel("timeline", it.kind) }),
       ])
     );
   }
@@ -274,7 +271,7 @@ function fillVerifySelect(chain, facts) {
   chain.forEach((c, i) => {
     const fact = facts.find((f) => f.fact_id === c.factId);
     if (!fact) return;
-    sel.append(el("option", { value: c.factId, text: `Sessão ${i + 1} — ajuda relatada: ${ASSISTANCE_LEVELS[c.level].label.toLowerCase()}` }));
+    sel.append(el("option", { value: c.factId, text: t("pn.js.verify_option", { n: i + 1, level: ASSISTANCE_LEVELS[c.level].label.toLowerCase() }) }));
   });
   const has = sel.options.length > 0;
   $("btn-verify-true").disabled = !has;
@@ -299,19 +296,40 @@ async function runVerify(kind) {
   verdict.replaceChildren();
   if (res.status === 200 && res.data?.valid) {
     verdict.dataset.verdict = "accepted";
-    verdict.append(el("span", { text: "✔ Aceita pelo verificador" }), el("p", { text: "O valor bate com as evidências registradas e o texto aprovado é o que o catálogo gera." }));
-    announce("Afirmação aceita pelo verificador.");
+    verdict.append(el("span", { text: t("pn.js.accepted") }), el("p", { text: t("pn.js.accepted_why") }));
+    announce(t("pn.js.accepted_ann"));
   } else if (res.status === 200) {
     verdict.dataset.verdict = "blocked";
-    const code = res.data?.code || "REJEITADA";
+    const code = res.data?.code || "REJECTED";
     verdict.append(
-      el("span", {}, [document.createTextNode("✖ Bloqueada pelo verificador — "), el("span", { class: "code", text: code })]),
+      el("span", {}, [document.createTextNode(t("pn.js.blocked") + " — "), el("span", { class: "code", title: t("err.tech_summary"), text: code })]),
       el("p", { text: describeVerifyFailure(code) })
     );
-    announce(`Afirmação bloqueada pelo verificador: ${code}.`, { politeness: "assertive" });
+    announce(t("pn.js.blocked_ann"), { politeness: "assertive" });
   } else {
-    showError({ code: res.data?.error?.code || "HTTP_ERROR", status: res.status, message: "Não foi possível consultar o verificador." });
+    showError({ code: res.data?.error?.code || "HTTP_ERROR", status: res.status });
   }
+}
+
+function renderPatientView() {
+  const pt = state.patient;
+  if (!pt) return;
+  $("patient-name").textContent = pt.alias;
+  const originText = pt.origin ? enumLabel("origin", pt.origin) : "";
+  $("patient-meta").textContent = t("pn.js.meta", { side: pt.side ? enumLabel("side", pt.side) : "—", origin: originText });
+  $("patient-goal").textContent = pt.goal ? t("pn.js.goal", { text: pt.goal.goal_text }) : t("pn.js.no_goal");
+  const p = pt.rx;
+  $("patient-rx").textContent = p
+    ? t("pn.js.rx", { sets: p.target_sets, reps: p.target_repetitions, per: p.sessions_per_week, mode: enumLabel("exec_mode", "report_only").toLowerCase() })
+    : t("pn.js.no_rx");
+  renderKpis(computeKpis(pt.facts, pt.chain));
+  $("evolution-headline").textContent = headline(pt.chain);
+  renderChart(pt.chain, pt.executions);
+  renderTransitions(pt.chain);
+  renderSessions(pt.chain, pt.executions);
+  renderApproved(pt.facts, pt.approvedIds);
+  fillVerifySelect(pt.chain, pt.facts);
+  renderTimeline(pt.timeline);
 }
 
 /* ---------- data loading ---------- */
@@ -320,7 +338,7 @@ async function openPatient(participantId) {
   clearError();
   const id = String(participantId || "").trim();
   if (!/^p_[A-Za-z0-9-]{8,64}$/.test(id)) {
-    showError({ code: "INVALID_ID", status: 0, message: "Informe um identificador no formato p_..." });
+    showError({ code: "INVALID_ID", status: 0 });
     return;
   }
   $("participant-id").value = id;
@@ -334,38 +352,23 @@ async function openPatient(participantId) {
       c.getEvolutionSeries(id),
       c.getTimeline(id),
     ]);
-    if (ent.status !== 200) throw { code: ent.data?.error?.code || "HTTP_ERROR", status: ent.status, message: "Paciente não encontrado." };
+    if (ent.status !== 200) throw { code: ent.data?.error?.code || "HTTP_ERROR", status: ent.status };
     const latest = ent.data[ent.data.length - 1];
-    const alias = latest?.payload?.alias || "Paciente";
-    const side = latest?.payload?.side === "left" ? "esquerdo" : latest?.payload?.side === "right" ? "direito" : "";
+    const alias = latest?.payload?.alias || t("pn.js.participant");
     const factList = facts.data?.facts || [];
     const chain = chainFromSeries(series.data);
     const executions = executionBySession(series.data, factList);
     const approvedIds = new Set((series.data?.series || []).flatMap((s) => (s.items || []).map((it) => it.fact_id)));
-    state.patient = { id, facts: factList, chain, executions };
 
-    $("patient-name").textContent = alias;
-    $("patient-meta").textContent = `${id} • lado acompanhado: ${side || "—"} • ${latest?.data_origin === "synthetic_fixture" ? "[Dados sintéticos]" : latest?.data_origin || ""}`;
     const goal = (goals.data || [])[goals.data.length - 1]?.payload;
-    $("patient-goal").textContent = goal ? `Meta: ${goal.goal_text}` : "Nenhuma meta registrada.";
-    const p = rx.data?.payload;
-    $("patient-rx").textContent = p
-      ? `Prescrição: ${p.target_sets} séries de ${p.target_repetitions} repetições, ${p.sessions_per_week} sessões por semana (modo apenas relato).`
-      : "Nenhuma prescrição publicada.";
-    renderKpis(computeKpis(factList, chain));
-    $("evolution-headline").textContent = headline(chain);
-    renderChart(chain, executions);
-    renderTransitions(chain);
-    renderSessions(chain, executions);
-    renderApproved(factList, approvedIds);
-    fillVerifySelect(chain, factList);
-    renderTimeline(timeline.data?.items || []);
+    state.patient = { id, alias, side: latest?.payload?.side || "", origin: latest?.data_origin || "", goal: goal || null, rx: rx.data?.payload || null, timeline: timeline.data?.items || [], facts: factList, chain, executions, approvedIds };
+    renderPatientView();
     $("verify-output").hidden = true;
     $("paciente").hidden = false;
     setCaseNav(true);
     rememberPatient(id, alias);
     renderRecents();
-    announce(`Paciente ${alias} carregado.`);
+    announce(t("pn.js.loaded", { alias }));
   } catch (error) {
     showError(error);
   }
@@ -388,7 +391,7 @@ async function onSignin(event) {
 function afterSignin() {
   setSignedIn(true);
   renderRecents();
-  announce("Sessão iniciada.");
+  announce(t("pn.js.signed_in"));
   const param = new URLSearchParams(window.location.search).get("participant");
   if (param) openPatient(param);
 }
@@ -403,10 +406,17 @@ function signOut() {
   }
   $("paciente").hidden = true;
   setSignedIn(false);
-  announce("Sessão encerrada.");
+  announce(t("pn.js.signed_out"));
 }
 
 function init() {
+  initI18n();
+  document.addEventListener("elo:lang", () => {
+    clearError();
+    renderRecents();
+    renderPatientView();
+    if (state.patient && !$("verify-output").hidden) $("verify-output").hidden = true;
+  });
   state.client = createV3Client({ getToken: () => state.session?.token || null });
   $("form-signin").addEventListener("submit", onSignin);
   $("form-open").addEventListener("submit", (e) => {

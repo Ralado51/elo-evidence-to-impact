@@ -9,13 +9,14 @@
 import { announce } from "./a11y.mjs";
 import { createV3Client, V3ApiError } from "./api_client.mjs";
 import { hashCanonical } from "./canonical.mjs";
+import { renderErrorTechnical } from "./ui_messages.mjs";
+import { initI18n, t, label, formatDate, formatDateTime, formatIsoDate } from "./i18n.mjs";
 import {
-  ASSISTANCE_TRANSITION_LABEL_PTBR,
-  TIMELINE_KIND_LABEL_PTBR,
   canPublishEvolution,
   canPublishSummary,
   evaluateFactGate,
-  formatApiErrorMessage,
+  describeApiError,
+  formatAssistanceTransition,
   formatExecutionMode,
   formatOriginLabel,
   getPublishableEvolutionSeries,
@@ -25,7 +26,6 @@ import {
 const SESSION_STORAGE_KEY = "elo_v3_therapist_session";
 
 const CONTEXT_STORAGE_KEY = "elo_v3_therapist_ctx";
-const SIDE_LABEL_PTBR = { right: "Direito", left: "Esquerdo" };
 
 function readStoredContext() {
   try {
@@ -125,6 +125,7 @@ export function initTherapistApp() {
     publishedSummary: null,
     publishedEvolution: null,
     timelineItems: [],
+    listView: null,
   };
 
   const client = createV3Client({
@@ -148,6 +149,7 @@ export function initTherapistApp() {
     errorBanner.removeAttribute("role");
     errorBanner.setAttribute("data-error-code", "");
     errorBannerText.textContent = "";
+    renderErrorTechnical(errorBanner, "");
   }
 
   function clearSuccess() {
@@ -155,12 +157,13 @@ export function initTherapistApp() {
     successBannerText.textContent = "";
   }
 
-  function showError(code, message) {
+  function showError(code, message, technical = "") {
     // Row 3: Never show success when an error occurs.
     clearSuccess();
     errorBanner.setAttribute("role", "alert");
     errorBanner.setAttribute("data-error-code", code || "ERROR");
     errorBannerText.textContent = message;
+    renderErrorTechnical(errorBanner, technical);
     errorBanner.hidden = false;
     announce(message, { politeness: "assertive" });
   }
@@ -172,11 +175,9 @@ export function initTherapistApp() {
     announce(message, { politeness: "polite" });
   }
 
-  function redirectToSignIn(reasonText) {
-    const msg =
-      reasonText ||
-      formatApiErrorMessage({ code: "UNAUTHENTICATED", status: 401 });
-    showError("UNAUTHENTICATED", msg);
+  function redirectToSignIn(reasonText, technical = "") {
+    const msg = reasonText || describeApiError({ code: "UNAUTHENTICATED", status: 401 }).message;
+    showError("UNAUTHENTICATED", msg, technical);
     if (window.location.hash !== "#sec-signin") {
       window.location.hash = "#sec-signin";
     }
@@ -195,19 +196,17 @@ export function initTherapistApp() {
             status: err?.status || 0,
             message: err instanceof Error ? err.message : String(err),
           });
-    const formatted = formatApiErrorMessage(apiErr);
+    const info = describeApiError(apiErr);
     if (apiErr.code === "UNAUTHENTICATED") {
-      redirectToSignIn(formatted);
+      redirectToSignIn(info.message, info.technical);
       return;
     }
-    showError(apiErr.code, formatted);
+    showError(apiErr.code, info.message, info.technical);
   }
 
   function requireAuth() {
     if (!state.session || !state.session.token) {
-      redirectToSignIn(
-        "[UNAUTHENTICATED] Sessão não autenticada. Redirecionado para a etapa 1 (Entrar como terapeuta)."
-      );
+      redirectToSignIn(t("th.js.session_required"));
       return false;
     }
     return true;
@@ -217,10 +216,7 @@ export function initTherapistApp() {
     if (!requireAuth()) return false;
     const pid = state.participantId.trim();
     if (!pid) {
-      showError(
-        "PARTICIPANT_REQUIRED",
-        "[PARTICIPANT_REQUIRED] Cadastre ou selecione um participante na etapa 2 antes de continuar."
-      );
+      showError("PARTICIPANT_REQUIRED", t("th.js.need_participant"));
       el("participant-alias")?.focus();
       return false;
     }
@@ -230,23 +226,21 @@ export function initTherapistApp() {
   function updateSessionBar() {
     if (state.session && state.session.token) {
       const p = state.session.principal || {};
-      const role = p.role || "unknown";
-      const id = p.id || "desconhecido";
-      const org = p.org_id || "desconhecida";
-      sessionSummary.textContent = `Autenticado: ${id} (perfil: ${role}, organização: ${org}).`;
+      const role = p.role ? label("role", p.role) : t("enum.unknown");
+      const id = p.id || t("enum.unknown");
+      const org = p.org_id || t("enum.unknown");
+      sessionSummary.textContent = t("th.js.session_bar", { id, role, org });
       btnSignout.hidden = false;
     } else {
-      sessionSummary.textContent =
-        "Sessão não autenticada. Entre como terapeuta na etapa 1 para continuar.";
+      sessionSummary.textContent = t("th.js.session_required");
       btnSignout.hidden = true;
     }
 
     if (state.participantId) {
       const aliasPart = state.participantAlias ? ` (${state.participantAlias})` : "";
-      const linkPart = state.careLinkId ? ` • vínculo: ${state.careLinkId}` : "";
-      participantSummary.textContent = `Participante ativo: ${state.participantId}${aliasPart}${linkPart}.`;
+      participantSummary.textContent = t("th.js.active_participant", { name: state.participantAlias || state.participantId }) + (aliasPart ? "" : "");
     } else {
-      participantSummary.textContent = "Nenhum participante selecionado.";
+      participantSummary.textContent = t("th.js.no_participant");
     }
   }
 
@@ -332,16 +326,16 @@ export function initTherapistApp() {
       const li = document.createElement("li");
       li.className = "data-card";
       li.dataset.participantId = it.participant_id;
-      appendParagraph(li, `${it.alias} • lado ${SIDE_LABEL_PTBR[it.side] || it.side || "não informado"}`);
+      appendParagraph(li, t("th.js.alias_side", { alias: it.alias, side: label("side", it.side) }));
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "btn btn-secondary target";
-      btn.textContent = "Selecionar";
-      btn.setAttribute("aria-label", `Selecionar participante ${it.alias}`);
+      btn.textContent = t("th.js.select");
+      btn.setAttribute("aria-label", t("th.js.select_aria", { alias: it.alias }));
       btn.dataset.action = "select-participant";
       btn.addEventListener("click", () => {
         setActiveParticipant(it.participant_id, it.alias, it.care_link_id, it.side);
-        showSuccess(`Participante ativo: ${it.alias}.`);
+        showSuccess(t("th.js.active_participant", { name: it.alias }));
       });
       li.appendChild(btn);
       list.appendChild(li);
@@ -349,22 +343,33 @@ export function initTherapistApp() {
     highlightSelectedParticipant();
   }
 
-  async function refreshParticipantList(q = "") {
+  function paintParticipantStatus() {
     const status = el("participant-list-status");
+    const v = state.listView;
+    if (!state.session?.token || !v) {
+      status.textContent = t("th.js.list_signin");
+      return;
+    }
+    status.textContent = v.items.length
+      ? t(v.q ? "th.js.found" : "th.js.linked", { n: v.total })
+      : v.q
+        ? t("th.js.none_found")
+        : t("th.js.none_yet");
+  }
+
+  async function refreshParticipantList(q = "") {
     if (!state.session?.token) {
-      status.textContent = "Entre como terapeuta para ver seus participantes.";
+      state.listView = null;
+      paintParticipantStatus();
       renderParticipantList([]);
       return [];
     }
     try {
       const res = await client.listParticipants(q);
       const items = res.data.participants || [];
+      state.listView = { items, q, total: res.data.total };
       renderParticipantList(items);
-      status.textContent = items.length
-        ? `${res.data.total} participante(s) ${q ? "encontrado(s)" : "vinculado(s) a você"}.`
-        : q
-          ? "Nenhum participante encontrado para essa pesquisa."
-          : "Você ainda não tem participantes. Cadastre o primeiro acima.";
+      paintParticipantStatus();
       return items;
     } catch (err) {
       handleApiError(err);
@@ -392,19 +397,17 @@ export function initTherapistApp() {
     const summaryAllowed = canPublishSummary(state.factEntries);
     btnPublishSummary.disabled = !summaryAllowed;
     if (summaryAllowed) {
-      summaryGateStatus.textContent = `Pronto para publicação: ${approvedItems.length} fato(s) elegível(is) aprovado(s) pelo terapeuta.`;
+      summaryGateStatus.textContent = t("th.js.summary_ready", { n: approvedItems.length });
     } else {
-      summaryGateStatus.textContent =
-        "Publicação bloqueada: nenhum fato elegível está efetivamente aprovado com content_hash atual.";
+      summaryGateStatus.textContent = t("th.js.summary_blocked");
     }
 
     const evolutionAllowed = canPublishEvolution(state.evolutionSeries, state.factEntries);
     btnPublishEvolution.disabled = !evolutionAllowed;
     if (evolutionAllowed) {
-      evolutionGateStatus.textContent = `Pronto para publicação: ${state.evolutionSeries.length} série(s) comparável(is) cmp-v1 com fatos aprovados.`;
+      evolutionGateStatus.textContent = t("th.js.evo_ready", { n: state.evolutionSeries.length });
     } else {
-      evolutionGateStatus.textContent =
-        "Publicação bloqueada: aprove os fatos elegíveis e carregue as séries comparáveis cmp-v1.";
+      evolutionGateStatus.textContent = t("th.js.evo_blocked");
     }
   }
 
@@ -425,10 +428,10 @@ export function initTherapistApp() {
 
       const badges = document.createElement("div");
       badges.className = "meta-badges";
-      badges.appendChild(createBadge(`Fato ${fact.type}`, "", "data-fact-type-badge", fact.type));
+      badges.appendChild(createBadge(label("fact", fact.type), "", "data-fact-type-badge", fact.type));
       badges.appendChild(createBadge(originLabel, "badge-origin", "data-origin-label", originLabel));
       badges.appendChild(
-        createBadge(`Modo de execução: ${execModeLabel}`, "badge-mode", "data-execution-mode", executionMode)
+        createBadge(t("th.js.exec_mode", { mode: execModeLabel }), "badge-mode", "data-execution-mode", executionMode)
       );
       const statusClass =
         gate.status === "approved"
@@ -440,8 +443,15 @@ export function initTherapistApp() {
       li.appendChild(badges);
 
       appendParagraph(li, fact.rendered?.text_ptbr || "", "");
-      appendParagraph(li, `Identificador: ${fact.fact_id}`, "mono");
-      appendParagraph(li, `content_hash: ${contentHash}`, "mono");
+      // Technical identifiers live only in a collapsed audit block (FIX-24/25); harness hooks keep the raw labels there.
+      const audit = document.createElement("details");
+      audit.className = "audit-details";
+      const auditSummary = document.createElement("summary");
+      auditSummary.textContent = t("th.js.audit_summary");
+      audit.appendChild(auditSummary);
+      appendParagraph(audit, `fact_id: ${fact.fact_id}`, "mono");
+      appendParagraph(audit, `content_hash: ${contentHash}`, "mono");
+      li.appendChild(audit);
 
       const lims = Array.isArray(fact.rendered?.limitations_ptbr) ? fact.rendered.limitations_ptbr : [];
       if (lims.length > 0) {
@@ -460,7 +470,7 @@ export function initTherapistApp() {
       const noteId = `review-note-${fact.fact_id}`;
       const noteLabel = document.createElement("label");
       noteLabel.setAttribute("for", noteId);
-      noteLabel.textContent = `Nota de revisão para ${fact.type} (${fact.fact_id})`;
+      noteLabel.textContent = t("th.js.note_label", { name: label("fact", fact.type) });
       const noteInput = document.createElement("input");
       noteInput.id = noteId;
       noteInput.type = "text";
@@ -477,9 +487,9 @@ export function initTherapistApp() {
       actions.className = "actions-row";
 
       const decisions = [
-        { key: "approve", label: "Aprovar fato", cls: "btn btn-primary target" },
-        { key: "reject", label: "Rejeitar fato", cls: "btn btn-secondary target" },
-        { key: "annotate", label: "Anotar fato", cls: "btn btn-secondary target" },
+        { key: "approve", label: t("th.js.act_approve"), cls: "btn btn-primary target" },
+        { key: "reject", label: t("th.js.act_reject"), cls: "btn btn-secondary target" },
+        { key: "annotate", label: t("th.js.act_annotate"), cls: "btn btn-secondary target" },
       ];
       for (const dec of decisions) {
         const btn = document.createElement("button");
@@ -524,9 +534,7 @@ export function initTherapistApp() {
       }
       renderFactsList();
       updatePublishGates();
-      showSuccess(
-        `Revisão registrada (${decision}) para ${entry.fact.type} (${entry.fact.fact_id}). Evento: ${res.data.event_id}.`
-      );
+      showSuccess(t("th.js.review_saved", { decision: label("decision", decision), name: label("fact", entry.fact.type) }));
     } catch (err) {
       handleApiError(err);
     }
@@ -548,16 +556,16 @@ export function initTherapistApp() {
 
       const badges = document.createElement("div");
       badges.className = "meta-badges";
-      badges.appendChild(createBadge(`Série ${sk.fact_type || "?"} (${sk.movement_task || ""})`, "", "", ""));
+      badges.appendChild(createBadge(t("th.js.series", { name: label("fact", sk.fact_type), movement: label("exercise", sk.movement_task || "organizar-a-mesa") }), "", "", ""));
       badges.appendChild(createBadge(originLabel, "badge-origin", "data-origin-label", originLabel));
       badges.appendChild(
-        createBadge(`Modo de execução: ${execModeLabel}`, "badge-mode", "data-execution-mode", execMode)
+        createBadge(t("th.js.exec_mode", { mode: execModeLabel }), "badge-mode", "data-execution-mode", execMode)
       );
       card.appendChild(badges);
 
       appendParagraph(
         card,
-        `Regras: cmp-v1 • Lado: ${sk.laterality || "?"} • Método: ${sk.method || "?"} • Hash da série: ${series.series_key_hash}`,
+        t("th.js.series_meta", { side: label("side", sk.laterality), method: label("method", sk.method), hash: series.series_key_hash }),
         "mono"
       );
 
@@ -572,15 +580,15 @@ export function initTherapistApp() {
         itemBadges.className = "meta-badges";
         itemBadges.appendChild(createBadge(originLabel, "badge-origin", "data-origin-label", originLabel));
         itemBadges.appendChild(
-          createBadge(`Modo de execução: ${execModeLabel}`, "badge-mode", "data-execution-mode", execMode)
+          createBadge(t("th.js.exec_mode", { mode: execModeLabel }), "badge-mode", "data-execution-mode", execMode)
         );
         itemLi.appendChild(itemBadges);
 
-        appendParagraph(itemLi, `${item.session_date_local}: ${item.text_ptbr}`);
+        appendParagraph(itemLi, `${formatIsoDate(item.session_date_local)}: ${item.text_ptbr}`);
         const ctx = item.context || {};
         appendParagraph(
           itemLi,
-          `Contexto — ajuda: ${ctx.assistance_level ?? "?"} • dor/fadiga sinalizada: ${String(ctx.pain_or_fatigue_signalled)} • dose prescrita: ${ctx.dose_prescribed ?? "?"} • término: ${ctx.session_end_reason ?? "?"}`
+          t("th.js.ctx", { help: label("assistance", ctx.assistance_level), pain: ctx.pain_or_fatigue_signalled ? t("common.yes") : t("common.no"), dose: ctx.dose_prescribed ?? t("enum.unknown"), end: label("end_reason", ctx.session_end_reason) })
         );
         itemsUl.appendChild(itemLi);
       }
@@ -590,11 +598,10 @@ export function initTherapistApp() {
         ? series.assistance_transitions
         : [];
       for (const tr of transitions) {
-        const dirLabel =
-          ASSISTANCE_TRANSITION_LABEL_PTBR[tr.direction] || String(tr.direction);
+        const dirLabel = formatAssistanceTransition(tr.direction);
         appendParagraph(
           card,
-          `Transição descritiva de ajuda relatada: ${tr.from_level} → ${tr.to_level} (${dirLabel}).`
+          t("th.js.transition", { from: label("assistance", tr.from_level), to: label("assistance", tr.to_level), dir: dirLabel })
         );
       }
 
@@ -607,7 +614,7 @@ export function initTherapistApp() {
       for (const n of state.evolutionNotices) {
         appendParagraph(
           noticeBox,
-          `Aviso de separação de série (${n.kind}): chaves diferentes: ${(n.differing_keys || []).join(", ")}.`
+          t("th.js.series_split", { what: (n.differing_keys || []).map((x) => label("series_key", x)).join(", ") })
         );
       }
       container.appendChild(noticeBox);
@@ -632,15 +639,15 @@ export function initTherapistApp() {
     badges.appendChild(createBadge("Resumo publicado", "badge-approved", "", ""));
     badges.appendChild(createBadge(originLabel, "badge-origin", "data-origin-label", originLabel));
     badges.appendChild(
-      createBadge(`Modo de execução: ${execModeLabel}`, "badge-mode", "data-execution-mode", execMode)
+      createBadge(t("th.js.exec_mode", { mode: execModeLabel }), "badge-mode", "data-execution-mode", execMode)
     );
     card.appendChild(badges);
 
     appendParagraph(
       card,
-      `Resumo ${payload.summary_id} publicado para o período ${payload.period_from} a ${payload.period_to}.`
+      t("th.js.summary_published", { from: formatIsoDate(payload.period_from), to: formatIsoDate(payload.period_to) })
     );
-    appendParagraph(card, `Evento: ${summaryEvent.event_id} • Itens: ${(payload.items || []).length}`, "mono");
+    appendParagraph(card, t("th.js.audit_event", { id: summaryEvent.event_id, n: (payload.items || []).length }), "mono");
 
     const byId = new Map(state.factEntries.map((e) => [e.fact.fact_id, e]));
     const ul = document.createElement("ul");
@@ -658,14 +665,14 @@ export function initTherapistApp() {
       itemBadges.appendChild(createBadge(itemOrigin, "badge-origin", "data-origin-label", itemOrigin));
       itemBadges.appendChild(
         createBadge(
-          `Modo de execução: ${formatExecutionMode(itemMode)}`,
+          t("th.js.exec_mode", { mode: formatExecutionMode(itemMode) }),
           "badge-mode",
           "data-execution-mode",
           itemMode
         )
       );
       li.appendChild(itemBadges);
-      appendParagraph(li, entry?.fact?.rendered?.text_ptbr || `Fato incluído: ${item.fact_id}`);
+      appendParagraph(li, entry?.fact?.rendered?.text_ptbr || t("th.js.fact_included", { id: item.fact_id }));
       appendParagraph(li, `fact_id: ${item.fact_id}`, "mono");
       ul.appendChild(li);
     }
@@ -690,16 +697,16 @@ export function initTherapistApp() {
 
     const badges = document.createElement("div");
     badges.className = "meta-badges";
-    badges.appendChild(createBadge("Evolução publicada (cmp-v1)", "badge-approved", "", ""));
+    badges.appendChild(createBadge(t("th.js.evo_badge"), "badge-approved", "", ""));
     badges.appendChild(createBadge(originLabel, "badge-origin", "data-origin-label", originLabel));
     badges.appendChild(
-      createBadge(`Modo de execução: ${execModeLabel}`, "badge-mode", "data-execution-mode", execMode)
+      createBadge(t("th.js.exec_mode", { mode: execModeLabel }), "badge-mode", "data-execution-mode", execMode)
     );
     card.appendChild(badges);
 
     appendParagraph(
       card,
-      `Evolução ${payload.evolution_id} publicada (${payload.period_from} a ${payload.period_to}) sob regras ${payload.comparability_rules_version}.`
+      t("th.js.evo_published", { from: formatIsoDate(payload.period_from), to: formatIsoDate(payload.period_to) })
     );
     appendParagraph(card, `Evento: ${ev.event_id}`, "mono");
 
@@ -716,13 +723,13 @@ export function initTherapistApp() {
 
         const ib = document.createElement("div");
         ib.className = "meta-badges";
-        ib.appendChild(createBadge(`Fato ${sk.fact_type || "?"}`, "", "", ""));
+        ib.appendChild(createBadge(label("fact", sk.fact_type), "", "", ""));
         ib.appendChild(createBadge(sOrigin, "badge-origin", "data-origin-label", sOrigin));
         ib.appendChild(
-          createBadge(`Modo de execução: ${formatExecutionMode(sMode)}`, "badge-mode", "data-execution-mode", sMode)
+          createBadge(t("th.js.exec_mode", { mode: formatExecutionMode(sMode) }), "badge-mode", "data-execution-mode", sMode)
         );
         li.appendChild(ib);
-        appendParagraph(li, `Série ${sk.movement_task || "organizar-a-mesa"} • Fato ${it.fact_id}`, "mono");
+        appendParagraph(li, t("th.js.series_item", { movement: label("exercise", sk.movement_task || "organizar-a-mesa"), fact: it.fact_id }), "mono");
         ul.appendChild(li);
       }
     }
@@ -746,18 +753,18 @@ export function initTherapistApp() {
           : formatOriginLabel(item.data_origin);
       const execMode = item.execution_mode || "not_applicable";
       const execModeLabel = formatExecutionMode(execMode);
-      const kindPt = TIMELINE_KIND_LABEL_PTBR[item.kind] || item.kind;
+      const kindPt = label("timeline", item.kind);
 
       const badges = document.createElement("div");
       badges.className = "meta-badges";
-      badges.appendChild(createBadge(`${kindPt} (${item.kind})`, "", "", ""));
+      badges.appendChild(createBadge(kindPt, "", "", ""));
       badges.appendChild(createBadge(originLabel, "badge-origin", "data-origin-label", originLabel));
       badges.appendChild(
-        createBadge(`Modo de execução: ${execModeLabel}`, "badge-mode", "data-execution-mode", execMode)
+        createBadge(t("th.js.exec_mode", { mode: execModeLabel }), "badge-mode", "data-execution-mode", execMode)
       );
       li.appendChild(badges);
 
-      appendParagraph(li, `Referência: ${item.ref} • Registrado em: ${item.occurred_at}`, "mono");
+      appendParagraph(li, t("th.js.timeline_row", { when: formatDateTime(item.occurred_at), ref: item.ref }), "mono");
       list.appendChild(li);
     }
   }
@@ -773,7 +780,7 @@ export function initTherapistApp() {
     el("participant-list-status").textContent = "Entre como terapeuta para ver seus participantes.";
     updateSessionBar();
     updatePublishGates();
-    showSuccess("Sessão encerrada.");
+    showSuccess(t("th.js.signed_out"));
     window.location.hash = "#sec-signin";
     el("signin-username")?.focus();
   });
@@ -784,7 +791,7 @@ export function initTherapistApp() {
     const username = el("signin-username").value.trim();
     const password = el("signin-password").value;
     if (!username || !password) {
-      showError("UNAUTHENTICATED", "[UNAUTHENTICATED] Informe usuário e senha do terapeuta.");
+      showError("UNAUTHENTICATED", t("th.js.need_credentials"));
       return;
     }
     try {
@@ -802,9 +809,9 @@ export function initTherapistApp() {
       box.hidden = false;
       appendParagraph(
         box,
-        `Terapeuta autenticado: ${res.data.principal.id} (organização: ${res.data.principal.org_id}).`
+        t("th.js.session_bar", { id: res.data.principal.id, role: label("role", res.data.principal.role), org: res.data.principal.org_id })
       );
-      showSuccess(`Sessão iniciada para ${res.data.principal.id}.`);
+      showSuccess(t("th.js.signed_in", { id: res.data.principal.id }));
       restoreContext();
     } catch (err) {
       handleApiError(err);
@@ -818,7 +825,7 @@ export function initTherapistApp() {
     const alias = el("participant-alias").value.trim();
     const side = el("participant-side").value;
     if (!alias) {
-      showError("MISSING_FIELD", "[MISSING_FIELD] Informe o apelido sintético do participante.");
+      showError("MISSING_FIELD", t("th.js.need_alias"));
       return;
     }
     try {
@@ -836,7 +843,7 @@ export function initTherapistApp() {
       badges.appendChild(createBadge(originLabel, "badge-origin", "data-origin-label", originLabel));
       badges.appendChild(
         createBadge(
-          `Modo de execução: ${formatExecutionMode("not_applicable")}`,
+          t("th.js.exec_mode", { mode: formatExecutionMode("not_applicable") }),
           "badge-mode",
           "data-execution-mode",
           "not_applicable"
@@ -845,11 +852,11 @@ export function initTherapistApp() {
       box.appendChild(badges);
       appendParagraph(
         box,
-        `Participante cadastrado e vinculado: ${ent.entity_id} (versão ${ent.version}, lado ${ent.payload.side}).`
+        t("th.js.registered_detail", { alias: ent.payload.alias, side: label("side", ent.payload.side) })
       );
-      appendParagraph(box, `Vínculo de cuidado (care_link): ${careLinkId}`, "mono");
+      appendParagraph(box, t("th.js.audit_link", { id: careLinkId }), "mono");
 
-      showSuccess(`Participante ${ent.payload.alias} cadastrado e vinculado.`);
+      showSuccess(t("th.js.registered", { alias: ent.payload.alias }));
       refreshParticipantList("");
     } catch (err) {
       handleApiError(err);
@@ -862,11 +869,11 @@ export function initTherapistApp() {
     if (!requireAuth()) return;
     const pid = el("active-participant-id").value.trim();
     if (!pid) {
-      showError("MISSING_FIELD", "[MISSING_FIELD] Informe um identificador de participante válido.");
+      showError("MISSING_FIELD", t("th.js.need_pid"));
       return;
     }
     setActiveParticipant(pid);
-    showSuccess(`Participante ativo definido para ${pid}.`);
+    showSuccess(t("th.js.active_participant", { name: pid }));
   });
 
   el("form-participant-search").addEventListener("submit", (event) => {
@@ -895,7 +902,7 @@ export function initTherapistApp() {
       box.hidden = false;
       box.dataset.inviteFor = state.participantId;
       const when = new Date(res.data.expires_at);
-      appendParagraph(box, `Convite gerado para ${state.participantAlias || "o participante"}. Vale até ${when.toLocaleString("pt-BR")} e só pode ser usado uma vez.`);
+      appendParagraph(box, t("th.js.invite_made", { name: state.participantAlias || t("th.js.the_participant"), when: formatDateTime(when) }));
       const input = document.createElement("input");
       input.type = "text";
       input.readOnly = true;
@@ -915,11 +922,11 @@ export function initTherapistApp() {
           showSuccess("Link do convite copiado.");
         } catch {
           input.select();
-          showError("CLIPBOARD", "Não consegui copiar sozinho. O link está selecionado: use Ctrl+C.");
+          showError("CLIPBOARD", t("th.js.copy_fail"));
         }
       });
       box.appendChild(copy);
-      announce("Convite gerado.");
+      announce(t("th.js.invite_done"));
     } catch (err) {
       handleApiError(err);
     } finally {
@@ -967,7 +974,7 @@ export function initTherapistApp() {
       badges.appendChild(createBadge(originLabel, "badge-origin", "data-origin-label", originLabel));
       badges.appendChild(
         createBadge(
-          `Modo de execução: ${formatExecutionMode("not_applicable")}`,
+          t("th.js.exec_mode", { mode: formatExecutionMode("not_applicable") }),
           "badge-mode",
           "data-execution-mode",
           "not_applicable"
@@ -976,9 +983,9 @@ export function initTherapistApp() {
       box.appendChild(badges);
       appendParagraph(
         box,
-        `Avaliação funcional registrada: ${ent.entity_id} (versão ${ent.version}) em ${ent.payload.assessment_date}.`
+        t("th.js.assess_saved_detail", { date: formatIsoDate(ent.payload.assessment_date) })
       );
-      showSuccess(`Avaliação funcional ${ent.entity_id} registrada.`);
+      showSuccess(t("th.js.assess_saved"));
     } catch (err) {
       handleApiError(err);
     }
@@ -1015,7 +1022,7 @@ export function initTherapistApp() {
       badges.appendChild(createBadge(originLabel, "badge-origin", "data-origin-label", originLabel));
       badges.appendChild(
         createBadge(
-          `Modo de execução: ${formatExecutionMode("not_applicable")}`,
+          t("th.js.exec_mode", { mode: formatExecutionMode("not_applicable") }),
           "badge-mode",
           "data-execution-mode",
           "not_applicable"
@@ -1024,7 +1031,7 @@ export function initTherapistApp() {
       box.appendChild(badges);
       appendParagraph(
         box,
-        `Meta registrada: ${ent.entity_id} (versão ${ent.version}, estado ${ent.payload.status}).`
+        t("th.js.goal_saved_detail", { status: label("goal_status", ent.payload.status) })
       );
       showSuccess(`Meta funcional ${ent.entity_id} salva.`);
     } catch (err) {
@@ -1067,7 +1074,7 @@ export function initTherapistApp() {
       badges.appendChild(createBadge(originLabel, "badge-origin", "data-origin-label", originLabel));
       badges.appendChild(
         createBadge(
-          `Modo de execução: ${formatExecutionMode(execMode)}`,
+          t("th.js.exec_mode", { mode: formatExecutionMode(execMode) }),
           "badge-mode",
           "data-execution-mode",
           execMode
@@ -1076,10 +1083,10 @@ export function initTherapistApp() {
       box.appendChild(badges);
       appendParagraph(
         box,
-        `Prescrição publicada: ${rxData.prescription_id} (revisão ${rxData.revision}) — Organizar a mesa (modo de relato apenas).`
+        t("th.js.rx_saved_detail", { rev: rxData.revision, movement: label("exercise", "organizar-a-mesa"), mode: formatExecutionMode("report_only") })
       );
       appendParagraph(box, `Evento: ${rxData.event_id}`, "mono");
-      showSuccess(`Prescrição ${rxData.prescription_id} (revisão ${rxData.revision}) publicada.`);
+      showSuccess(t("th.js.rx_saved", { rev: rxData.revision }));
     } catch (err) {
       handleApiError(err);
     }
@@ -1127,9 +1134,9 @@ export function initTherapistApp() {
       summaryBox.hidden = false;
       appendParagraph(
         summaryBox,
-        `${entries.length} fato(s) verificado(s) carregado(s) (catálogo v${res.data?.catalog_version || "2"}).`
+        t("th.js.facts_loaded_detail", { n: entries.length })
       );
-      showSuccess(`${entries.length} fato(s) verificado(s) carregado(s) para revisão.`);
+      showSuccess(t("th.js.facts_loaded_detail", { n: entries.length }));
     } catch (err) {
       handleApiError(err);
     }
@@ -1143,7 +1150,7 @@ export function initTherapistApp() {
     if (items.length === 0) {
       showError(
         "FACT_NOT_APPROVED",
-        formatApiErrorMessage({ code: "FACT_NOT_APPROVED", status: 422 })
+        describeApiError({ code: "FACT_NOT_APPROVED", status: 422 }).message
       );
       return;
     }
@@ -1176,7 +1183,7 @@ export function initTherapistApp() {
       renderEvolutionSeries();
       updatePublishGates();
       showSuccess(
-        `${state.evolutionSeries.length} série(s) comparável(is) carregada(s) sob regras ${res.data?.rules_version || "cmp-v1"}.`
+        t("th.js.series_loaded", { n: state.evolutionSeries.length })
       );
     } catch (err) {
       handleApiError(err);
@@ -1195,7 +1202,7 @@ export function initTherapistApp() {
     ) {
       showError(
         "UNREVIEWED_FACT_IN_EVOLUTION",
-        formatApiErrorMessage({ code: "UNREVIEWED_FACT_IN_EVOLUTION", status: 409 })
+        describeApiError({ code: "UNREVIEWED_FACT_IN_EVOLUTION", status: 409 }).message
       );
       return;
     }
@@ -1211,7 +1218,7 @@ export function initTherapistApp() {
       const getRes = await client.getEvolution(pubRes.data.evolution_id);
       state.publishedEvolution = getRes.data;
       renderPublishedEvolution(getRes.data);
-      showSuccess(`Evolução ${pubRes.data.evolution_id} publicada e verificada.`);
+      showSuccess(t("th.js.evo_ok"));
     } catch (err) {
       handleApiError(err);
     }
@@ -1229,8 +1236,8 @@ export function initTherapistApp() {
       const box = el("timeline-summary");
       clearElement(box);
       box.hidden = false;
-      appendParagraph(box, `Linha do tempo carregada com ${items.length} registro(s) ordenado(s).`);
-      showSuccess(`Linha do tempo carregada com ${items.length} item(ns).`);
+      appendParagraph(box, t("th.js.timeline_loaded", { n: items.length }));
+      showSuccess(t("th.js.timeline_loaded", { n: items.length }));
     } catch (err) {
       handleApiError(err);
     }
@@ -1240,18 +1247,33 @@ export function initTherapistApp() {
   window.addEventListener("hashchange", () => {
     if (!state.session?.token && PROTECTED_HASHES.has(window.location.hash)) {
       redirectToSignIn(
-        "[UNAUTHENTICATED] Sessão não autenticada. Redirecionado para a etapa 1 (Entrar como terapeuta)."
+        t("th.js.session_required")
       );
     }
   });
 
+  initI18n();
+  document.addEventListener("elo:lang", () => {
+    // Re-render dynamic content in the new language without touching what the user typed.
+    clearError();
+    clearSuccess();
+    updateSessionBar();
+    updatePublishGates();
+    renderFactsList();
+    renderEvolutionSeries();
+    renderTimeline(state.timelineItems || []);
+    if (state.publishedSummary) renderPublishedSummary(state.publishedSummary);
+    if (state.publishedEvolution) renderPublishedEvolution(state.publishedEvolution);
+    if (state.listView) renderParticipantList(state.listView.items);
+    paintParticipantStatus();
+  });
   updateSessionBar();
   updatePublishGates();
   if (state.session?.token) restoreContext();
 
   if (!state.session?.token && PROTECTED_HASHES.has(window.location.hash)) {
     redirectToSignIn(
-      "[UNAUTHENTICATED] Sessão não autenticada. Redirecionado para a etapa 1 (Entrar como terapeuta)."
+      t("th.js.session_required")
     );
   }
 }

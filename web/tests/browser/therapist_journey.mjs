@@ -793,7 +793,10 @@ async function runPointerPass(browser, contractMatchers) {
     assert.equal(await page.locator("#error-banner").getAttribute("role"), "alert");
     assert.equal(await page.locator("#success-banner").isHidden(), true, "No success may be shown on CONTENT_HASH_STALE");
     assert.equal(await page.locator("#elo-live-region").getAttribute("aria-live"), "assertive");
-    assert.ok((await page.locator("#elo-live-region").textContent()).includes("CONTENT_HASH_STALE"));
+    { // S1 Etapa E: the announcement is a friendly message (no internal code); the code stays in data-error-code.
+      const live = await page.locator("#elo-live-region").textContent();
+      assert.ok(live.trim().length > 10 && !live.includes("CONTENT_HASH_STALE"), `live region must be a friendly message: ${live}`);
+    }
 
     // --- Step 7a: Publish Summary cleanly ---
     await page.click("#btn-publish-summary");
@@ -858,7 +861,10 @@ async function runPointerPass(browser, contractMatchers) {
     await page.waitForSelector('#error-banner[data-error-code="UNREVIEWED_FACT_IN_EVOLUTION"]:not([hidden])');
     assert.equal(await page.locator("#error-banner").getAttribute("role"), "alert");
     assert.equal(await page.locator("#success-banner").isHidden(), true);
-    assert.ok((await page.locator("#elo-live-region").textContent()).includes("UNREVIEWED_FACT_IN_EVOLUTION"));
+    { // S1 Etapa E: the announcement is a friendly message (no internal code); the code stays in data-error-code.
+      const live = await page.locator("#elo-live-region").textContent();
+      assert.ok(live.trim().length > 10 && !live.includes("UNREVIEWED_FACT_IN_EVOLUTION"), `live region must be a friendly message: ${live}`);
+    }
 
     // --- Row 3 forced API error #3: COMPARABILITY_VIOLATION (real API response: mix F02 + F03 in one series) ---
     const f02Approved = approvedFacts.find((f) => f.factType === "F02");
@@ -896,7 +902,10 @@ async function runPointerPass(browser, contractMatchers) {
     await page.waitForSelector('#error-banner[data-error-code="COMPARABILITY_VIOLATION"]:not([hidden])');
     assert.equal(await page.locator("#error-banner").getAttribute("role"), "alert");
     assert.equal(await page.locator("#success-banner").isHidden(), true);
-    assert.ok((await page.locator("#elo-live-region").textContent()).includes("COMPARABILITY_VIOLATION"));
+    { // S1 Etapa E: the announcement is a friendly message (no internal code); the code stays in data-error-code.
+      const live = await page.locator("#elo-live-region").textContent();
+      assert.ok(live.trim().length > 10 && !live.includes("COMPARABILITY_VIOLATION"), `live region must be a friendly message: ${live}`);
+    }
 
     // Approve remaining fact, reload comparable series, and verify F1 stale-refresh gate:
     // Append a genuine later report that invalidates 2 cached F03/F04 facts, refresh facts,

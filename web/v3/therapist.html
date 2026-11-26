@@ -1,407 +1,388 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+
+<html data-i18n-title="th.title" lang="pt-BR">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Elo v3 — Jornada do terapeuta</title>
-  <link rel="stylesheet" href="./tokens.css">
-  <link rel="stylesheet" href="./base.css">
-  <link rel="stylesheet" href="./therapist.css">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>Elo — Jornada do terapeuta</title>
+<link href="./tokens.css" rel="stylesheet"/>
+<link href="./base.css" rel="stylesheet"/>
+<link href="./therapist.css" rel="stylesheet"/>
 </head>
 <body>
-  <a class="skip-link target" href="#main">Pular para o conteúdo principal</a>
-
-  <header class="site-header">
-    <div class="site-header-inner">
-      <p class="site-brand">Elo v3 — Área do terapeuta</p>
-      <p class="step-lead">[Dados sintéticos] • Modo de relato apenas (report_only) • API /api/v3</p>
-      <nav class="therapist-nav" aria-label="Etapas da jornada do terapeuta">
-        <a class="target" href="#sec-signin">1. Entrar</a>
-        <a class="target" href="#sec-participant">2. Participante</a>
-        <a class="target" href="#sec-assessment">3. Avaliação</a>
-        <a class="target" href="#sec-goal">4. Meta</a>
-        <a class="target" href="#sec-prescription">5. Prescrição</a>
-        <a class="target" href="#sec-facts">6. Fatos e revisão</a>
-        <a class="target" href="#sec-publications">7. Resumo e evolução</a>
-        <a class="target" href="#sec-timeline">8. Linha do tempo</a>
-      </nav>
-    </div>
-  </header>
-
-  <main id="main" class="main" tabindex="-1">
-    <h1>Jornada clínica do terapeuta</h1>
-
-    <section class="session-bar" aria-label="Estado da sessão do terapeuta">
-      <div>
-        <p id="session-summary">Sessão não autenticada. Entre como terapeuta na etapa 1 para continuar.</p>
-        <p id="active-participant-summary">Nenhum participante selecionado.</p>
-      </div>
-      <button type="button" id="btn-signout" class="btn btn-secondary target" hidden>Sair da sessão</button>
-    </section>
-
-    <section id="error-banner" class="banner banner-error" hidden tabindex="-1" data-error-code="">
-      <p id="error-banner-text"></p>
-    </section>
-
-    <section id="success-banner" class="banner banner-success" hidden>
-      <p id="success-banner-text"></p>
-    </section>
-
-    <!-- Etapa 1: Login do terapeuta -->
-    <section id="sec-signin" class="step-card" aria-labelledby="heading-signin">
-      <h2 id="heading-signin">1. Entrar como terapeuta</h2>
-      <p class="step-lead">Autenticação via POST /api/v3/auth/therapist usando credenciais sintéticas.</p>
-      <form id="form-signin" novalidate>
-        <div class="field-grid field-grid-two">
-          <div class="field">
-            <label for="signin-username">Usuário do terapeuta</label>
-            <input id="signin-username" name="username" type="text" autocomplete="username" required>
-          </div>
-          <div class="field">
-            <label for="signin-password">Senha</label>
-            <input id="signin-password" name="password" type="password" autocomplete="current-password" required>
-          </div>
-        </div>
-        <div class="actions-row">
-          <button type="submit" id="btn-signin" class="btn btn-primary target">Entrar</button>
-        </div>
-      </form>
-      <div id="signin-result" class="result-box" hidden></div>
-    </section>
-
-    <!-- Etapa 2: Cadastrar e vincular participante -->
-    <section id="sec-participant" class="step-card" aria-labelledby="heading-participant">
-      <h2 id="heading-participant">2. Participante</h2>
-      <p class="step-lead">Cadastre um participante sintético novo ou escolha um da sua lista.</p>
-      <form id="form-participant" novalidate>
-        <div class="field-grid field-grid-two">
-          <div class="field">
-            <label for="participant-alias">Apelido sintético do participante</label>
-            <input id="participant-alias" name="alias" type="text" maxlength="40" value="Participante Sintetico 01" required>
-          </div>
-          <div class="field">
-            <label for="participant-side">Lado acompanhado</label>
-            <select id="participant-side" name="side">
-              <option value="right">Direito (right)</option>
-              <option value="left">Esquerdo (left)</option>
-            </select>
-          </div>
-        </div>
-        <div class="actions-row">
-          <button type="submit" id="btn-create-participant" class="btn btn-primary target">Cadastrar e vincular participante</button>
-        </div>
-      </form>
-
-      <div class="sub-panel">
-        <h3>Meus participantes</h3>
-        <form id="form-participant-search" novalidate role="search">
-          <div class="field-grid">
-            <div class="field">
-              <label for="participant-search">Pesquisar pelo apelido</label>
-              <input id="participant-search" name="q" type="search" maxlength="40" autocomplete="off">
-            </div>
-          </div>
-          <div class="actions-row">
-            <button type="submit" id="btn-search-participants" class="btn btn-secondary target">Pesquisar</button>
-          </div>
-        </form>
-        <p id="participant-list-status" class="step-lead">Entre como terapeuta para ver seus participantes.</p>
-        <ul id="participant-list" class="card-list" aria-label="Participantes vinculados a você"></ul>
-        <form id="form-select-participant" novalidate>
-          <div class="field-grid">
-            <div class="field">
-              <label for="active-participant-id">Participante ativo (preenchido ao selecionar na lista)</label>
-              <input id="active-participant-id" name="participant_id" type="text" placeholder="Selecione na lista acima" autocomplete="off">
-            </div>
-          </div>
-          <div class="actions-row">
-            <button type="submit" id="btn-select-participant" class="btn btn-secondary target">Confirmar participante ativo</button>
-          </div>
-        </form>
-      </div>
-
-      <div class="sub-panel" id="invite-panel">
-        <h3>Convite para o participante</h3>
-        <p class="step-lead">Gera um código de uso único. Envie o link ao participante: ele abre a tela de prática já com o código preenchido.</p>
-        <div class="field-grid field-grid-two">
-          <div class="field">
-            <label for="invite-ttl">Validade do convite</label>
-            <select id="invite-ttl" name="ttl">
-              <option value="3600" selected>1 hora</option>
-              <option value="86400">24 horas</option>
-              <option value="900">15 minutos</option>
-            </select>
-          </div>
-        </div>
-        <div class="actions-row">
-          <button type="button" id="btn-create-invite" class="btn btn-primary target" disabled>Gerar convite</button>
-        </div>
-        <div id="invite-result" class="result-box" hidden aria-live="off"></div>
-      </div>
-
-      <div id="participant-result" class="result-box" hidden></div>
-    </section>
-
-    <!-- Etapa 3: Avaliação funcional -->
-    <section id="sec-assessment" class="step-card" aria-labelledby="heading-assessment">
-      <h2 id="heading-assessment">3. Registrar avaliação funcional</h2>
-      <p class="step-lead">Registra avaliação funcional versionada para o participante ativo.</p>
-      <form id="form-assessment" novalidate>
-        <div class="field-grid field-grid-two">
-          <div class="field">
-            <label for="assessment-date">Data da avaliação (AAAA-MM-DD)</label>
-            <input id="assessment-date" name="assessment_date" type="text" inputmode="numeric" pattern="[0-9]{4}-[0-9]{2}-[0-9]{2}" value="2026-10-01" required>
-          </div>
-          <div class="field">
-            <label for="assessment-segment">Segmento corporal</label>
-            <select id="assessment-segment" name="body_segment">
-              <option value="hand">Mão (hand)</option>
-              <option value="wrist">Punho (wrist)</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="assessment-side">Lado avaliado</label>
-            <select id="assessment-side" name="side">
-              <option value="right">Direito (right)</option>
-              <option value="left">Esquerdo (left)</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="assessment-instrument-id">Identificador do instrumento</label>
-            <input id="assessment-instrument-id" name="instrument_id" type="text" value="elo_hand_screen" required>
-          </div>
-          <div class="field">
-            <label for="assessment-instrument-version">Versão do instrumento</label>
-            <input id="assessment-instrument-version" name="instrument_version" type="text" value="1.0" required>
-          </div>
-          <div class="field">
-            <label for="assessment-instrument-status">Situação do instrumento</label>
-            <select id="assessment-instrument-status" name="instrument_status">
-              <option value="unvalidated_custom">Customizado não validado (unvalidated_custom)</option>
-              <option value="validated_with_therapists">Validado com terapeutas (validated_with_therapists)</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="assessment-item-key">Chave do item avaliado</label>
-            <input id="assessment-item-key" name="item_key" type="text" value="grip_open_close" required>
-          </div>
-          <div class="field">
-            <label for="assessment-item-value">Valor descritivo do item</label>
-            <input id="assessment-item-value" name="item_value" type="text" value="parcial" required>
-          </div>
-          <div class="field">
-            <label for="assessment-item-assistance">Ajuda observada</label>
-            <select id="assessment-item-assistance" name="assistance">
-              <option value="some">Alguma ajuda (some)</option>
-              <option value="none">Sem ajuda (none)</option>
-              <option value="full">Ajuda total (full)</option>
-              <option value="not_assessed">Não avaliado (not_assessed)</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="assessment-note">Nota clínica da avaliação</label>
-            <textarea id="assessment-note" name="therapist_note" rows="2">Registro sintético inicial de mão em modo descritivo.</textarea>
-          </div>
-        </div>
-        <div class="actions-row">
-          <button type="submit" id="btn-create-assessment" class="btn btn-primary target">Registrar avaliação funcional</button>
-        </div>
-      </form>
-      <div id="assessment-result" class="result-box" hidden></div>
-    </section>
-
-    <!-- Etapa 4: Meta funcional -->
-    <section id="sec-goal" class="step-card" aria-labelledby="heading-goal">
-      <h2 id="heading-goal">4. Definir meta funcional</h2>
-      <p class="step-lead">Cria uma meta versionada vinculada ao participante ativo.</p>
-      <form id="form-goal" novalidate>
-        <div class="field-grid field-grid-two">
-          <div class="field">
-            <label for="goal-text">Descrição da meta</label>
-            <input id="goal-text" name="goal_text" type="text" maxlength="300" value="Realizar sessões relatadas de organizar a mesa com a mão direita." required>
-          </div>
-          <div class="field">
-            <label for="goal-segment">Segmento corporal da meta</label>
-            <select id="goal-segment" name="body_segment">
-              <option value="hand">Mão (hand)</option>
-              <option value="wrist">Punho (wrist)</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="goal-target-kind">Tipo de alvo</label>
-            <select id="goal-target-kind" name="target_kind">
-              <option value="session_count">Número de sessões (session_count)</option>
-              <option value="repetitions">Repetições (repetitions)</option>
-              <option value="descriptive_text">Texto descritivo (descriptive_text)</option>
-              <option value="measure_value">Valor de medida (measure_value)</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="goal-target-value">Valor do alvo</label>
-            <input id="goal-target-value" name="target_value" type="number" min="0" max="100000" value="3">
-          </div>
-          <div class="field">
-            <label for="goal-target-unit">Unidade do alvo</label>
-            <input id="goal-target-unit" name="target_unit" type="text" value="sessions">
-          </div>
-          <div class="field">
-            <label for="goal-status">Estado da meta</label>
-            <select id="goal-status" name="status">
-              <option value="active">Ativa (active)</option>
-              <option value="achieved_confirmed">Confirmada pelo terapeuta (achieved_confirmed)</option>
-              <option value="discontinued">Descontinuada (discontinued)</option>
-            </select>
-          </div>
-        </div>
-        <div class="actions-row">
-          <button type="submit" id="btn-create-goal" class="btn btn-primary target">Salvar meta funcional</button>
-        </div>
-      </form>
-      <div id="goal-result" class="result-box" hidden></div>
-    </section>
-
-    <!-- Etapa 5: Prescrição (Organizar a mesa, modo de relato apenas) -->
-    <section id="sec-prescription" class="step-card" aria-labelledby="heading-prescription">
-      <h2 id="heading-prescription">5. Publicar prescrição — Organizar a mesa</h2>
-      <p class="step-lead">Modo de relato apenas (report_only): este fluxo não utiliza câmera.</p>
-      <form id="form-prescription" novalidate>
-        <div class="field-grid field-grid-two">
-          <div class="field">
-            <label for="rx-exercise">Exercício prescrito</label>
-            <select id="rx-exercise" name="exercise_id">
-              <option value="organizar-a-mesa">Organizar a mesa (organizar-a-mesa)</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="rx-movement">Movimento permitido</label>
-            <select id="rx-movement" name="permitted_movement">
-              <option value="hand_open_close">Abrir e fechar a mão (hand_open_close)</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="rx-side">Lado prescrito</label>
-            <select id="rx-side" name="side">
-              <option value="right">Direito (right)</option>
-              <option value="left">Esquerdo (left)</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="rx-sets">Séries por sessão (1 a 10)</label>
-            <input id="rx-sets" name="target_sets" type="number" min="1" max="10" value="2" required>
-          </div>
-          <div class="field">
-            <label for="rx-reps">Repetições por série (1 a 100)</label>
-            <input id="rx-reps" name="target_repetitions" type="number" min="1" max="100" value="10" required>
-          </div>
-          <div class="field">
-            <label for="rx-sessions-week">Sessões por semana (1 a 14)</label>
-            <input id="rx-sessions-week" name="sessions_per_week" type="number" min="1" max="14" value="3" required>
-          </div>
-          <div class="field">
-            <label for="rx-valid-from">Válida a partir de (AAAA-MM-DD)</label>
-            <input id="rx-valid-from" name="valid_from" type="text" inputmode="numeric" pattern="[0-9]{4}-[0-9]{2}-[0-9]{2}" value="2026-10-01" required>
-          </div>
-          <div class="field">
-            <label for="rx-valid-to">Válida até (AAAA-MM-DD)</label>
-            <input id="rx-valid-to" name="valid_to" type="text" inputmode="numeric" pattern="[0-9]{4}-[0-9]{2}-[0-9]{2}" value="2026-10-31">
-          </div>
-          <div class="field">
-            <label for="rx-timezone">Fuso horário</label>
-            <select id="rx-timezone" name="timezone">
-              <option value="America/Sao_Paulo">America/Sao_Paulo</option>
-              <option value="America/Manaus">America/Manaus</option>
-              <option value="America/Recife">America/Recife</option>
-              <option value="America/Bahia">America/Bahia</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="rx-instructions">Instruções ao participante (PT-BR)</label>
-            <textarea id="rx-instructions" name="instructions_ptbr" rows="2">Organizar a mesa com calma no modo apenas relato e registrar a assistência utilizada.</textarea>
-          </div>
-        </div>
-        <div class="actions-row">
-          <button type="submit" id="btn-publish-prescription" class="btn btn-primary target">Publicar prescrição</button>
-        </div>
-      </form>
-      <div id="prescription-result" class="result-box" hidden></div>
-    </section>
-
-    <!-- Etapa 6: Revisar fatos verificados -->
-    <section id="sec-facts" class="step-card" aria-labelledby="heading-facts">
-      <h2 id="heading-facts">6. Revisar fatos verificados</h2>
-      <p class="step-lead">Cada fato exibe origem dos dados e modo de execução. Apenas fatos aprovados pelo terapeuta podem ser publicados.</p>
-      <div class="actions-row">
-        <button type="button" id="btn-load-facts" class="btn btn-primary target">Carregar fatos verificados</button>
-      </div>
-      <div id="facts-summary" class="result-box" hidden></div>
-      <ul id="facts-list" class="card-list" aria-label="Lista de fatos verificados"></ul>
-    </section>
-
-    <!-- Etapa 7: Publicar resumo e evolução descritiva -->
-    <section id="sec-publications" class="step-card" aria-labelledby="heading-publications">
-      <h2 id="heading-publications">7. Publicar resumo e evolução descritiva</h2>
-
-      <div class="sub-panel">
-        <h3>Publicar resumo (POST /api/v3/summaries)</h3>
-        <p id="summary-gate-status" class="step-lead">Publicação bloqueada: nenhum fato elegível foi aprovado ainda.</p>
-        <form id="form-summary" novalidate>
-          <div class="field-grid field-grid-two">
-            <div class="field">
-              <label for="summary-period-from">Período inicial do resumo (AAAA-MM-DD)</label>
-              <input id="summary-period-from" name="period_from" type="text" inputmode="numeric" pattern="[0-9]{4}-[0-9]{2}-[0-9]{2}" value="2026-10-01" required>
-            </div>
-            <div class="field">
-              <label for="summary-period-to">Período final do resumo (AAAA-MM-DD)</label>
-              <input id="summary-period-to" name="period_to" type="text" inputmode="numeric" pattern="[0-9]{4}-[0-9]{2}-[0-9]{2}" value="2026-10-31" required>
-            </div>
-          </div>
-          <div class="actions-row">
-            <button type="submit" id="btn-publish-summary" class="btn btn-primary target" disabled>Publicar resumo</button>
-          </div>
-        </form>
-        <div id="summary-result" class="result-box" hidden></div>
-      </div>
-
-      <div class="sub-panel">
-        <h3>Publicar evolução descritiva (cmp-v1)</h3>
-        <p id="evolution-gate-status" class="step-lead">Publicação bloqueada: aprove os fatos e carregue as séries comparáveis cmp-v1.</p>
-        <div class="actions-row">
-          <button type="button" id="btn-load-evolution-series" class="btn btn-secondary target">Carregar séries comparáveis (cmp-v1)</button>
-        </div>
-        <div id="evolution-series-container" class="card-list"></div>
-        <form id="form-evolution" novalidate>
-          <div class="field-grid field-grid-two">
-            <div class="field">
-              <label for="evolution-period-from">Período inicial da evolução (AAAA-MM-DD)</label>
-              <input id="evolution-period-from" name="period_from" type="text" inputmode="numeric" pattern="[0-9]{4}-[0-9]{2}-[0-9]{2}" value="2026-10-01" required>
-            </div>
-            <div class="field">
-              <label for="evolution-period-to">Período final da evolução (AAAA-MM-DD)</label>
-              <input id="evolution-period-to" name="period_to" type="text" inputmode="numeric" pattern="[0-9]{4}-[0-9]{2}-[0-9]{2}" value="2026-10-31" required>
-            </div>
-          </div>
-          <div class="actions-row">
-            <button type="submit" id="btn-publish-evolution" class="btn btn-primary target" disabled>Publicar evolução</button>
-          </div>
-        </form>
-        <div id="evolution-result" class="result-box" hidden></div>
-      </div>
-    </section>
-
-    <!-- Etapa 8: Linha do tempo -->
-    <section id="sec-timeline" class="step-card" aria-labelledby="heading-timeline">
-      <h2 id="heading-timeline">8. Linha do tempo do participante</h2>
-      <p class="step-lead">Histórico unificado de entidades clínicas versionadas e eventos publicados.</p>
-      <div class="actions-row">
-        <button type="button" id="btn-load-timeline" class="btn btn-primary target">Carregar linha do tempo</button>
-      </div>
-      <div id="timeline-summary" class="result-box" hidden></div>
-      <ol id="timeline-list" class="card-list" aria-label="Itens da linha do tempo"></ol>
-    </section>
-  </main>
-
-  <div id="elo-live-region" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
-
-  <script type="module" src="./therapist_app.mjs"></script>
+<a class="skip-link target" data-i18n="th.root.a" href="#main">Pular para o conteúdo principal</a>
+<header class="site-header">
+<div class="site-header-inner">
+<p class="site-brand" data-i18n="th.header.p">Elo — Área do terapeuta</p>
+<p class="step-lead" data-i18n="th.header.p.2">[Dados sintéticos] • Prática por autorrelato</p>
+<nav aria-label="Etapas da jornada do terapeuta" class="therapist-nav" data-i18n-attr="aria-label:th.header.nav.aria">
+<a class="target" data-i18n="th.nav.a" href="#sec-signin">1. Entrar</a>
+<a class="target" data-i18n="th.nav.a.2" href="#sec-participant">2. Participante</a>
+<a class="target" data-i18n="th.nav.a.3" href="#sec-assessment">3. Avaliação</a>
+<a class="target" data-i18n="th.nav.a.4" href="#sec-goal">4. Meta</a>
+<a class="target" data-i18n="th.nav.a.5" href="#sec-prescription">5. Prescrição</a>
+<a class="target" data-i18n="th.nav.a.6" href="#sec-facts">6. Evidências e revisão</a>
+<a class="target" data-i18n="th.nav.a.7" href="#sec-publications">7. Resumo e evolução</a>
+<a class="target" data-i18n="th.nav.a.8" href="#sec-timeline">8. Linha do tempo</a>
+</nav>
+</div>
+</header>
+<main class="main" id="main" tabindex="-1">
+<h1 data-i18n="th.main.h1">Jornada clínica do terapeuta</h1>
+<section aria-label="Estado da sessão do terapeuta" class="session-bar" data-i18n-attr="aria-label:th.main.section.aria">
+<div>
+<p data-i18n="th.session-summary" id="session-summary">Sessão não autenticada. Entre como terapeuta na etapa 1 para continuar.</p>
+<p data-i18n="th.active-participant-summary" id="active-participant-summary">Nenhum participante selecionado.</p>
+</div>
+<button class="btn btn-secondary target" data-i18n="th.btn-signout" hidden="" id="btn-signout" type="button">Sair da sessão</button>
+</section>
+<section class="banner banner-error" data-error-code="" hidden="" id="error-banner" tabindex="-1">
+<p id="error-banner-text"></p>
+</section>
+<section class="banner banner-success" hidden="" id="success-banner">
+<p id="success-banner-text"></p>
+</section>
+<!-- Etapa 1: Login do terapeuta -->
+<section aria-labelledby="heading-signin" class="step-card" id="sec-signin">
+<h2 data-i18n="th.heading-signin" id="heading-signin">1. Entrar como terapeuta</h2>
+<p class="step-lead" data-i18n="th.sec-signin.p">Entre com as credenciais sintéticas de demonstração.</p>
+<form id="form-signin" novalidate="">
+<div class="field-grid field-grid-two">
+<div class="field">
+<label data-i18n="th.label.signin-username" for="signin-username">Usuário do terapeuta</label>
+<input autocomplete="username" id="signin-username" name="username" required="" type="text"/>
+</div>
+<div class="field">
+<label data-i18n="th.label.signin-password" for="signin-password">Senha</label>
+<input autocomplete="current-password" id="signin-password" name="password" required="" type="password"/>
+</div>
+</div>
+<div class="actions-row">
+<button class="btn btn-primary target" data-i18n="th.btn-signin" id="btn-signin" type="submit">Entrar</button>
+</div>
+</form>
+<div class="result-box" hidden="" id="signin-result"></div>
+</section>
+<!-- Etapa 2: Cadastrar e vincular participante -->
+<section aria-labelledby="heading-participant" class="step-card" id="sec-participant">
+<h2 data-i18n="th.heading-participant" id="heading-participant">2. Participante</h2>
+<p class="step-lead" data-i18n="th.sec-participant.p">Cadastre um participante sintético novo ou escolha um da sua lista.</p>
+<form id="form-participant" novalidate="">
+<div class="field-grid field-grid-two">
+<div class="field">
+<label data-i18n="th.label.participant-alias" for="participant-alias">Apelido sintético do participante</label>
+<input id="participant-alias" maxlength="40" name="alias" required="" type="text" value="Participante Sintetico 01"/>
+</div>
+<div class="field">
+<label data-i18n="th.label.participant-side" for="participant-side">Lado acompanhado</label>
+<select id="participant-side" name="side">
+<option data-i18n="th.opt.participant-side.right" value="right">Direito</option>
+<option data-i18n="th.opt.participant-side.left" value="left">Esquerdo</option>
+</select>
+</div>
+</div>
+<div class="actions-row">
+<button class="btn btn-primary target" data-i18n="th.btn-create-participant" id="btn-create-participant" type="submit">Cadastrar e vincular participante</button>
+</div>
+</form>
+<div class="sub-panel">
+<h3 data-i18n="th.sec-participant.h3">Meus participantes</h3>
+<form id="form-participant-search" novalidate="" role="search">
+<div class="field-grid">
+<div class="field">
+<label data-i18n="th.label.participant-search" for="participant-search">Pesquisar pelo apelido</label>
+<input autocomplete="off" id="participant-search" maxlength="40" name="q" type="search"/>
+</div>
+</div>
+<div class="actions-row">
+<button class="btn btn-secondary target" data-i18n="th.btn-search-participants" id="btn-search-participants" type="submit">Pesquisar</button>
+</div>
+</form>
+<p class="step-lead" data-i18n="th.participant-list-status" id="participant-list-status">Entre como terapeuta para ver seus participantes.</p>
+<ul aria-label="Participantes vinculados a você" class="card-list" data-i18n-attr="aria-label:th.participant-list.aria" id="participant-list"></ul>
+<form id="form-select-participant" novalidate="">
+<div class="field-grid">
+<div class="field">
+<label data-i18n="th.label.active-participant-id" for="active-participant-id">Participante ativo (preenchido ao selecionar na lista)</label>
+<input autocomplete="off" data-i18n-attr="placeholder:th.active-participant-id.placeholder" id="active-participant-id" name="participant_id" placeholder="Selecione na lista acima" type="text"/>
+</div>
+</div>
+<div class="actions-row">
+<button class="btn btn-secondary target" data-i18n="th.btn-select-participant" id="btn-select-participant" type="submit">Confirmar participante ativo</button>
+</div>
+</form>
+</div>
+<div class="sub-panel" id="invite-panel">
+<h3 data-i18n="th.sec-participant.h3.2">Convite para o participante</h3>
+<p class="step-lead" data-i18n="th.sec-participant.p.2">Gera um código de uso único. Envie o link ao participante: ele abre a tela de prática já com o código preenchido.</p>
+<div class="field-grid field-grid-two">
+<div class="field">
+<label data-i18n="th.label.invite-ttl" for="invite-ttl">Validade do convite</label>
+<select id="invite-ttl" name="ttl">
+<option data-i18n="th.opt.invite-ttl.3600" selected="" value="3600">1 hora</option>
+<option data-i18n="th.opt.invite-ttl.86400" value="86400">24 horas</option>
+<option data-i18n="th.opt.invite-ttl.900" value="900">15 minutos</option>
+</select>
+</div>
+</div>
+<div class="actions-row">
+<button class="btn btn-primary target" data-i18n="th.btn-create-invite" disabled="" id="btn-create-invite" type="button">Gerar convite</button>
+</div>
+<div aria-live="off" class="result-box" hidden="" id="invite-result"></div>
+</div>
+<div class="result-box" hidden="" id="participant-result"></div>
+</section>
+<!-- Etapa 3: Avaliação funcional -->
+<section aria-labelledby="heading-assessment" class="step-card" id="sec-assessment">
+<h2 data-i18n="th.heading-assessment" id="heading-assessment">3. Registrar avaliação funcional</h2>
+<p class="step-lead" data-i18n="th.sec-assessment.p">Registra avaliação funcional versionada para o participante ativo.</p>
+<form id="form-assessment" novalidate="">
+<div class="field-grid field-grid-two">
+<div class="field">
+<label data-i18n="th.label.assessment-date" for="assessment-date">Data da avaliação (AAAA-MM-DD)</label>
+<input id="assessment-date" inputmode="numeric" name="assessment_date" pattern="[0-9]{4}-[0-9]{2}-[0-9]{2}" required="" type="text" value="2026-10-01"/>
+</div>
+<div class="field">
+<label data-i18n="th.label.assessment-segment" for="assessment-segment">Segmento corporal</label>
+<select id="assessment-segment" name="body_segment">
+<option data-i18n="th.opt.assessment-segment.hand" value="hand">Mão</option>
+<option data-i18n="th.opt.assessment-segment.wrist" value="wrist">Punho</option>
+</select>
+</div>
+<div class="field">
+<label data-i18n="th.label.assessment-side" for="assessment-side">Lado avaliado</label>
+<select id="assessment-side" name="side">
+<option data-i18n="th.opt.assessment-side.right" value="right">Direito</option>
+<option data-i18n="th.opt.assessment-side.left" value="left">Esquerdo</option>
+</select>
+</div>
+<div class="field">
+<label data-i18n="th.label.assessment-instrument-id" for="assessment-instrument-id">Instrumento</label>
+<input id="assessment-instrument-id" name="instrument_id" required="" type="text" value="elo_hand_screen"/>
+</div>
+<div class="field">
+<label data-i18n="th.label.assessment-instrument-version" for="assessment-instrument-version">Versão do instrumento</label>
+<input id="assessment-instrument-version" name="instrument_version" required="" type="text" value="1.0"/>
+</div>
+<div class="field">
+<label data-i18n="th.label.assessment-instrument-status" for="assessment-instrument-status">Situação do instrumento</label>
+<select id="assessment-instrument-status" name="instrument_status">
+<option data-i18n="th.opt.assessment-instrument-status.unvalidated_custom" value="unvalidated_custom">Instrumento personalizado não validado</option>
+<option data-i18n="th.opt.assessment-instrument-status.validated_with_therapists" value="validated_with_therapists">Validado com terapeutas</option>
+</select>
+</div>
+<div class="field">
+<label data-i18n="th.label.assessment-item-key" for="assessment-item-key">Item avaliado</label>
+<input id="assessment-item-key" name="item_key" required="" type="text" value="grip_open_close"/>
+</div>
+<div class="field">
+<label data-i18n="th.label.assessment-item-value" for="assessment-item-value">Valor descritivo do item</label>
+<input id="assessment-item-value" name="item_value" required="" type="text" value="parcial"/>
+</div>
+<div class="field">
+<label data-i18n="th.label.assessment-item-assistance" for="assessment-item-assistance">Ajuda observada</label>
+<select id="assessment-item-assistance" name="assistance">
+<option data-i18n="th.opt.assessment-item-assistance.some" value="some">Com alguma ajuda</option>
+<option data-i18n="th.opt.assessment-item-assistance.none" value="none">Sem ajuda</option>
+<option data-i18n="th.opt.assessment-item-assistance.full" value="full">Com ajuda total</option>
+<option data-i18n="th.opt.assessment-item-assistance.not_assessed" value="not_assessed">Não avaliado</option>
+</select>
+</div>
+<div class="field">
+<label data-i18n="th.label.assessment-note" for="assessment-note">Nota clínica da avaliação</label>
+<textarea data-i18n-value="th.assessment-note.default" id="assessment-note" name="therapist_note" rows="2">Registro sintético inicial de mão em modo descritivo.</textarea>
+</div>
+</div>
+<div class="actions-row">
+<button class="btn btn-primary target" data-i18n="th.btn-create-assessment" id="btn-create-assessment" type="submit">Registrar avaliação funcional</button>
+</div>
+</form>
+<div class="result-box" hidden="" id="assessment-result"></div>
+</section>
+<!-- Etapa 4: Meta funcional -->
+<section aria-labelledby="heading-goal" class="step-card" id="sec-goal">
+<h2 data-i18n="th.heading-goal" id="heading-goal">4. Definir meta funcional</h2>
+<p class="step-lead" data-i18n="th.sec-goal.p">Cria uma meta versionada vinculada ao participante ativo.</p>
+<form id="form-goal" novalidate="">
+<div class="field-grid field-grid-two">
+<div class="field">
+<label data-i18n="th.label.goal-text" for="goal-text">Descrição da meta</label>
+<input id="goal-text" maxlength="300" name="goal_text" required="" type="text" value="Realizar sessões relatadas de organizar a mesa com a mão direita."/>
+</div>
+<div class="field">
+<label data-i18n="th.label.goal-segment" for="goal-segment">Segmento corporal da meta</label>
+<select id="goal-segment" name="body_segment">
+<option data-i18n="th.opt.goal-segment.hand" value="hand">Mão</option>
+<option data-i18n="th.opt.goal-segment.wrist" value="wrist">Punho</option>
+</select>
+</div>
+<div class="field">
+<label data-i18n="th.label.goal-target-kind" for="goal-target-kind">Tipo de alvo</label>
+<select id="goal-target-kind" name="target_kind">
+<option data-i18n="th.opt.goal-target-kind.session_count" value="session_count">Número de sessões</option>
+<option data-i18n="th.opt.goal-target-kind.repetitions" value="repetitions">Repetições</option>
+<option data-i18n="th.opt.goal-target-kind.descriptive_text" value="descriptive_text">Texto descritivo</option>
+<option data-i18n="th.opt.goal-target-kind.measure_value" value="measure_value">Valor de medida</option>
+</select>
+</div>
+<div class="field">
+<label data-i18n="th.label.goal-target-value" for="goal-target-value">Valor do alvo</label>
+<input id="goal-target-value" max="100000" min="0" name="target_value" type="number" value="3"/>
+</div>
+<div class="field">
+<label data-i18n="th.label.goal-target-unit" for="goal-target-unit">Unidade do alvo</label>
+<input id="goal-target-unit" name="target_unit" type="text" value="sessions"/>
+</div>
+<div class="field">
+<label data-i18n="th.label.goal-status" for="goal-status">Estado da meta</label>
+<select id="goal-status" name="status">
+<option data-i18n="th.opt.goal-status.active" value="active">Ativa</option>
+<option data-i18n="th.opt.goal-status.achieved_confirmed" value="achieved_confirmed">Confirmada pelo terapeuta</option>
+<option data-i18n="th.opt.goal-status.discontinued" value="discontinued">Descontinuada</option>
+</select>
+</div>
+</div>
+<div class="actions-row">
+<button class="btn btn-primary target" data-i18n="th.btn-create-goal" id="btn-create-goal" type="submit">Salvar meta funcional</button>
+</div>
+</form>
+<div class="result-box" hidden="" id="goal-result"></div>
+</section>
+<!-- Etapa 5: Prescrição (Organizar a mesa, modo de relato apenas) -->
+<section aria-labelledby="heading-prescription" class="step-card" id="sec-prescription">
+<h2 data-i18n="th.heading-prescription" id="heading-prescription">5. Publicar prescrição — Organizar a mesa</h2>
+<p class="step-lead" data-i18n="th.sec-prescription.p">Prática por autorrelato: este fluxo não usa câmera.</p>
+<form id="form-prescription" novalidate="">
+<div class="field-grid field-grid-two">
+<div class="field">
+<label data-i18n="th.label.rx-exercise" for="rx-exercise">Exercício prescrito</label>
+<select id="rx-exercise" name="exercise_id">
+<option data-i18n="th.opt.rx-exercise.organizar-a-mesa" value="organizar-a-mesa">Organizar a mesa</option>
+</select>
+</div>
+<div class="field">
+<label data-i18n="th.label.rx-movement" for="rx-movement">Movimento permitido</label>
+<select id="rx-movement" name="permitted_movement">
+<option data-i18n="th.opt.rx-movement.hand_open_close" value="hand_open_close">Abrir e fechar a mão</option>
+</select>
+</div>
+<div class="field">
+<label data-i18n="th.label.rx-side" for="rx-side">Lado prescrito</label>
+<select id="rx-side" name="side">
+<option data-i18n="th.opt.rx-side.right" value="right">Direito</option>
+<option data-i18n="th.opt.rx-side.left" value="left">Esquerdo</option>
+</select>
+</div>
+<div class="field">
+<label data-i18n="th.label.rx-sets" for="rx-sets">Séries por sessão (1 a 10)</label>
+<input id="rx-sets" max="10" min="1" name="target_sets" required="" type="number" value="2"/>
+</div>
+<div class="field">
+<label data-i18n="th.label.rx-reps" for="rx-reps">Repetições por série (1 a 100)</label>
+<input id="rx-reps" max="100" min="1" name="target_repetitions" required="" type="number" value="10"/>
+</div>
+<div class="field">
+<label data-i18n="th.label.rx-sessions-week" for="rx-sessions-week">Sessões por semana (1 a 14)</label>
+<input id="rx-sessions-week" max="14" min="1" name="sessions_per_week" required="" type="number" value="3"/>
+</div>
+<div class="field">
+<label data-i18n="th.label.rx-valid-from" for="rx-valid-from">Válida a partir de (AAAA-MM-DD)</label>
+<input id="rx-valid-from" inputmode="numeric" name="valid_from" pattern="[0-9]{4}-[0-9]{2}-[0-9]{2}" required="" type="text" value="2026-10-01"/>
+</div>
+<div class="field">
+<label data-i18n="th.label.rx-valid-to" for="rx-valid-to">Válida até (AAAA-MM-DD)</label>
+<input id="rx-valid-to" inputmode="numeric" name="valid_to" pattern="[0-9]{4}-[0-9]{2}-[0-9]{2}" type="text" value="2026-10-31"/>
+</div>
+<div class="field">
+<label data-i18n="th.label.rx-timezone" for="rx-timezone">Fuso horário</label>
+<select id="rx-timezone" name="timezone">
+<option value="America/Sao_Paulo">America/Sao_Paulo</option>
+<option value="America/Manaus">America/Manaus</option>
+<option value="America/Recife">America/Recife</option>
+<option value="America/Bahia">America/Bahia</option>
+</select>
+</div>
+<div class="field">
+<label data-i18n="th.label.rx-instructions" for="rx-instructions">Instruções ao participante</label>
+<textarea data-i18n-value="th.rx-instructions.default" id="rx-instructions" name="instructions_ptbr" rows="2">Organizar a mesa com calma no modo apenas relato e registrar a assistência utilizada.</textarea>
+</div>
+</div>
+<div class="actions-row">
+<button class="btn btn-primary target" data-i18n="th.btn-publish-prescription" id="btn-publish-prescription" type="submit">Publicar prescrição</button>
+</div>
+</form>
+<div class="result-box" hidden="" id="prescription-result"></div>
+</section>
+<!-- Etapa 6: Revisar fatos verificados -->
+<section aria-labelledby="heading-facts" class="step-card" id="sec-facts">
+<h2 data-i18n="th.heading-facts" id="heading-facts">6. Revisar evidências</h2>
+<p class="step-lead" data-i18n="th.sec-facts.p">Cada evidência mostra a origem dos dados e como a prática foi feita. Só o que o terapeuta aprova pode ser publicado.</p>
+<div class="actions-row">
+<button class="btn btn-primary target" data-i18n="th.btn-load-facts" id="btn-load-facts" type="button">Consultar evidências</button>
+</div>
+<div class="result-box" hidden="" id="facts-summary"></div>
+<ul aria-label="Lista de evidências" class="card-list" data-i18n-attr="aria-label:th.facts-list.aria" id="facts-list"></ul>
+</section>
+<!-- Etapa 7: Publicar resumo e evolução descritiva -->
+<section aria-labelledby="heading-publications" class="step-card" id="sec-publications">
+<h2 data-i18n="th.heading-publications" id="heading-publications">7. Publicar resumo e evolução funcional</h2>
+<div class="sub-panel">
+<h3 data-i18n="th.sec-publications.h3">Publicar resumo</h3>
+<p class="step-lead" data-i18n="th.summary-gate-status" id="summary-gate-status">Publicação bloqueada: nenhuma evidência elegível foi aprovada ainda.</p>
+<form id="form-summary" novalidate="">
+<div class="field-grid field-grid-two">
+<div class="field">
+<label data-i18n="th.label.summary-period-from" for="summary-period-from">Período inicial do resumo (AAAA-MM-DD)</label>
+<input id="summary-period-from" inputmode="numeric" name="period_from" pattern="[0-9]{4}-[0-9]{2}-[0-9]{2}" required="" type="text" value="2026-10-01"/>
+</div>
+<div class="field">
+<label data-i18n="th.label.summary-period-to" for="summary-period-to">Período final do resumo (AAAA-MM-DD)</label>
+<input id="summary-period-to" inputmode="numeric" name="period_to" pattern="[0-9]{4}-[0-9]{2}-[0-9]{2}" required="" type="text" value="2026-10-31"/>
+</div>
+</div>
+<div class="actions-row">
+<button class="btn btn-primary target" data-i18n="th.btn-publish-summary" disabled="" id="btn-publish-summary" type="submit">Publicar resumo</button>
+</div>
+</form>
+<div class="result-box" hidden="" id="summary-result"></div>
+</div>
+<div class="sub-panel">
+<h3 data-i18n="th.sec-publications.h3.2">Publicar evolução funcional</h3>
+<p class="step-lead" data-i18n="th.evolution-gate-status" id="evolution-gate-status">Publicação bloqueada: aprove as evidências e consulte as séries comparáveis.</p>
+<div class="actions-row">
+<button class="btn btn-secondary target" data-i18n="th.btn-load-evolution-series" id="btn-load-evolution-series" type="button">Consultar séries comparáveis</button>
+</div>
+<div class="card-list" id="evolution-series-container"></div>
+<form id="form-evolution" novalidate="">
+<div class="field-grid field-grid-two">
+<div class="field">
+<label data-i18n="th.label.evolution-period-from" for="evolution-period-from">Período inicial da evolução (AAAA-MM-DD)</label>
+<input id="evolution-period-from" inputmode="numeric" name="period_from" pattern="[0-9]{4}-[0-9]{2}-[0-9]{2}" required="" type="text" value="2026-10-01"/>
+</div>
+<div class="field">
+<label data-i18n="th.label.evolution-period-to" for="evolution-period-to">Período final da evolução (AAAA-MM-DD)</label>
+<input id="evolution-period-to" inputmode="numeric" name="period_to" pattern="[0-9]{4}-[0-9]{2}-[0-9]{2}" required="" type="text" value="2026-10-31"/>
+</div>
+</div>
+<div class="actions-row">
+<button class="btn btn-primary target" data-i18n="th.btn-publish-evolution" disabled="" id="btn-publish-evolution" type="submit">Publicar evolução</button>
+</div>
+</form>
+<div class="result-box" hidden="" id="evolution-result"></div>
+</div>
+</section>
+<!-- Etapa 8: Linha do tempo -->
+<section aria-labelledby="heading-timeline" class="step-card" id="sec-timeline">
+<h2 data-i18n="th.heading-timeline" id="heading-timeline">8. Linha do tempo do participante</h2>
+<p class="step-lead" data-i18n="th.sec-timeline.p">Histórico unificado de entidades clínicas versionadas e eventos publicados.</p>
+<div class="actions-row">
+<button class="btn btn-primary target" data-i18n="th.btn-load-timeline" id="btn-load-timeline" type="button">Carregar linha do tempo</button>
+</div>
+<div class="result-box" hidden="" id="timeline-summary"></div>
+<ol aria-label="Itens da linha do tempo" class="card-list" data-i18n-attr="aria-label:th.timeline-list.aria" id="timeline-list"></ol>
+</section>
+</main>
+<div aria-atomic="true" aria-live="polite" class="sr-only" id="elo-live-region" role="status"></div>
+<script src="./therapist_app.mjs" type="module"></script>
 </body>
 </html>

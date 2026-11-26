@@ -3,13 +3,9 @@
 // It never changes API behavior or the data-* hooks used by the harnesses.
 const $ = (id) => document.getElementById(id);
 
-const HERO = {
-  signin: ["Olá! Vamos praticar hoje?", "Entre com o código que seu terapeuta enviou. Leva menos de um minuto."],
-  plan: ["Tudo certo, você entrou", "Veja o que foi combinado e, quando quiser, comece."],
-  practice: ["Hora de praticar", "Organize a mesa no seu ritmo. Parar por dor ou cansaço é sempre permitido."],
-  report: ["Muito bem! Conte como foi", "Duas perguntas rápidas e pronto."],
-  done: ["Relato enviado. Obrigado!", "Seu terapeuta já pode acompanhar. Veja sua evolução abaixo quando ele liberar."],
-};
+import { t } from "./i18n.mjs";
+
+const STAGES = ["signin", "plan", "practice", "report", "done"];
 
 export function computeStage() {
   const signedIn = !$("btn-participant-signout")?.hidden;
@@ -21,13 +17,17 @@ export function computeStage() {
   return $("prescription-view")?.dataset.prescriptionLoaded === "true" ? "practice" : "plan";
 }
 
+// Only write when the text changes, otherwise the MutationObserver would loop on its own edit.
+function setText(id, text) {
+  const node = $(id);
+  if (node && node.textContent !== text) node.textContent = text;
+}
+
 function apply() {
   const stage = computeStage();
-  if (document.body.dataset.stage === stage) return;
-  document.body.dataset.stage = stage;
-  const [t, l] = HERO[stage];
-  if ($("hero-title")) $("hero-title").textContent = t;
-  if ($("hero-lead")) $("hero-lead").textContent = l;
+  if (document.body.dataset.stage !== stage) document.body.dataset.stage = stage;
+  setText("hero-title", t(`pa.hero.${stage}.title`));
+  setText("hero-lead", t(`pa.hero.${stage}.lead`));
 }
 
 function autoLoadPlan() {
@@ -44,4 +44,5 @@ if (typeof document !== "undefined") {
   obs.observe(document.body, { subtree: true, childList: true, attributes: true,
     attributeFilter: ["hidden", "data-session-phase", "data-prescription-loaded", "data-report-submitted"] });
   apply();
+  document.addEventListener("elo:lang", apply);
 }

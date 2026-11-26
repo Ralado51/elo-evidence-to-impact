@@ -60,10 +60,11 @@ test("therapist_model origin labels mirror limitations.v2.json", () => {
   }
 });
 
-test("therapist_model execution modes always include canonical mode identifier", () => {
+// S1 Etapa E (FIX-25): internal contract codes must NOT appear in operational labels.
+test("therapist_model execution modes show a localized label and never the canonical code", () => {
   for (const mode of ["report_only", "camera", "simulation", "not_applicable"]) {
     const formatted = formatExecutionMode(mode);
-    assert.ok(formatted.includes(mode), `Formatted mode "${formatted}" must include "${mode}"`);
+    assert.ok(formatted.length > 0 && !formatted.includes(mode) && !/\(/.test(formatted), `Label "${formatted}" must be localized without code for "${mode}"`);
   }
 });
 

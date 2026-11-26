@@ -6,15 +6,16 @@
  */
 
 import { hashCanonical } from "./canonical.mjs";
+import { t, label } from "./i18n.mjs";
 import {
-  ASSISTANCE_TRANSITION_LABEL_PTBR,
+  formatAssistanceTransition,
   formatExecutionMode,
   formatOriginLabel,
   scanForbiddenOutputs,
 } from "./therapist_model.mjs";
 
 export {
-  ASSISTANCE_TRANSITION_LABEL_PTBR,
+  formatAssistanceTransition,
   formatExecutionMode,
   formatOriginLabel,
   scanForbiddenOutputs,
@@ -27,78 +28,40 @@ export const DEFAULT_EXERCISE_ID = "organizar-a-mesa";
 /**
  * Basic report execution choices (Row 5: zero typing; "não sei / prefiro não dizer" -> "unreported").
  */
-export const EXECUTION_CHOICES = Object.freeze([
-  { value: "complete", label: "Realizei a atividade completa" },
-  { value: "partial", label: "Realizei parte da atividade" },
-  { value: "none", label: "Não consegui realizar" },
-  { value: "unreported", label: "Não sei / prefiro não dizer" },
-]);
+export const EXECUTION_CHOICES = Object.freeze(
+  ["complete", "partial", "none", "unreported"].map((value) =>
+    Object.freeze({ value, get label() { return label("execution", value); } })
+  )
+);
 
 /**
- * Basic report assistance choices (Row 5: zero typing; "não sei / prefiro não dizer" -> "unreported").
+ * Basic report assistance choices (zero typing; "unreported" = "não sei / prefiro não dizer").
  */
-export const ASSISTANCE_CHOICES = Object.freeze([
-  { value: "none", label: "Sem ajuda" },
-  { value: "some", label: "Com alguma ajuda" },
-  { value: "full", label: "Com ajuda total" },
-  { value: "unreported", label: "Não sei / prefiro não dizer" },
-]);
+export const ASSISTANCE_CHOICES = Object.freeze(
+  ["none", "some", "full", "unreported"].map((value) =>
+    Object.freeze({ value, get label() { return label("assistance", value); } })
+  )
+);
 
-export const SIDE_LABEL_PTBR = Object.freeze({
-  right: "Direito",
-  left: "Esquerdo",
-});
+/** Localized helpers (labels live in the i18n catalogs; contract values stay canonical). */
+export const formatSide = (v) => label("side", v);
+export const formatBodySegment = (v) => label("segment", v);
+export const formatGoalStatus = (v) => label("goal_status", v);
+export const formatGoalTargetKind = (v) => label("goal_kind", v);
 
-export const BODY_SEGMENT_LABEL_PTBR = Object.freeze({
-  hand: "Mão",
-  wrist: "Punho",
-});
+/** Guided steps for "Organizar a mesa" in report-only mode (localized at call time). */
+export function organizarAMesaGuide() {
+  return [1, 2, 3, 4].map((n) => t(`pa.guide.${n}`));
+}
 
-export const GOAL_STATUS_LABEL_PTBR = Object.freeze({
-  active: "Ativa",
-  achieved_confirmed: "Confirmada pelo terapeuta",
-  discontinued: "Descontinuada",
-});
-
-export const GOAL_TARGET_KIND_LABEL_PTBR = Object.freeze({
-  descriptive_text: "Objetivo descritivo",
-  session_count: "Sessões",
-  repetitions: "Repetições",
-  measure_value: "Medida",
-});
-
-/**
- * Original guided steps for "Organizar a mesa" in report-only mode (PO-F28, PO-F29).
- */
-export const ORGANIZAR_A_MESA_GUIDE = Object.freeze([
-  "Sente-se de forma confortável diante de uma mesa com itens leves do cotidiano.",
-  "Use o lado indicado na sua prescrição para abrir e fechar a mão ao organizar os objetos no seu ritmo.",
-  "Esta prática funciona apenas por relato: nenhuma câmera ou microfone será ligado.",
-  "Se sentir dor ou cansaço, use o botão único de parada imediata abaixo.",
-]);
-
-export const PARTICIPANT_ERROR_MESSAGES_PTBR = Object.freeze({
-  UNAUTHENTICATED:
-    "Sessão não autenticada. Entre com o código de convite fornecido pelo terapeuta.",
-  INVITE_INVALID:
-    "Código de convite inválido, expirado ou já utilizado. Solicite um novo convite ao terapeuta.",
-  FORBIDDEN:
-    "Operação recusada: este perfil de participante não tem permissão para enviar ou acessar este recurso.",
-  SCOPE_VIOLATION:
-    "Acesso negado: o registro solicitado está fora do escopo do participante autenticado.",
-  NOT_FOUND:
-    "Registro não encontrado ou indisponível para o participante autenticado.",
-  CONSENT_REQUIRED:
-    "Operação bloqueada: consentimento de sensor obrigatório não encontrado para este modo de execução.",
-  INVALID_TRANSITION:
-    "Ação não permitida no estado atual da sessão.",
-  PRESCRIPTION_NOT_FOUND:
-    "Nenhuma prescrição ativa encontrada para iniciar a sessão.",
-  RULE_VIOLATION:
-    "Operação recusada pelas regras da API v3.",
-  NETWORK_ERROR:
-    "Não foi possível comunicar com a API v3 local.",
-});
+/** Friendly localized participant error; technical detail is returned separately for audit only. */
+export function describeParticipantError(err) {
+  const code = typeof err?.code === "string" && err.code ? err.code : "UNKNOWN_ERROR";
+  let message = t(`pa.err.${code}`);
+  if (message === `pa.err.${code}`) message = t(`err.${code}`);
+  if (message === `err.${code}`) message = t("err.generic");
+  return { message, code, technical: formatParticipantError(err) };
+}
 
 const ALLOWED_CONTROL_ACTIONS = new Set([
   "start",
@@ -267,18 +230,18 @@ export async function buildReportSubmittedEvent(params) {
 export function projectPrescriptionForDisplay(rxEvent) {
   const payload = rxEvent?.payload || {};
   const originLabel = formatOriginLabel(rxEvent?.data_origin || PARTICIPANT_DATA_ORIGIN);
-  const sideLabel = SIDE_LABEL_PTBR[payload.side] || String(payload.side || "");
+  const sideLabel = label("side", payload.side);
   return {
     prescriptionId: String(payload.prescription_id || ""),
     revision: Number(payload.revision || 1),
     exerciseId: String(payload.exercise_id || DEFAULT_EXERCISE_ID),
     exerciseName:
       payload.exercise_id === DEFAULT_EXERCISE_ID
-        ? "Organizar a mesa"
+        ? label("exercise", "organizar-a-mesa")
         : String(payload.exercise_id || ""),
     movementLabel:
       payload.permitted_movement === "hand_open_close"
-        ? "Abrir e fechar a mão"
+        ? label("movement", "hand_open_close")
         : String(payload.permitted_movement || ""),
     sideLabel,
     targetSets: Number(payload.target_sets || 0),
@@ -325,18 +288,14 @@ export function resolveEvolutionSeriesOriginLabel(series) {
 }
 
 /**
- * Format an API or rejected-batch error into an accessible PT-BR message including [CODE].
+ * Technical (audit/diagnostic) form of an API or rejected-batch error, including [CODE]. People-facing text: describeParticipantError().
  *
  * @param {{ code?: string, status?: number, codes?: string[], message?: string }} err
  * @returns {string}
  */
 export function formatParticipantError(err) {
   const code = typeof err?.code === "string" && err.code ? err.code : "UNKNOWN_ERROR";
-  const baseMsg = Object.prototype.hasOwnProperty.call(PARTICIPANT_ERROR_MESSAGES_PTBR, code)
-    ? PARTICIPANT_ERROR_MESSAGES_PTBR[
-        /** @type {keyof typeof PARTICIPANT_ERROR_MESSAGES_PTBR} */ (code)
-      ]
-    : err?.message || "Erro ao executar operação na API v3.";
+  const baseMsg = t(`pa.err.${code}`) !== `pa.err.${code}` ? t(`pa.err.${code}`) : err?.message || "API v3 error.";
   const statusPart = typeof err?.status === "number" && err.status > 0 ? ` (HTTP ${err.status})` : "";
   return `[${code}]${statusPart} ${baseMsg}`;
 }

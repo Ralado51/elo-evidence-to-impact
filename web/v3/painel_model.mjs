@@ -4,31 +4,30 @@
  * so the dashboard never invents a clinical number.
  */
 
+import { t, label } from "./i18n.mjs";
+
+const mkLevel = (rank, value) =>
+  Object.freeze({
+    rank,
+    get label() { return label("assistance", value); },
+    get short() { return label("assistance_short", value); },
+  });
+
 export const ASSISTANCE_LEVELS = Object.freeze({
-  full: Object.freeze({ rank: 3, label: "Ajuda total", short: "Total" }),
-  some: Object.freeze({ rank: 2, label: "Alguma ajuda", short: "Alguma" }),
-  none: Object.freeze({ rank: 1, label: "Sem ajuda", short: "Sem ajuda" }),
+  full: mkLevel(3, "full"),
+  some: mkLevel(2, "some"),
+  none: mkLevel(1, "none"),
 });
 
-export const EXECUTION_LABEL_PTBR = Object.freeze({
-  complete: "Atividade completa",
-  partial: "Parte da atividade",
-  none: "Não realizou",
-  unreported: "Não informado",
-});
+/** Localized execution label per session (F03 values). */
+export function executionLabel(value) {
+  return label("execution_short", value);
+}
 
-export const VERIFY_CODE_PTBR = Object.freeze({
-  RECOMPUTE_MISMATCH:
-    "O verificador refez a conta a partir das evidências registradas e o valor afirmado não bate.",
-  MISSING_FIELD: "A afirmação não traz todos os campos exigidos pelo catálogo de fatos.",
-  UNSUPPORTED: "O catálogo não permite este tipo de afirmação.",
-});
+const VERIFY_CODES = Object.freeze(["RECOMPUTE_MISMATCH", "MISSING_FIELD", "UNSUPPORTED"]);
 
 export function describeVerifyFailure(code) {
-  if (code && Object.prototype.hasOwnProperty.call(VERIFY_CODE_PTBR, code)) {
-    return VERIFY_CODE_PTBR[code];
-  }
-  return "A afirmação não passou nas regras do verificador e não foi aceita.";
+  return VERIFY_CODES.includes(code) ? t(`pn.verify.${code}`) : t("pn.verify.default");
 }
 
 /** Ordered chain (one entry per session) taken from the approved comparable F04 series. */
@@ -87,16 +86,15 @@ export function computeKpis(facts, chain) {
 /** Plain-language headline that only states what the published chain supports. */
 export function headline(chain) {
   if (chain.length < 2) {
-    return "Ainda não há sessões suficientes para comparar a ajuda relatada.";
+    return t("pn.headline.few");
   }
   const a = ASSISTANCE_LEVELS[chain[0].level];
   const b = ASSISTANCE_LEVELS[chain[chain.length - 1].level];
-  if (!a || !b) return "Evolução publicada.";
+  if (!a || !b) return t("pn.headline.published");
   if (a.rank === b.rank) {
-    return `A ajuda relatada ficou em "${b.label.toLowerCase()}" ao longo de ${chain.length} sessões.`;
+    return t("pn.headline.same", { level: b.label.toLowerCase(), n: chain.length });
   }
-  const dir = b.rank < a.rank ? "diminuiu" : "aumentou";
-  return `A ajuda relatada ${dir}: de "${a.label.toLowerCase()}" na 1ª sessão para "${b.label.toLowerCase()}" na ${chain.length}ª.`;
+  return t(b.rank < a.rank ? "pn.headline.down" : "pn.headline.up", { from: a.label.toLowerCase(), to: b.label.toLowerCase(), n: chain.length });
 }
 
 /**
@@ -127,8 +125,8 @@ export function exaggeratedLevel(realLevel) {
 }
 
 export function exaggeratedSentence(sessionNumber, level) {
-  const label = ASSISTANCE_LEVELS[level]?.label.toLowerCase() ?? "alguma ajuda";
-  return `Na sessão ${sessionNumber}, a pessoa realizou a atividade com resultado de "${label}", confirmado por avaliação do terapeuta.`;
+  const lvl = (ASSISTANCE_LEVELS[level] ?? ASSISTANCE_LEVELS.some).label.toLowerCase();
+  return t("pn.exaggerated", { n: sessionNumber, level: lvl });
 }
 
 /** Build a verify-proposal from a stored fact, optionally overriding the assistance param. */

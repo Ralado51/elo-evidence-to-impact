@@ -11,19 +11,18 @@
 
 import { announce } from "./a11y.mjs";
 import { createParticipantClient, ParticipantApiError } from "./participant_api.mjs";
+import { initI18n, t, label, formatDateTime, formatIsoDate } from "./i18n.mjs";
+import { renderErrorTechnical } from "./ui_messages.mjs";
 import {
-  ASSISTANCE_TRANSITION_LABEL_PTBR,
-  BODY_SEGMENT_LABEL_PTBR,
-  GOAL_STATUS_LABEL_PTBR,
-  GOAL_TARGET_KIND_LABEL_PTBR,
-  ORGANIZAR_A_MESA_GUIDE,
   PARTICIPANT_DATA_ORIGIN,
+  describeParticipantError,
+  formatAssistanceTransition,
+  organizarAMesaGuide,
   buildReportSubmittedEvent,
   buildSessionControlEvent,
   buildSessionStartedEvent,
   formatExecutionMode,
   formatOriginLabel,
-  formatParticipantError,
   generateSessionId,
   nextMonotonicIso,
   projectPrescriptionForDisplay,
@@ -124,7 +123,7 @@ export function initParticipantApp() {
   // Populate guided report-only steps for "Organizar a mesa".
   const guideList = el("activity-guide");
   if (guideList && guideList.children.length === 0) {
-    for (const stepText of ORGANIZAR_A_MESA_GUIDE) {
+    for (const stepText of organizarAMesaGuide()) {
       const li = document.createElement("li");
       li.textContent = stepText;
       guideList.appendChild(li);
@@ -136,6 +135,7 @@ export function initParticipantApp() {
     errorBanner.removeAttribute("role");
     errorBanner.setAttribute("data-error-code", "");
     errorBannerText.textContent = "";
+    renderErrorTechnical(errorBanner, "");
   }
 
   function clearSuccess() {
@@ -143,11 +143,12 @@ export function initParticipantApp() {
     successBannerText.textContent = "";
   }
 
-  function showError(code, message) {
+  function showError(code, message, technical = "") {
     clearSuccess();
     errorBanner.setAttribute("role", "alert");
     errorBanner.setAttribute("data-error-code", code || "ERROR");
     errorBannerText.textContent = message;
+    renderErrorTechnical(errorBanner, technical);
     errorBanner.hidden = false;
     announce(message, { politeness: "assertive" });
   }
@@ -159,9 +160,9 @@ export function initParticipantApp() {
     announce(message, { politeness: "polite" });
   }
 
-  function redirectToSignIn(reasonText) {
-    const msg = reasonText || formatParticipantError({ code: "UNAUTHENTICATED", status: 401 });
-    showError("UNAUTHENTICATED", msg);
+  function redirectToSignIn(reasonText, technical = "") {
+    const msg = reasonText || describeParticipantError({ code: "UNAUTHENTICATED", status: 401 }).message;
+    showError("UNAUTHENTICATED", msg, technical);
     if (window.location.hash !== "#sec-signin") {
       window.location.hash = "#sec-signin";
     }
@@ -177,19 +178,17 @@ export function initParticipantApp() {
             status: err?.status || 0,
             message: err instanceof Error ? err.message : String(err),
           });
-    const formatted = formatParticipantError(apiErr);
+    const info = describeParticipantError(apiErr);
     if (apiErr.code === "UNAUTHENTICATED") {
-      redirectToSignIn(formatted);
+      redirectToSignIn(info.message, info.technical);
       return;
     }
-    showError(apiErr.code, formatted);
+    showError(apiErr.code, info.message, info.technical);
   }
 
   function requireAuth() {
     if (!state.session || !state.session.token || !state.session.principal?.id) {
-      redirectToSignIn(
-        "[UNAUTHENTICATED] Sessão não autenticada. Redirecionado para a etapa 1 (Entrar com convite)."
-      );
+      redirectToSignIn( t("pa.js.session_required") );
       return false;
     }
     return true;
@@ -197,56 +196,54 @@ export function initParticipantApp() {
 
   function updateStatusBar() {
     if (state.session && state.session.token) {
-      sessionStatusEl.textContent = "Sessão autenticada como participante (modo apenas relato).";
+      sessionStatusEl.textContent = t("pa.js.signed_in");
       btnSignout.hidden = false;
     } else {
-      sessionStatusEl.textContent =
-        "Sessão não autenticada. Entre com seu convite na etapa 1.";
+      sessionStatusEl.textContent = t("pa.js.session_required");
       btnSignout.hidden = true;
     }
 
     if (!state.activeSession) {
-      phaseStatusEl.textContent = "Nenhuma sessão de prática iniciada.";
+      phaseStatusEl.textContent = t("pa.js.no_session");
     } else if (state.activeSession.phase === "active") {
-      phaseStatusEl.textContent = "Sessão em andamento (Organizar a mesa — apenas relato).";
+      phaseStatusEl.textContent = t("pa.js.session_active");
     } else if (state.activeSession.phase === "ended") {
-      const endLabel =
+      const endKey =
         state.activeSession.endAction === "pain"
-          ? "encerrada por dor"
+          ? "pa.js.ended_pain"
           : state.activeSession.endAction === "fatigue"
-            ? "encerrada por cansaço"
-            : "concluída";
-      phaseStatusEl.textContent = `Sessão ${endLabel}. Pronto para enviar o relato na etapa 4.`;
+            ? "pa.js.ended_fatigue"
+            : "pa.js.ended_done";
+      phaseStatusEl.textContent = t(endKey);
     }
   }
 
-  const PUB_LABEL_PTBR = { summary: "Resumo", evolution: "Evolução" };
-
+  
   async function loadPublications() {
     const status = el("publication-status");
     const list = el("publication-list");
     if (!status || !list) return;
     clearElement(list);
     if (!state.session?.token) {
-      status.textContent = "Entre para ver o que seu terapeuta liberou.";
+      status.textContent = t("pa.js.pub_signin");
       return;
     }
     try {
       const res = await client.listPublications(state.session.principal.id);
       const items = res.data.publications || [];
       status.textContent = items.length
-        ? "Toque para abrir o que seu terapeuta liberou."
-        : "Seu terapeuta ainda não liberou nenhum resumo ou evolução.";
+        ? t("pa.js.pub_tap")
+        : t("pa.js.pub_none");
       for (const it of items) {
         const li = document.createElement("li");
         li.className = "data-card";
         li.dataset.publicationKind = it.kind;
         li.dataset.publicationId = it.id;
-        const period = it.period_from && it.period_to ? ` (${it.period_from} a ${it.period_to})` : "";
+        const period = it.period_from && it.period_to ? ` (${formatIsoDate(it.period_from)} – ${formatIsoDate(it.period_to)})` : "";
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "btn btn-secondary target";
-        btn.textContent = `Abrir ${PUB_LABEL_PTBR[it.kind] || it.kind}${period}`;
+        btn.textContent = t(it.kind === "summary" ? "pa.js.open_summary" : "pa.js.open_evolution") + period;
         btn.addEventListener("click", () => {
           if (it.kind === "summary") {
             el("summary-id-input").value = it.id;
@@ -260,7 +257,7 @@ export function initParticipantApp() {
         list.appendChild(li);
       }
     } catch {
-      status.textContent = "Não consegui carregar a lista agora. Você ainda pode abrir pelos códigos abaixo.";
+      status.textContent = t("pa.js.pub_fail");
     }
   }
 
@@ -277,12 +274,11 @@ export function initParticipantApp() {
       isEnded && Boolean(state.reportExecution) && Boolean(state.reportAssistance);
     btnSubmitReport.disabled = !reportReady;
     if (reportReady) {
-      reportGateStatus.textContent = "Relato pronto para envio (sem digitação).";
+      reportGateStatus.textContent = t("pa.js.report_ready");
     } else if (isEnded) {
-      reportGateStatus.textContent = "Escolha uma opção em cada pergunta para enviar o relato.";
+      reportGateStatus.textContent = t("pa.js.report_choose");
     } else {
-      reportGateStatus.textContent =
-        "Inicie e encerre uma sessão na etapa 3 e escolha as duas opções para enviar o relato.";
+      reportGateStatus.textContent = t("pa.js.report_need_session");
     }
     updateStatusBar();
   }
@@ -307,7 +303,7 @@ export function initParticipantApp() {
     badges.appendChild(createBadge(view.originLabel, "badge-origin", "data-origin-label", view.originLabel));
     badges.appendChild(
       createBadge(
-        `Modo de execução: ${view.executionModeLabel}`,
+        t("pa.js.exec_mode", { mode: view.executionModeLabel }),
         "badge-mode",
         "data-execution-mode",
         view.executionMode
@@ -315,15 +311,15 @@ export function initParticipantApp() {
     );
     box.appendChild(badges);
 
-    appendParagraph(box, `Atividade prescrita: ${view.exerciseName} — ${view.movementLabel}`);
+    appendParagraph(box, t("pa.js.rx_activity", { name: view.exerciseName, movement: view.movementLabel }));
     appendParagraph(
       box,
-      `Lado: ${view.sideLabel} • Plano: ${view.targetSets} séries de ${view.targetRepetitions} repetições (${view.sessionsPerWeek} sessões por semana)`
+      t("pa.js.rx_plan", { side: view.sideLabel, sets: view.targetSets, reps: view.targetRepetitions, per: view.sessionsPerWeek })
     );
-    const validText = view.validTo ? `${view.validFrom} até ${view.validTo}` : `a partir de ${view.validFrom}`;
-    appendParagraph(box, `Vigência: ${validText}`);
+    const validText = view.validTo ? t("pa.js.valid_range", { from: formatIsoDate(view.validFrom), to: formatIsoDate(view.validTo) }) : t("pa.js.valid_from", { from: formatIsoDate(view.validFrom) });
+    appendParagraph(box, t("pa.js.validity", { text: validText }));
     if (view.instructionsPtBr) {
-      appendParagraph(box, `Orientações: ${view.instructionsPtBr}`);
+      appendParagraph(box, t("pa.js.rx_instructions", { text: view.instructionsPtBr }));
     }
   }
 
@@ -337,7 +333,7 @@ export function initParticipantApp() {
     if (!Array.isArray(goals) || goals.length === 0) {
       const li = document.createElement("li");
       li.className = "data-card";
-      appendParagraph(li, "Nenhuma meta cadastrada até o momento.");
+      appendParagraph(li, t("pa.js.no_goals"));
       list.appendChild(li);
       return;
     }
@@ -350,7 +346,7 @@ export function initParticipantApp() {
       const badges = document.createElement("div");
       badges.className = "meta-badges";
       badges.appendChild(createBadge(originLabel, "badge-origin", "data-origin-label", originLabel));
-      const statusText = GOAL_STATUS_LABEL_PTBR[goal.status] || String(goal.status || "");
+      const statusText = label("goal_status", goal.status);
       badges.appendChild(
         createBadge(
           statusText,
@@ -362,19 +358,20 @@ export function initParticipantApp() {
       li.appendChild(badges);
 
       appendParagraph(li, String(goal.goal_text || ""));
-      const seg = BODY_SEGMENT_LABEL_PTBR[goal.body_segment] || String(goal.body_segment || "");
+      const seg = label("segment", goal.body_segment);
       const target = goal.target || {};
-      const kindLabel = GOAL_TARGET_KIND_LABEL_PTBR[target.kind] || String(target.kind || "");
+      const kindLabel = label("goal_kind", target.kind);
       const valPart =
         target.value !== null && target.value !== undefined
-          ? `${target.value}${target.unit ? ` ${target.unit}` : ""}`
+          ? `${target.value}${target.unit ? ` ${label("unit", target.unit)}` : ""}`
           : kindLabel;
-      appendParagraph(li, `Segmento: ${seg} • Alvo: ${valPart}`);
+      appendParagraph(li, t("pa.js.goal_line", { seg, target: valPart }));
       list.appendChild(li);
     }
   }
 
   function renderSummaryView(summaryData) {
+    state.summaryData = summaryData;
     const box = el("summary-view");
     clearElement(box);
     box.hidden = false;
@@ -385,14 +382,14 @@ export function initParticipantApp() {
 
     const badges = document.createElement("div");
     badges.className = "meta-badges";
-    badges.appendChild(createBadge("Resumo publicado", "badge-confirmed", "", ""));
+    badges.appendChild(createBadge(t("pa.js.summary_badge"), "badge-confirmed", "", ""));
     badges.appendChild(createBadge(originLabel, "badge-origin", "data-origin-label", originLabel));
     card.appendChild(badges);
 
     const period = summaryData.period || {};
     appendParagraph(
       card,
-      `Resumo ${summaryData.summary_id} • Período: ${period.from || ""} a ${period.to || ""}`
+      t("pa.js.summary_period", { from: formatIsoDate(period.from), to: formatIsoDate(period.to) })
     );
 
     const ul = document.createElement("ul");
@@ -426,6 +423,7 @@ export function initParticipantApp() {
   }
 
   function renderEvolutionView(evoData) {
+    state.evolutionData = evoData;
     const box = el("evolution-view");
     clearElement(box);
     box.hidden = false;
@@ -436,7 +434,7 @@ export function initParticipantApp() {
     const period = evoData.period || {};
     appendParagraph(
       card,
-      `Evolução ${evoData.evolution_id} • Período: ${period.from || ""} a ${period.to || ""}`
+      t("pa.js.evo_period", { from: formatIsoDate(period.from), to: formatIsoDate(period.to) })
     );
 
     const seriesList = Array.isArray(evoData.series) ? evoData.series : [];
@@ -453,7 +451,7 @@ export function initParticipantApp() {
       badges.className = "meta-badges";
       badges.appendChild(createBadge(originLabel, "badge-origin", "data-origin-label", originLabel));
       badges.appendChild(
-        createBadge(`Modo de execução: ${execModeLabel}`, "badge-mode", "data-execution-mode", execMode)
+        createBadge(t("pa.js.exec_mode", { mode: execModeLabel }), "badge-mode", "data-execution-mode", execMode)
       );
       sArticle.appendChild(badges);
 
@@ -468,15 +466,15 @@ export function initParticipantApp() {
         ib.className = "meta-badges";
         ib.appendChild(createBadge(originLabel, "badge-origin", "data-origin-label", originLabel));
         ib.appendChild(
-          createBadge(`Modo de execução: ${execModeLabel}`, "badge-mode", "data-execution-mode", execMode)
+          createBadge(t("pa.js.exec_mode", { mode: execModeLabel }), "badge-mode", "data-execution-mode", execMode)
         );
         li.appendChild(ib);
 
-        appendParagraph(li, `${item.session_date_local}: ${item.text_ptbr}`);
+        appendParagraph(li, `${formatIsoDate(item.session_date_local)}: ${item.text_ptbr}`);
         const ctx = item.context || {};
         appendParagraph(
           li,
-          `Contexto — ajuda: ${ctx.assistance_level ?? "?"} • dor/fadiga sinalizada: ${String(ctx.pain_or_fatigue_signalled)} • término: ${ctx.session_end_reason ?? "?"}`
+          t("pa.js.ctx", { help: label("assistance", ctx.assistance_level), pain: ctx.pain_or_fatigue_signalled ? t("common.yes") : t("common.no"), end: label("end_reason", ctx.session_end_reason) })
         );
 
         const lims = Array.isArray(item.limitations_ptbr) ? item.limitations_ptbr : [];
@@ -495,18 +493,17 @@ export function initParticipantApp() {
       sArticle.appendChild(itemsUl);
 
       for (const tr of series.assistance_transitions || []) {
-        const dirText =
-          ASSISTANCE_TRANSITION_LABEL_PTBR[tr.direction] || String(tr.direction || "");
+        const dirText = formatAssistanceTransition(tr.direction);
         appendParagraph(
           sArticle,
-          `Mudança descritiva na ajuda relatada (${tr.from_date} a ${tr.to_date}): ${dirText}.`
+          t("pa.js.transition", { from: formatIsoDate(tr.from_date), to: formatIsoDate(tr.to_date), dir: dirText })
         );
       }
 
       for (const ch of series.context_changes || []) {
         appendParagraph(
           sArticle,
-          `Mudança de contexto (${ch.from_date} a ${ch.to_date}): ${ch.dimension} (${String(ch.from)} → ${String(ch.to)}).`
+          t("pa.js.ctx_change", { from: formatIsoDate(ch.from_date), to: formatIsoDate(ch.to_date), dim: label("series_key", ch.dimension), a: String(ch.from), b: String(ch.to) })
         );
       }
 
@@ -518,7 +515,7 @@ export function initParticipantApp() {
       nBox.className = "banner banner-info";
       appendParagraph(
         nBox,
-        `Aviso de separação de séries (${notice.kind}): critérios diferentes: ${(notice.differing_keys || []).join(", ")}.`
+        t("pa.js.series_split", { what: (notice.differing_keys || []).map((x) => label("series_key", x)).join(", ") })
       );
       card.appendChild(nBox);
     }
@@ -538,7 +535,7 @@ export function initParticipantApp() {
       state.goals = Array.isArray(goalsRes.data) ? goalsRes.data : [];
       renderPrescription(state.prescription);
       renderGoals(state.goals);
-      showSuccess("Prescrição atual e metas carregadas.");
+      showSuccess(t("pa.js.plan_loaded"));
       return true;
     } catch (err) {
       handleApiError(err);
@@ -551,7 +548,7 @@ export function initParticipantApp() {
     if (!state.activeSession || state.activeSession.phase !== "active") {
       showError(
         "INVALID_TRANSITION",
-        formatParticipantError({ code: "INVALID_TRANSITION", status: 200 })
+        describeParticipantError({ code: "INVALID_TRANSITION", status: 200 }).message
       );
       return;
     }
@@ -559,7 +556,7 @@ export function initParticipantApp() {
     if (!rxPayload) {
       showError(
         "PRESCRIPTION_NOT_FOUND",
-        formatParticipantError({ code: "PRESCRIPTION_NOT_FOUND", status: 404 })
+        describeParticipantError({ code: "PRESCRIPTION_NOT_FOUND", status: 404 }).message
       );
       return;
     }
@@ -598,10 +595,10 @@ export function initParticipantApp() {
       resBox.dataset.endAction = action;
       const msg =
         action === "pain"
-          ? "Sessão encerrada imediatamente por sinalização de dor. Registre seu relato na etapa 4."
+          ? t("pa.js.stop_pain")
           : action === "fatigue"
-            ? "Sessão encerrada imediatamente por sinalização de cansaço. Registre seu relato na etapa 4."
-            : "Sessão concluída em modo apenas relato. Registre seu relato na etapa 4.";
+            ? t("pa.js.stop_fatigue")
+            : t("pa.js.stop_done");
       appendParagraph(resBox, msg);
       showSuccess(msg);
     } catch (err) {
@@ -631,13 +628,13 @@ export function initParticipantApp() {
     if (!requireAuth()) return;
     const clean = (evolutionId || "").trim();
     if (!clean) {
-      showError("NOT_FOUND", "[NOT_FOUND] Informe o identificador da evolução para abrir.");
+      showError("NOT_FOUND", t("pa.js.need_evo_id"));
       return;
     }
     try {
       const res = await client.getEvolution(clean);
       renderEvolutionView(res.data);
-      showSuccess(`Evolução ${res.data.evolution_id} carregada.`);
+      showSuccess(t("pa.js.evo_loaded"));
     } catch (err) {
       el("evolution-view").hidden = true;
       clearElement(el("evolution-view"));
@@ -652,6 +649,8 @@ export function initParticipantApp() {
     state.prescription = null;
     state.goals = [];
     state.activeSession = null;
+    state.summaryData = null;
+    state.evolutionData = null;
     resetReportChoices();
     writeStoredSession(null);
     updateControlsState();
@@ -662,7 +661,7 @@ export function initParticipantApp() {
     }
     el("summary-id-input").value = "";
     el("evolution-id-input").value = "";
-    showSuccess("Sessão encerrada.");
+    showSuccess(t("pa.js.signed_out"));
     window.location.hash = "#sec-signin";
     el("invite-token")?.focus();
   });
@@ -672,7 +671,7 @@ export function initParticipantApp() {
     event.preventDefault();
     const tokenVal = el("invite-token").value.trim();
     if (!tokenVal) {
-      showError("INVITE_INVALID", formatParticipantError({ code: "INVITE_INVALID", status: 400 }));
+      showError("INVITE_INVALID", describeParticipantError({ code: "INVITE_INVALID", status: 400 }).message);
       return;
     }
     try {
@@ -752,11 +751,8 @@ export function initParticipantApp() {
       resBox.hidden = false;
       resBox.dataset.sessionPhase = "active";
       resBox.dataset.sessionId = sessionId;
-      appendParagraph(
-        resBox,
-        "Sessão de Organizar a mesa iniciada em modo apenas relato (sem câmera)."
-      );
-      showSuccess("Sessão iniciada em modo apenas relato.");
+      appendParagraph(resBox, t("pa.js.started_detail"));
+      showSuccess(t("pa.js.started"));
     } catch (err) {
       handleApiError(err);
     }
@@ -787,22 +783,19 @@ export function initParticipantApp() {
     if (!state.activeSession || state.activeSession.phase !== "ended") {
       showError(
         "INVALID_TRANSITION",
-        formatParticipantError({ code: "INVALID_TRANSITION", status: 200 })
+        describeParticipantError({ code: "INVALID_TRANSITION", status: 200 }).message
       );
       return;
     }
     if (!state.reportExecution || !state.reportAssistance) {
-      showError(
-        "RULE_VIOLATION",
-        "[RULE_VIOLATION] Selecione uma opção para execução e uma opção para ajuda."
-      );
+      showError("RULE_VIOLATION", t("pa.js.need_both"));
       return;
     }
     const rxPayload = state.prescription?.payload;
     if (!rxPayload) {
       showError(
         "PRESCRIPTION_NOT_FOUND",
-        formatParticipantError({ code: "PRESCRIPTION_NOT_FOUND", status: 404 })
+        describeParticipantError({ code: "PRESCRIPTION_NOT_FOUND", status: 404 }).message
       );
       return;
     }
@@ -837,8 +830,8 @@ export function initParticipantApp() {
       resBox.dataset.reportSubmitted = finishedSessionId;
       resBox.dataset.reportExecution = submittedExec;
       resBox.dataset.reportAssistance = submittedAssist;
-      appendParagraph(resBox, "Relato registrado com sucesso.");
-      showSuccess("Relato da sessão enviado com sucesso.");
+      appendParagraph(resBox, t("pa.js.report_saved"));
+      showSuccess(t("pa.js.report_sent"));
     } catch (err) {
       handleApiError(err);
     }
@@ -858,9 +851,7 @@ export function initParticipantApp() {
   // Row 9: Unauthenticated navigation to protected section redirects to sign-in.
   window.addEventListener("hashchange", () => {
     if (!state.session?.token && PROTECTED_HASHES.has(window.location.hash)) {
-      redirectToSignIn(
-        "[UNAUTHENTICATED] Sessão não autenticada. Redirecionado para a etapa 1 (Entrar com convite)."
-      );
+      redirectToSignIn( t("pa.js.session_required") );
     }
   });
 
@@ -882,13 +873,22 @@ export function initParticipantApp() {
     window.history.replaceState(null, "", window.location.pathname + window.location.search);
   }
 
+  initI18n();
+  document.addEventListener("elo:lang", () => {
+    clearError();
+    clearSuccess();
+    updateControlsState();
+    if (state.session?.token) loadPublications();
+    if (state.prescription) renderPrescription(state.prescription);
+    if (!el("goals-panel").hidden) renderGoals(state.goals);
+    if (state.summaryData) renderSummaryView(state.summaryData);
+    if (state.evolutionData) renderEvolutionView(state.evolutionData);
+  });
   updateControlsState();
   if (state.session?.token) loadPublications();
 
   if (!state.session?.token && PROTECTED_HASHES.has(window.location.hash)) {
-    redirectToSignIn(
-      "[UNAUTHENTICATED] Sessão não autenticada. Redirecionado para a etapa 1 (Entrar com convite)."
-    );
+    redirectToSignIn( t("pa.js.session_required") );
   }
 }
 
