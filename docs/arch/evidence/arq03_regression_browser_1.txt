@@ -1,0 +1,8 @@
+== s1_arq03_domain rc=0 fails=0
+     11       "ok": true
+      1   "passed": true,
+== s1_arq01_dates rc=0 fails=0
+     10       "ok": true
+      1   "passed": true,
+== s1_arq02_commands rc=0 fails=0
+      1 {"total":9,"passed":9,"failed":[]}

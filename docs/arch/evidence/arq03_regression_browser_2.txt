@@ -1,0 +1,6 @@
+== s1_arq02_fix01 rc=0 fails=0
+== s1_arq02_fix03 rc=0 fails=0
+== s1_arq02_fix03b_concurrency rc=0 fails=0
+== s1_corr_ae rc=0 fails=0
+     15       "ok": true
+      1   "passed": true,

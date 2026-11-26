@@ -1,0 +1,13 @@
+=========================== short test summary info ============================
+FAILED api/tests/test_v3_session_rules.py::test_cl06_1_streams_fixtures_exact_parity
+1 failed, 521 passed, 1 skipped in 81.58s (0:01:21)
+# tests 111
+# pass 111
+# fail 0
+catalogs in sync
+?? docs/arch/evidence/arq03_after.txt
+?? docs/arch/evidence/arq03_regression_browser_1.txt
+?? docs/arch/evidence/arq03_regression_browser_2.txt
+?? docs/arch/evidence/arq03_regression_browser_3.txt
+?? docs/arch/evidence/arq03_regression_browser_4.txt
+?? docs/arch/evidence/arq03_regression_unit.txt

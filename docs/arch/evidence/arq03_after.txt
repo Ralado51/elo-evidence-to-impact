@@ -1,0 +1,43 @@
+G01   400 ENUM                   session_count 3 kg (D06)
+G02   201                        session_count 3 sessions (caso válido de referência)
+G03   400 TYPE                   session_count 2.5 (fracionário)
+G04   400 OUT_OF_RANGE           session_count 0
+G05   400 RULE_VIOLATION         session_count sem valor/unidade (null,null)
+G06   201                        session_count valor sem unidade
+G07   400 ENUM                   repetitions 10 kg
+G08   400 TYPE                   repetitions 10.5
+G09   201                        repetitions 5000 (acima de qualquer limite de dose)
+G10   400 RULE_VIOLATION         descriptive_text com valor 5 e unidade kg
+G11   201                        descriptive_text null/null
+G12   201                        measure_value sem valor e sem unidade
+G13   201                        measure_value 40 unidade inexistente 'banana'
+G14   201                        measure_value 40 deg (unidade do registro)
+G15   201                        session_count 100000 sessions (limite do schema)
+G16   400 OUT_OF_RANGE           measure_value valor negativo
+G17   400 ENUM                   session_count unidade 'deg'
+A01   400 RULE_VIOLATION         instrumento inexistente declarado 'validated_with_therapists'
+A02   400 RULE_VIOLATION         custom_unvalidated declarado 'validated_with_therapists' (FIX-20)
+A03   400 RULE_VIOLATION         custom_unvalidated versão 99 (versão livre)
+A04   400 TYPE                   item integer com 2.5
+A05   400 TYPE                   item category com valor numérico
+A06   400 TYPE                   item boolean com texto
+A07   400 RULE_VIOLATION         not_assessed=true com valor preenchido
+A08   201                        not_assessed=false, valor nulo e assistance not_assessed
+A09   201                        item number com unidade nula
+A10   201                        item number com unidade 'banana'
+A11   400 DUPLICATE_ITEM         item_key duplicado no mesmo instrumento
+A12   400 RULE_VIOLATION         fonte therapist_instrumental sem unidade
+R01   201                        dose 3x10 (válida)
+R02   400 LIMITS_EXCEEDED        11 séries
+R03   400 LIMITS_EXCEEDED        101 repetições
+R04   400 LIMITS_EXCEEDED        produto 11x10=110
+R05   400 LIMITS_EXCEEDED        produto 10x11=110
+R06   201                        produto 10x10=100 (limite)
+R07   400 OUT_OF_RANGE           0 séries
+R08   400 OUT_OF_RANGE           repetições 0
+R09   400 TYPE                   séries fracionárias 2.5
+M01   201                        flexão de punho 45 deg
+M02   201                        flexão de punho 45 kg
+M03   201                        flexão de punho -9999 deg
+M04   201                        flexão de punho 45 unidade '1' (adimensional)
+M05   201                        movimento inexistente
