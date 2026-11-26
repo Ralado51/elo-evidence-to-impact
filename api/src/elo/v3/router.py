@@ -606,12 +606,23 @@ def create_v3_router(
         principal = auth.require_principal(request)
         date_from = request.query_params.get("from")
         date_to = request.query_params.get("to")
+        include = request.query_params.get("include")
+        if include is not None and include != "reviews":
+            raise V3Error("RULE_VIOLATION", "Query parameter 'include' only supports the value 'reviews'.")
         result = facts.list_facts(
             participant_id,
             principal,
             date_from=date_from,
             date_to=date_to,
         )
+        if include == "reviews":
+            # Opt-in additive projection (ARQ-02 FIX-03): default response is unchanged (A1 3.1.0).
+            result = {
+                **result,
+                "effective_reviews": reviews.effective_review_projection(
+                    participant_id, [f["fact_id"] for f in result["facts"]]
+                ),
+            }
         return JSONResponse(result, status_code=200)
 
     # 23. facts.evidence (S1b-02, D-S1b-02-1)

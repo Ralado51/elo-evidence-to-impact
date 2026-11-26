@@ -223,6 +223,7 @@ export function createV3Client(options = {}) {
       const qs = new URLSearchParams();
       if (range.from) qs.set("from", range.from);
       if (range.to) qs.set("to", range.to);
+      if (range.includeReviews) qs.set("include", "reviews");
       const suffix = qs.toString() ? `?${qs.toString()}` : "";
       return request("GET", `/api/v3/participants/${encodeURIComponent(participantId)}/facts${suffix}`);
     },

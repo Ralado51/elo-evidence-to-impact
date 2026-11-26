@@ -55,3 +55,35 @@ Decisão do PO: regra ratificada, expectativas legadas CC-2..CC-6 substituídas,
 - **Suíte vigente sem contradição:** `web/tests/browser/s1_arq02_commands.mjs` agora usa a ação explícita (9/9); o arquivo anterior foi preservado em `docs/arch/evidence/legacy/s1_arq02_commands.fix00-legacy.mjs` para rastreabilidade; `_v2` removido.
 - **Evidências:** `arq02fix02_after.txt` (fix01+fix02 ALL PASS, incl. FX-I-1..3), `arq02fix02_regression.txt`; unidade JS 95/95; API sem alteração (470 aprovados no fix01, nenhum arquivo de `api/` ou `contracts/` tocado).
 - **Limitações:** o participante não tem a ação "registrar outra" (relato é único por sessão, por regra de domínio). Persistência após recarga segue no ARQ-05. Homologação independente pendente; nenhum defeito marcado como homologado.
+
+## 7. fix03 — FIX02-R01: reconciliação de revisão e elegibilidade
+**Defeito (UAT, média):** Alfa e Beta; evidência aprovada em Alfa (resumo/evolução elegíveis); selecionar Beta, voltar a Alfa e consultar a evidência → "publicação bloqueada por falta de evidência aprovada"; reaprovar → "operação já registrada"; evolução desabilitada.
+
+### 7.1 Causa-raiz (provada antes de alterar código)
+Reprodução na baseline `ffe1e22` (`evidence/arq02fix03_before.txt`, teste `s1_arq02_fix03.mjs`): R01-2, R01-3, R01-4, R01-5 e R01-9 falham (estados `unreviewed` após troca/recarga).
+- **Não houve perda da aprovação persistida.** R01-6b: com a UI já bloqueada, `POST /summaries` para Alfa por `fact_ids` é aceito (201) — o servidor ainda considera a aprovação válida (ledger `review.recorded`, dobra `resolve_effective_reviews`). Nenhuma revisão duplicada foi criada (R01-6).
+- **Camada: contexto de UI + ausência de projeção de leitura.** A elegibilidade do cliente (`evaluateFactGate`) depende de `entry.effectiveReview`, alimentado só por `state.effectiveReviews`, mapa **apenas em memória** preenchido ao aprovar e zerado em `setActiveParticipant` e na recarga. O servidor não expõe nenhuma leitura de revisões (`facts.list` devolve só fatos; `facts.evidence` só eventos citados; `timeline` exclui `review.recorded`). Ao recarregar fatos o cliente reconstruía tudo como "não revisado".
+- **CommandController (efeito secundário):** o slot `review:<fato>:approve@<participante>` permanecia consumido; reaprovar devolvia "settled" ("já registrada") enquanto a tela dizia "não aprovada" — mensagem contraditória. Também, aprovar→rejeitar→aprovar ficaria bloqueado no 3.º passo pelo mesmo slot.
+- Descartadas: hash/versão do conteúdo (inalterados), cache de consultas (não há), autorização (Alfa seguia autorizado), ordem de eventos (dobra do servidor idêntica à de publicação).
+
+### 7.2 Correção (sem segunda fonte de verdade)
+- **Servidor:** `facts.list` aceita `?include=reviews` (opt-in, aditivo) e devolve `effective_reviews` por `fact_id` (`decision`, `content_hash`, `event_id`, `note`), calculado pela **mesma dobra** usada na publicação (`ReviewSummaryService.effective_review_projection`). Resposta padrão **inalterada** (`{facts, catalog_version}`); valor de `include` desconhecido → 400 `RULE_VIOLATION`. Mesma autorização de `facts.list`.
+- **Cliente:** `btn-load-facts` pede a projeção e **substitui** `state.effectiveReviews` por ela a cada carga (reconstrução a cada troca de participante/recarga). Hash continua comparado: aprovação com `content_hash` diferente → "obsoleta" (stale), nunca publicável. Rejeitada/não revisada permanecem inelegíveis. Nenhum desbloqueio visual.
+- **CommandController × revisão:** decisão já efetiva para o mesmo conteúdo → sem requisição e mensagem coerente (`th.js.review_already`); mudança legítima de decisão → `startNewIntention` do slot (sem "já registrada" indevido).
+- **Delta normativo:** `ARQ-02_FIX03_CONTRACT_DELTA.md` (campo opcional; pacotes congelados `CL06_3-r1` 3.0.0 / `CL06_3-A1` 3.1.0 **não alterados**; ratificação do PO pendente).
+
+### 7.3 Inventário de componentes impactados
+| Componente | Mudança |
+|---|---|
+| `api/src/elo/v3/reviews.py` | `effective_review_projection` (somente leitura) |
+| `api/src/elo/v3/router.py` | `facts.list`: `include=reviews` opcional |
+| `web/v3/api_client.mjs` | `listFacts(..., {includeReviews})` |
+| `web/v3/therapist_app.mjs` | reconstrução de `effectiveReviews`; no-op coerente; `startNewIntention` em mudança de decisão |
+| `web/v3/i18n_pt.mjs` / `i18n_en.mjs` | `th.js.review_already` |
+| Sem alteração | contratos congelados, `therapist_model.mjs`, CommandController, publicação/evolução no servidor, infraestrutura Gemini |
+
+### 7.4 Testes e evidências
+- Caracterização (12 itens do mandato) em `web/tests/browser/s1_arq02_fix03.mjs` (R01-0..9, 6b) + `web/tests/fix03_effective_reviews.test.mjs` (obsoleta após mudança de conteúdo, isolamento) + `api/tests/test_v3_fix03_effective_reviews.py` (6: padrão inalterado, aprovar/rejeitar/anotar, coerência com o gate de publicação, sem duplicidade por leitura, isolamento/autorização, `include` inválido).
+- UAT pendentes: UAT-P1 (limpeza dos erros nos dois campos de data da evolução) e UAT-P2 (relato normal de sessão) — passam.
+- Antes: `evidence/arq02fix03_before.txt` (5 falhas). Depois: `evidence/arq02fix03_after.txt` (ALL PASS). Regressão: `evidence/arq02fix03_regression.txt`; JS 100/100; API 476 aprovados (única falha, a externa preexistente `test_cl06_1_streams_fixtures_exact_parity`); browser `s1_arq02_fix01`, `s1_arq02_commands`, `s1_arq01_dates`, `s1_stab_a/e`, `s1_corr_ae`, `s1_corr_e01` sem falhas. Correções anteriores (D04, D-FIX01-1, S1-03, S1-08, i18n) preservadas.
+- **Limitações:** a suíte do fix03 exige pausa de 62 s por causa do limite de 120 req/60 s da API; `s1_corr_e02e03` segue com a falha preexistente. Sem push/deploy; homologação independente pendente — nenhum defeito marcado como homologado.

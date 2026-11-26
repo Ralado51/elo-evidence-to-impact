@@ -1,0 +1,14 @@
+PASS R01-0 pré-condição: após aprovar, resumo e evolução elegíveis
+PASS R01-1 isolamento: Beta sem evidências aprovadas e publicação bloqueada
+FAIL R01-2 retorno ao Alfa: aprovação persistida reflete na lista e no gate de resumo :: estados=unreviewed,unreviewed,unreviewed
+FAIL R01-3 retorno ao Alfa: elegibilidade da evolução reconstruída :: gate: Publishing blocked: approve the eligible evidence and load the comparable series.
+FAIL R01-4 reenvio de aprovação já concluída: sem nova revisão e sem mensagem contraditória :: The expression evaluated to a falsy value: / 
+FAIL R01-5 recarga da página após aprovação: estado reconstruído do servidor :: estados=unreviewed,unreviewed,unreviewed
+PASS R01-6 nenhuma revisão duplicada ao longo de troca, retorno e recarga
+PASS R01-6b causa-raiz: o servidor ainda considera a aprovação válida (publicação por fact_ids para Alfa é aceita)
+PASS R01-7 servidor: publicação só com aprovação válida (Beta sem aprovação é recusado)
+PASS R01-8 evidência não aprovada permanece inelegível (antes e depois de trocar de participante)
+FAIL R01-9 evidência rejeitada permanece inelegível após troca e retorno :: The expression evaluated to a falsy value: / 
+PASS UAT-P1 limpeza dos erros nos dois campos de data da evolução (editar limpa cada um; troca de participante limpa)
+PASS UAT-P2 relato de sessão com conclusão normal: sucesso único, sem erro
+FAILED: 5

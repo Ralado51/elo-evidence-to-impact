@@ -617,6 +617,17 @@ export function initTherapistApp() {
     if (!requireParticipant()) return;
     const rawNote = (entry.draftNote || "").trim();
     const note = rawNote.length > 0 ? rawNote : null;
+    const cur = entry.effectiveReview;
+    const alreadyEffective =
+      (decision === "approve" || decision === "reject") &&
+      cur && cur.decision === decision && cur.content_hash === entry.contentHash;
+    if (alreadyEffective) {
+      // Same decision already effective for this exact content: no new review, no contradictory message.
+      announce(tm("th.js.review_already"), { politeness: "polite" });
+      return;
+    }
+    // A legitimate change of the effective state is a new intention (a consumed slot must not block it).
+    commands.startNewIntention(slotOf(`review:${entry.fact.fact_id}:${decision}`));
     const reviewBody = {
       participant_id: state.participantId,
       fact_id: entry.fact.fact_id,
@@ -1210,8 +1221,11 @@ export function initTherapistApp() {
   el("btn-load-facts").addEventListener("click", async () => {
     if (!requireParticipant()) return;
     try {
-      const res = await client.listFacts(state.participantId);
+      const res = await client.listFacts(state.participantId, { includeReviews: true });
       const facts = Array.isArray(res.data?.facts) ? res.data.facts : [];
+      // Eligibility is rebuilt from the server ledger projection on every load (no client-only truth).
+      const projected = res.data?.effective_reviews;
+      state.effectiveReviews = projected && typeof projected === "object" ? { ...projected } : {};
 
       // Fetch execution_mode once per unique session_id via GET /api/v3/facts/{fact_id}/evidence.
       const sessionModeCache = new Map();

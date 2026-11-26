@@ -42,3 +42,12 @@ Baseline `5331e60`; relatório: `ARQ-02_CORRECTION_REPORT.md`. Status dos defeit
 | S1-03 (≈FIX-18) | relato do participante fora do CommandController; envios concorrentes | relato no CommandController, evento único por intenção, estados exclusivos | FX-S103 ×3 |
 | S1-08 (proposto) | `form.reset()` não limpa estado de validação do DateField | DateField escuta `reset` do formulário | FX-S108-a/b/c |
 | D-FIX01-1 (**ratificada**, fix02) | CC-2..CC-6 legados presumiam nova intenção sem ação | ação explícita `#btn-cmd-another` + `startNewIntention`; legado preservado em `evidence/legacy/` | `s1_arq02_commands` 9/9; FX-I-1..3 |
+
+
+## Correção fix03 (FIX02-R01) — rastreabilidade
+Baseline `ffe1e22`; relatório: `ARQ-02_CORRECTION_REPORT.md` §7; delta: `ARQ-02_FIX03_CONTRACT_DELTA.md`. Sem homologação declarada.
+
+| Defeito | Causa-raiz | Correção | Testes (antes → depois) |
+|---|---|---|---|
+| FIX02-R01 | elegibilidade derivada de mapa só em memória (zerado na troca/recarga); servidor sem leitura de revisões; slot consumido do CommandController contradizia a tela | projeção `effective_reviews` (opt-in em `facts.list`) reconstruída a cada carga; no-op coerente; `startNewIntention` em mudança de decisão | `s1_arq02_fix03` R01-0..9 (5 falhas → ALL PASS); `fix03_effective_reviews.test.mjs`; `test_v3_fix03_effective_reviews.py` |
+| UAT pendentes (relato normal; erros das 2 datas da evolução) | — (cobertura) | — | UAT-P1, UAT-P2 passam |

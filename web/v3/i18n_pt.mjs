@@ -464,6 +464,7 @@ export const PT = {
   "th.js.cmd_another": "Registrar outra com os mesmos dados",
   "th.js.cmd_another_done": "Pronto para registrar outra operação. Use o botão de salvar de novo.",
   "th.js.cmd_settled": "Esta operação já foi registrada. Para registrar outra igual, use Registrar outra com os mesmos dados.",
+  "th.js.review_already": "Esta decisão já está registrada para esta evidência; nenhuma nova revisão foi criada.",
   "th.js.cmd_new_intention": "Iniciar nova tentativa",
   "th.js.cmd_new_intention_done": "Nova tentativa liberada. O próximo envio será tratado como uma nova operação.",
   "th.js.copy_fail": "Não consegui copiar sozinho. O link está selecionado: use Ctrl+C.",

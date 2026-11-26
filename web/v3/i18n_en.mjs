@@ -464,6 +464,7 @@ export const EN = {
   "th.js.cmd_another": "Register another with the same data",
   "th.js.cmd_another_done": "Ready to register another operation. Use the save button again.",
   "th.js.cmd_settled": "This operation was already registered. To register another identical one, use Register another with the same data.",
+  "th.js.review_already": "This decision is already recorded for this evidence; no new review was created.",
   "th.js.cmd_new_intention": "Start a new attempt",
   "th.js.cmd_new_intention_done": "New attempt enabled. The next submit will be treated as a new operation.",
   "th.js.copy_fail": "Could not copy automatically. The link is selected: press Ctrl+C.",

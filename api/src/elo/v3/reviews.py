@@ -255,6 +255,28 @@ class ReviewSummaryService:
             raise V3Error(decision.code, decision.reason)
         return caller
 
+    def effective_review_projection(self, participant_id: str, fact_ids: Sequence[str]) -> dict[str, dict[str, Any]]:
+        """Read-only projection of the effective review (approve/reject) per listed fact (ARQ-02 FIX-03).
+
+        Single source of truth: the same ledger fold used by ``publish_summary`` and evolution
+        (``resolve_effective_reviews``). Authorization is the caller's (facts.list scope check).
+        ``content_hash`` is returned verbatim so clients still detect stale approvals.
+        """
+        _, effective = resolve_effective_reviews(self.store.get_participant_reviews(participant_id))
+        out: dict[str, dict[str, Any]] = {}
+        for fid in fact_ids:
+            ev = effective.get(fid)
+            if ev is None:
+                continue
+            payload = ev.get("payload") or {}
+            out[fid] = {
+                "decision": payload.get("decision"),
+                "content_hash": payload.get("content_hash"),
+                "event_id": ev.get("event_id"),
+                "note": payload.get("note"),
+            }
+        return out
+
     def authorize_summary_publish_role(self, principal: Principal | None) -> Principal:
         caller = _require_valid_principal(principal)
         decision = authorize(caller, "summary", "publish", AuthzScope())
