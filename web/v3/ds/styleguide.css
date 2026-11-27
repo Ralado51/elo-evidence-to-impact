@@ -1,0 +1,17 @@
+/* Styleguide page only (documentation chrome). Components come from ds-components.css. */
+.sg-grid { display: grid; gap: var(--ds-space-4); grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); }
+.sg-swatch { border: 1px solid var(--ds-line); border-radius: var(--ds-radius-md); overflow: hidden; background: #fff; font-size: var(--ds-text-xs); }
+.sg-swatch i { display: block; height: 3.5rem; border-bottom: 1px solid var(--ds-line); }
+.sg-swatch div { padding: var(--ds-space-2) var(--ds-space-3); }
+.sg-swatch b { display: block; font-size: var(--ds-text-sm); }
+.sg-swatch code, .sg-code { font-family: var(--ds-font-mono); font-size: var(--ds-text-xs); color: var(--ds-muted); }
+.sg-row { display: flex; flex-wrap: wrap; gap: var(--ds-space-3); align-items: center; margin: var(--ds-space-3) 0; }
+.sg-demo { border: 1px dashed var(--ds-line-strong); border-radius: var(--ds-radius-md); padding: var(--ds-space-4); margin: var(--ds-space-3) 0; background: #fff; }
+.sg-dark { background: var(--ds-graphite); background-image: var(--ds-dots); background-size: 18px 18px; color: #fff; border-radius: var(--ds-radius-xl); padding: var(--ds-space-8) var(--ds-space-6); }
+.sg-dark h2, .sg-dark p { color: #fff; }
+.sg-dark p { color: var(--ds-muted-on-dark); max-width: 40rem; }
+.sg-toc { display: flex; flex-wrap: wrap; gap: var(--ds-space-2); margin: 0 0 var(--ds-space-6); padding: 0; list-style: none; }
+.sg-toc a { display: inline-flex; align-items: center; min-height: 3rem; padding: 0 var(--ds-space-4); border: 2px solid var(--ds-line-strong); border-radius: var(--ds-radius-pill); background: #fff; font-weight: 650; font-size: var(--ds-text-sm); text-decoration: none; }
+.sg-toc a:hover { background: var(--ds-yellow); border-color: var(--ds-ink); }
+.sg-type > * { margin-top: 0; }
+.sg-spacer { display: inline-block; background: var(--ds-yellow); border: 1px solid var(--ds-ink); height: 1rem; }

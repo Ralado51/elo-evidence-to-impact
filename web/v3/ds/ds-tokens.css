@@ -1,0 +1,82 @@
+/* Elo Design System — tokens.
+ * Source of truth: the existing Elo home (landing/index.html): graphite #262626, yellow #fff56b, white, pill buttons,
+ * 12–22px radii, dot-grid hero. Nothing here is a new identity: the landing values are kept and the missing steps
+ * (contrast-safe text/border/status shades, spacing, type scale, target sizes) are added.
+ * The semantic block at the end REMAPS the legacy --elo-* tokens so base.css and the page CSS adopt the system unchanged.
+ * Every foreground/background pair is verified by scripts/ds_contrast.mjs (WCAG 2.2 AA). */
+:root {
+  /* — primitives: brand (from the home) — */
+  --ds-ink: #1c1c1c;
+  --ds-graphite: #262626;
+  --ds-graphite-2: #323232;
+  --ds-graphite-line: #484848;
+  --ds-yellow: #fff56b;
+  --ds-yellow-soft: #fffbc7;
+  --ds-white: #ffffff;
+  --ds-paper: #f6f5f1;        /* the home's --soft: page background of working screens */
+  --ds-line: #e6e4de;         /* decorative dividers and card borders (not interactive) */
+  --ds-line-strong: #6b6760;  /* interactive borders: >= 3:1 on white and on paper */
+  --ds-muted: #4a4a46;
+  --ds-muted-on-dark: #d4d4d0;
+
+  /* — primitives: status (home hues, text shades darkened to AA) — */
+  --ds-ok: #17766b;        --ds-ok-text: #0f5e55;   --ds-ok-bg: #d9eeea;
+  --ds-bad: #b4372c;       --ds-bad-text: #8f2a20;  --ds-bad-bg: #f6dedb;
+  --ds-wait: #9a6208;      --ds-wait-text: #6f4504; --ds-wait-bg: #f5e8cc;
+  --ds-info: #3a6ea5;      --ds-info-text: #1f3f66; --ds-info-bg: #e3ecf7;
+
+  /* — type — */
+  --ds-font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --ds-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --ds-text-xs: 0.8125rem;
+  --ds-text-sm: 0.9375rem;
+  --ds-text-base: 1rem;
+  --ds-text-md: 1.125rem;
+  --ds-text-lg: 1.375rem;
+  --ds-text-xl: 1.75rem;
+  --ds-text-2xl: clamp(1.75rem, 4vw, 2.5rem);
+
+  /* — shape & depth — */
+  --ds-radius-sm: 0.5rem;
+  --ds-radius-md: 0.75rem;
+  --ds-radius-lg: 1rem;
+  --ds-radius-xl: 1.375rem;
+  --ds-radius-pill: 999px;
+  --ds-shadow-1: 0 1px 2px rgba(28, 28, 28, 0.06), 0 1px 3px rgba(28, 28, 28, 0.08);
+  --ds-shadow-glow: 0 0 18px rgba(255, 245, 107, 0.35); /* the home's "hot node" glow */
+  --ds-dots: radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px); /* the home's hero grid */
+
+  /* — spacing (4px grid) and targets — */
+  --ds-space-1: 0.25rem; --ds-space-2: 0.5rem; --ds-space-3: 0.75rem; --ds-space-4: 1rem;
+  --ds-space-5: 1.25rem; --ds-space-6: 1.5rem; --ds-space-8: 2rem; --ds-space-10: 2.5rem; --ds-space-12: 3rem;
+  --ds-target: 3rem;          /* therapist: 48 px  (WCAG 2.5.8 asks 24; the project keeps 48) */
+  --ds-target-lg: 3.5rem;     /* participant: 56 px, motor accessibility */
+  --ds-focus: 3px;
+
+  /* — semantic remap of the legacy tokens (tokens.css stays untouched; this file loads after it) — */
+  --elo-bg-page: var(--ds-paper);
+  --elo-bg-surface: var(--ds-white);
+  --elo-bg-subtle: #efede7;
+  --elo-bg-primary: var(--ds-graphite);
+  --elo-bg-primary-hover: var(--ds-ink);
+  --elo-bg-info: var(--ds-info-bg);
+  --elo-bg-success: var(--ds-ok-bg);
+  --elo-bg-warning: var(--ds-wait-bg);
+  --elo-bg-error: var(--ds-bad-bg);
+  --elo-color-text: var(--ds-ink);
+  --elo-color-text-muted: var(--ds-muted);
+  --elo-color-heading-accent: var(--ds-ink);
+  --elo-color-on-primary: #ffffff;
+  --elo-color-link: var(--ds-ink);
+  --elo-color-border: var(--ds-line-strong);
+  --elo-color-focus: var(--ds-ink);
+  --elo-color-info: var(--ds-info-text);       --elo-color-info-border: var(--ds-info);
+  --elo-color-success: var(--ds-ok-text);      --elo-color-success-border: var(--ds-ok);
+  --elo-color-warning: var(--ds-wait-text);    --elo-color-warning-border: var(--ds-wait);
+  --elo-color-error: var(--ds-bad-text);       --elo-color-error-border: var(--ds-bad);
+  --elo-font-family: var(--ds-font);
+  --elo-radius-sm: var(--ds-radius-sm);
+  --elo-radius-md: var(--ds-radius-lg);
+  --elo-measure-max: 72rem;
+  --elo-border-width: 0.125rem;
+}
