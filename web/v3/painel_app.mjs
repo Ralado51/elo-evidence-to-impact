@@ -8,6 +8,7 @@
 import { announce } from "./a11y.mjs";
 import { createV3Client } from "./api_client.mjs";
 import { createContextStore } from "./context_store.mjs";
+import { createFeedback } from "./feedback.mjs";
 import { describeApiError } from "./therapist_model.mjs";
 import { initI18n, t, tm, bindText, label as enumLabel, formatDateTime } from "./i18n.mjs";
 import { renderErrorTechnical } from "./ui_messages.mjs";
@@ -68,19 +69,23 @@ function rememberPatient(id, alias) {
   }
 }
 
+// ARQ-04 / CMP-10: one store per page; the dashboard had no guard against late responses.
+const ctxStore = createContextStore();
+
+// ARQ-04 / CMP-03: shared feedback (the painel has an error banner only).
+const feedback = createFeedback({
+  errorBanner: $("error-banner"), errorBannerText: $("error-banner-text"), successBanner: null, successBannerText: null,
+  bindText, renderErrorTechnical, announce,
+});
+ctxStore.onReset((reason) => feedback.onContextChange(reason));
+
 function showError(error) {
-  const banner = $("error-banner");
   const info = describeApiError(error);
-  bindText($("error-banner-text"), info.msg);
-  renderErrorTechnical(banner, info.technical);
-  banner.hidden = false;
-  announce(info.msg, { politeness: "assertive" });
+  feedback.showError(error?.code || "ERROR", info.msg, info.technical, { scope: error?.code === "UNAUTHENTICATED" ? "global" : "participant" });
 }
 
 function clearError() {
-  $("error-banner").hidden = true;
-  bindText($("error-banner-text"), "");
-  renderErrorTechnical($("error-banner"), "");
+  feedback.clearError();
 }
 
 function el(tag, props = {}, children = []) {
@@ -93,9 +98,6 @@ function el(tag, props = {}, children = []) {
   for (const c of children) node.append(c);
   return node;
 }
-
-// ARQ-04 / CMP-10: one store per page; the dashboard had no guard against late responses.
-const ctxStore = createContextStore();
 
 async function rawFetch(method, path, body, signal) {
   const res = await fetch(path, {

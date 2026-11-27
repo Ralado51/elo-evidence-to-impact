@@ -15,6 +15,7 @@ import { validateDateFields } from "./date_field.mjs";
 import { setFieldError } from "./field_error.mjs";
 import { violationFromApiError } from "./validation_registry.mjs";
 import { createContextStore } from "./context_store.mjs";
+import { createFeedback } from "./feedback.mjs";
 import { loadCatalogs, instrumentEntries, instrumentFromSelection, instrumentViolations, doseViolations, buildItem, createDomainRegistry, goalTargetSpec, buildGoalTarget, goalTargetViolations, FIELD_FOR_PATH } from "./domain_fields.mjs";
 import { applyI18n, initI18n, t, tm, lref, bindText, label, formatDate, formatDateTime, formatIsoDate } from "./i18n.mjs";
 import {
@@ -164,36 +165,13 @@ export function initTherapistApp() {
   const summaryGateStatus = el("summary-gate-status");
   const evolutionGateStatus = el("evolution-gate-status");
 
-  function clearError() {
-    errorBanner.hidden = true;
-    errorBanner.removeAttribute("role");
-    errorBanner.setAttribute("data-error-code", "");
-    bindText(errorBannerText, "");
-    renderErrorTechnical(errorBanner, "");
-  }
-
-  function clearSuccess() {
-    successBanner.hidden = true;
-    bindText(successBannerText, "");
-  }
-
-  function showError(code, message, technical = "") {
-    // Row 3: Never show success when an error occurs.
-    clearSuccess();
-    errorBanner.setAttribute("role", "alert");
-    errorBanner.setAttribute("data-error-code", code || "ERROR");
-    bindText(errorBannerText, message);
-    renderErrorTechnical(errorBanner, technical);
-    errorBanner.hidden = false;
-    announce(message, { politeness: "assertive" });
-  }
-
-  function showSuccess(message) {
-    clearError();
-    bindText(successBannerText, message);
-    successBanner.hidden = false;
-    announce(message, { politeness: "polite" });
-  }
+  // ARQ-04 / CMP-03: single feedback implementation (exclusive states, announce dedup, owner scope).
+  const feedback = createFeedback({ errorBanner, errorBannerText, successBanner, successBannerText, bindText, renderErrorTechnical, announce });
+  ctxStore.onReset((reason) => feedback.onContextChange(reason));
+  const clearError = () => feedback.clearError();
+  const clearSuccess = () => feedback.clearSuccess();
+  const showError = (code, message, technical = "") => feedback.showError(code, message, technical, { scope: code === "UNAUTHENTICATED" ? "global" : "participant" });
+  const showSuccess = (message) => feedback.showSuccess(message);
 
   function redirectToSignIn(reasonText, technical = "") {
     const msg = reasonText || describeApiError({ code: "UNAUTHENTICATED", status: 401 }).msg;

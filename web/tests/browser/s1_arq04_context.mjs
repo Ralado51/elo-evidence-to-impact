@@ -13,7 +13,7 @@ const results = [];
 const check = async (id, fn) => { try { await fn(); results.push({ id, ok: true }); } catch (e) { results.push({ id, ok: false, error: String(e.message).split("\n")[0] }); console.error("FAIL", id, String(e.message).split("\n").slice(0, 3).join(" / ")); } };
 const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, locale: "en-US" });
 await ctx.addInitScript(() => { try { localStorage.setItem("elo_lang", "en"); } catch {} });
-const t = await ctx.newPage();
+const t = await ctx.newPage(); t.on("console", (m) => { if (/DBG/.test(m.text())) console.error(m.text()); });
 const writes = [];
 t.on("request", (r) => { if (/\/api\/v3\//.test(r.url()) && r.method() !== "GET") writes.push(`${r.method()} ${new URL(r.url()).pathname}`); });
 const count = (re) => writes.filter((w) => re.test(w)).length;
@@ -42,9 +42,11 @@ const bannerOk = () => vis("#success-banner");
 const bodyText = () => t.evaluate(() => document.body.innerText);
 const activeId = () => t.inputValue("#active-participant-id");
 async function mk(alias) {
+  const prev = await t.inputValue("#active-participant-id").catch(() => "");
   await t.fill("#participant-alias", alias);
   await t.click("#btn-create-participant");
-  await t.waitForFunction((a) => document.getElementById("participant-result") && !document.getElementById("participant-result").hidden && document.getElementById("active-participant-id").value, alias);
+  // wait for a NEW active id (a bare non-empty check returned the previous participant's id and made Beta === Alfa)
+  await t.waitForFunction((p) => { const v = document.getElementById("active-participant-id")?.value; return v && v !== p; }, prev, { timeout: 10000 });
   return t.inputValue("#active-participant-id");
 }
 async function switchTo(id) {
@@ -61,8 +63,10 @@ await t.fill("#signin-password", "senha-sintetica-demo");
 await t.click("#btn-signin");
 await t.waitForSelector("#signin-result:not([hidden])");
 const ALFA = await mk("Alfa Carac");
+assert.ok(ALFA);
 await t.waitForTimeout(400);
 const BETA = await mk("Beta Carac");
+assert.notEqual(BETA, ALFA, "fixture: Alfa and Beta must be distinct participants");
 await t.waitForFunction(() => document.getElementById("goal-target-unit").value === "sessions");
 
 async function lateWrite(name, patternRx, armBtn, prep, resultSel) {
@@ -86,7 +90,9 @@ const noLate = async (name, patternRx, armBtn, prep, resultSel, marker) => {
   const h = hold(patternRx, "POST"); await h.arm();
   await t.click(armBtn); await h.hit;
   await switchTo(BETA);
+  const preVis = await vis(resultSel);
   await h.release(); await settle(1500);
+  assert.equal(preVis, false, `${name}: result already visible in Beta BEFORE the late response`);
   assert.equal(await activeId(), BETA, `${name}: active participant must stay Beta`);
   assert.equal(await vis(resultSel), false, `${name}: late result must not render in Beta :: ${await t.evaluate((q)=>document.querySelector(q)?.outerHTML.slice(0,300), resultSel)}`);
   const okText = await t.evaluate(() => { const e = document.getElementById("success-banner"); return e && !e.hidden ? e.textContent : ""; });

@@ -10,6 +10,7 @@
  */
 
 import { createContextStore } from "./context_store.mjs";
+import { createFeedback } from "./feedback.mjs";
 import { announce } from "./a11y.mjs";
 import { createCommandController } from "./command_controller.mjs";
 import { createParticipantClient, ParticipantApiError } from "./participant_api.mjs";
@@ -157,35 +158,13 @@ export function initParticipantApp() {
     build(box);
   }
 
-  function clearError() {
-    errorBanner.hidden = true;
-    errorBanner.removeAttribute("role");
-    errorBanner.setAttribute("data-error-code", "");
-    bindText(errorBannerText, "");
-    renderErrorTechnical(errorBanner, "");
-  }
-
-  function clearSuccess() {
-    successBanner.hidden = true;
-    bindText(successBannerText, "");
-  }
-
-  function showError(code, message, technical = "") {
-    clearSuccess();
-    errorBanner.setAttribute("role", "alert");
-    errorBanner.setAttribute("data-error-code", code || "ERROR");
-    bindText(errorBannerText, message);
-    renderErrorTechnical(errorBanner, technical);
-    errorBanner.hidden = false;
-    announce(message, { politeness: "assertive" });
-  }
-
-  function showSuccess(message) {
-    clearError();
-    bindText(successBannerText, message);
-    successBanner.hidden = false;
-    announce(message, { politeness: "polite" });
-  }
+  // ARQ-04 / CMP-03: single feedback implementation (exclusive states, announce dedup, owner scope).
+  const feedback = createFeedback({ errorBanner, errorBannerText, successBanner, successBannerText, bindText, renderErrorTechnical, announce });
+  ctxStore.onReset((reason) => feedback.onContextChange(reason));
+  const clearError = () => feedback.clearError();
+  const clearSuccess = () => feedback.clearSuccess();
+  const showError = (code, message, technical = "") => feedback.showError(code, message, technical, { scope: code === "UNAUTHENTICATED" ? "global" : "participant" });
+  const showSuccess = (message) => feedback.showSuccess(message);
 
   function redirectToSignIn(reasonText, technical = "") {
     const msg = reasonText || describeParticipantError({ code: "UNAUTHENTICATED", status: 401 }).msg;
