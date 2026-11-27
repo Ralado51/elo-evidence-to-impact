@@ -15,6 +15,7 @@ const ALLOWED_V3_ROUTE_PATTERNS = Object.freeze([
   { method: "GET", id: "entities.versions", regex: /^\/api\/v3\/entities\/[^/]+\/versions$/ },
   { method: "POST", id: "assessments.create", regex: /^\/api\/v3\/participants\/[^/]+\/assessments$/ },
   { method: "GET", id: "assessments.list", regex: /^\/api\/v3\/participants\/[^/]+\/assessments$/ },
+  { method: "POST", id: "encounters.create", regex: /^\/api\/v3\/participants\/[^/]+\/encounters$/ },
   { method: "POST", id: "goals.create", regex: /^\/api\/v3\/participants\/[^/]+\/goals$/ },
   { method: "GET", id: "goals.list", regex: /^\/api\/v3\/participants\/[^/]+\/goals$/ },
   { method: "POST", id: "prescriptions.publish", regex: /^\/api\/v3\/prescriptions$/ },
@@ -155,6 +156,14 @@ export function createV3Client(options = {}) {
     },
     listAssessments(participantId, opts = {}) {
       return request("GET", `/api/v3/participants/${encodeURIComponent(participantId)}/assessments`, { signal: opts.signal });
+    },
+    createEncounter(participantId, payload, opts = {}) {
+      return request("POST", `/api/v3/participants/${encodeURIComponent(participantId)}/encounters`, {
+        body: payload, idempotencyKey: opts.idempotencyKey,
+      });
+    },
+    entityVersions(entityId, opts = {}) {
+      return request("GET", `/api/v3/entities/${encodeURIComponent(entityId)}/versions`, { signal: opts.signal });
     },
     createGoal(participantId, payload, opts = {}) {
       return request("POST", `/api/v3/participants/${encodeURIComponent(participantId)}/goals`, {

@@ -189,7 +189,7 @@ export function initTherapistApp() {
   // Runs one keyed command. Success and error are mutually exclusive; ambiguous results keep the same key.
   // An intention belongs to a form AND to the active participant: switching participant never reuses a key/state.
   const slotOf = (id) => (id === "participant" ? id : `${id}@${state.participantId || ""}`);
-  const COMMAND_FORMS = { participant: "form-participant", assessment: "form-assessment", goal: "form-goal", prescription: "form-prescription", summary: "form-summary", evolution: "form-evolution" };
+  const COMMAND_FORMS = { participant: "form-participant", assessment: "form-assessment", encounter: "form-encounter", goal: "form-goal", prescription: "form-prescription", summary: "form-summary", evolution: "form-evolution" };
   // A user edit (typing, selecting, reset) is what starts a NEW intention; never elapsed time or content comparison.
   for (const [id, formId] of Object.entries(COMMAND_FORMS)) {
     const form = document.getElementById(formId);
@@ -290,7 +290,7 @@ export function initTherapistApp() {
     }
   }
   // FIX-41: the lifecycle of result surfaces is owned by the shared feedback component; this app only says WHICH surfaces exist.
-  const RESULT_SURFACES = { assessment: ["assessment-result"], goal: ["goal-result"], prescription: ["prescription-result"], summary: ["summary-result"], evolution: ["evolution-result"] };
+  const RESULT_SURFACES = { assessment: ["assessment-result"], encounter: ["encounter-result"], goal: ["goal-result"], prescription: ["prescription-result"], summary: ["summary-result"], evolution: ["evolution-result"] };
   const parkedBuilders = new Map(); // builders of the hidden surfaces, restored only for a no-op attempt
   for (const [kind, ids] of Object.entries(RESULT_SURFACES)) {
     feedback.registerSurface(kind, {
@@ -383,6 +383,7 @@ export function initTherapistApp() {
   const PARTICIPANT_RESULT_BOXES = [
     "participant-result",
     "assessment-result",
+    "encounter-result",
     "goal-result",
     "prescription-result",
     "summary-result",
@@ -430,7 +431,7 @@ export function initTherapistApp() {
       const tl = el("timeline-list");
       if (tl) clearElement(tl);
       // Typed drafts of the previous participant must not be recorded on the next one.
-      for (const fid of ["form-assessment", "form-goal", "form-prescription", "form-summary", "form-evolution", "form-read-evolution"]) {
+      for (const fid of ["form-assessment", "form-encounter", "form-goal", "form-prescription", "form-summary", "form-evolution", "form-read-evolution"]) {
         el(fid)?.reset();
       }
       applyI18n(); // reset restores the markup defaults: translate them again
@@ -1033,6 +1034,12 @@ export function initTherapistApp() {
       li.appendChild(badges);
 
       appendParagraph(li, t("th.js.timeline_row", { when: formatDateTime(item.occurred_at), ref: item.ref }), "mono");
+      if (item.encounter) {
+        appendParagraph(li, t("th.encounter.timeline", {
+          modality: t(`th.encounter.modality.${item.encounter.modality}`),
+          date: formatIsoDate(item.encounter.encounter_date),
+        }));
+      }
       list.appendChild(li);
     }
   }
@@ -1051,7 +1058,7 @@ export function initTherapistApp() {
       const box = el(id);
       if (box) { clearElement(box); box.hidden = true; for (const k of Object.keys(box.dataset)) delete box.dataset[k]; }
     }
-    for (const fid of ["form-assessment", "form-goal", "form-prescription", "form-summary", "form-evolution", "form-read-evolution"]) el(fid)?.reset();
+    for (const fid of ["form-assessment", "form-encounter", "form-goal", "form-prescription", "form-summary", "form-evolution", "form-read-evolution"]) el(fid)?.reset();
     clearEvolutionSeriesCache();
     renderFactsList();
     renderTimeline([]);
@@ -1344,6 +1351,25 @@ export function initTherapistApp() {
   });
 
   // Step 4: Create functional goal
+  el("form-encounter").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    beginAttempt("encounter");
+    if (!requireParticipant()) return;
+    const date = el("encounter-date");
+    if (!validateDateFields([{ input: date, required: true }])) return;
+    const participantId = state.participantId;
+    const payload = {
+      encounter_date: date.value, modality: "remote_external", duration_min: null,
+      prescription_ref: null, assessment_ref: null, therapist_note: el("encounter-note").value.trim() || null,
+    };
+    await cmd("encounter", (key) => client.createEncounter(participantId, payload, { idempotencyKey: key }), (res) => {
+      renderBox("encounter-result", (box) => {
+        appendParagraph(box, t("th.encounter.saved", { ref: `${res.data.entity_id}@v${res.data.version}` }));
+      });
+      showSuccess(tm("th.encounter.saved", { ref: `${res.data.entity_id}@v${res.data.version}` }));
+    }, payload);
+  });
+
   el("form-goal").addEventListener("submit", async (event) => {
     event.preventDefault();
     beginAttempt("goal");
@@ -1627,11 +1653,24 @@ export function initTherapistApp() {
     if (!requireParticipant()) return false;
     const op = ctxStore.begin("timeline");
     try {
-      const res = await client.getTimeline(state.participantId, { signal: op.signal });
+      const participantId = state.participantId;
+      const res = await client.getTimeline(participantId, { signal: op.signal });
       if (!op.isCurrent()) return;
       const items = Array.isArray(res.data?.items) ? res.data.items : [];
-      state.timelineItems = items;
-      renderTimeline(items);
+      const encounterIds = new Set(items.filter((item) => item.kind === "encounter").map((item) => item.ref.split("@")[0]));
+      const encounters = new Map();
+      for (const id of encounterIds) {
+        const versions = await client.entityVersions(id, { signal: op.signal });
+        if (!op.isCurrent()) return;
+        for (const entity of versions.data) {
+          if (entity.entity_type === "encounter" && entity.participant_id === participantId) {
+            encounters.set(`${entity.entity_id}@v${entity.version}`, entity.payload);
+          }
+        }
+      }
+      state.timelineItems = items.map((item) => encounters.has(item.ref)
+        ? { ...item, encounter: encounters.get(item.ref) } : item);
+      renderTimeline(state.timelineItems);
 
       renderBox("timeline-summary", (box) => {
         appendParagraph(box, t("th.js.timeline_loaded", { n: items.length }));

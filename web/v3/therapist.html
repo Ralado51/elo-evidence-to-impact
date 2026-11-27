@@ -237,6 +237,25 @@
 <p id="draft-status" role="status"></p>
 </div>
 </section>
+<section aria-labelledby="heading-encounter">
+<h3 data-i18n="th.encounter.heading" id="heading-encounter">Atendimento remoto externo</h3>
+<form id="form-encounter" novalidate="">
+<div class="field-grid field-grid-two">
+<div class="field">
+<label data-i18n="th.encounter.date" for="encounter-date">Data clínica do atendimento</label>
+<input id="encounter-date" type="date" required=""/>
+</div>
+<div class="field">
+<label data-i18n="th.encounter.note" for="encounter-note">Nota clínica (opcional)</label>
+<textarea id="encounter-note" maxlength="2000" rows="2"></textarea>
+</div>
+</div>
+<div class="actions-row">
+<button class="btn btn-primary target" data-i18n="th.encounter.save" type="submit">Registrar atendimento remoto</button>
+</div>
+</form>
+<div class="result-box" hidden="" id="encounter-result"></div>
+</section>
 </section>
 <!-- Etapa 4: Meta funcional -->
 <section aria-labelledby="heading-goal" class="step-card" id="sec-goal">
