@@ -64,6 +64,7 @@ from .command_dedup import log as cmd_log
 from .entities import build_entity, new_id, utc_now_ms
 from .errors import V3Error
 from .evolution import EvolutionTimelineService
+from .longitudinal_explanations import describe_publication
 from .prescriptions import PrescriptionService
 from .reviews import ReviewSummaryService
 from .store import V3Store
@@ -711,6 +712,8 @@ def create_v3_router(
     def evolution_get(evolution_id: str, request: Request):
         principal = auth.require_principal(request)
         result = evolution.get_evolution(evolution_id, principal)
+        if principal.role == "therapist" and os.environ.get("ELO_S3_EXPLANATIONS") == "1":
+            result = {**result, "explanation": describe_publication(result)}
         return JSONResponse(result, status_code=200)
 
     # 31. timeline.get (S1-01, D-S1-01-6, R3, R4)

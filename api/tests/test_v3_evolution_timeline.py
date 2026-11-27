@@ -1476,7 +1476,8 @@ def test_assistance_transitions_and_unreported_barrier_r2_r11(tmp_path: Path):
 # =========================================================================
 
 
-def test_published_evolution_event_immutability_r7_snapshot_and_r12_replay(tmp_path: Path):
+def test_published_evolution_event_immutability_r7_snapshot_and_r12_replay(tmp_path: Path, monkeypatch):
+    monkeypatch.delenv("ELO_S3_EXPLANATIONS", raising=False)
     ref = _load_ref()
     event_cat = _load_json(EVENT_CATALOG_PATH)
     limits = _load_json(LIMITS_PATH)
@@ -1526,6 +1527,22 @@ def test_published_evolution_event_immutability_r7_snapshot_and_r12_replay(tmp_p
 
     # Validate stored event with S0-03 validate_event AND CL06.3 REF
     t_view = client.get("/api/v3/evolution/evo_fixed-0001", headers=_headers(w["t1_tok"])).json()
+    assert "explanation" not in t_view
+    monkeypatch.setenv("ELO_S3_EXPLANATIONS", "1")
+    path = "/api/v3/evolution/evo_fixed-0001"
+    gated = client.get(path, headers=_headers(w["t1_tok"])).json()
+    explanation = gated.pop("explanation")
+    assert gated == t_view
+    assert explanation["publication"]["content_hash"] == res1["content_hash"]
+    assert explanation["series"][0]["reported_assistance"] == [{
+        "direction": "less_help_reported",
+        "from_fact": {"fact_id": f1["fact_id"], "content_hash": h1},
+        "to_fact": {"fact_id": f2["fact_id"], "content_hash": h2},
+    }]
+    assert "explanation" not in client.get(path, headers=_headers(w["p1_tok"])).json()
+    denied = client.get(path, headers=_headers(w["t2_tok"]))
+    assert denied.status_code == 404 and "explanation" not in denied.json()
+    monkeypatch.delenv("ELO_S3_EXPLANATIONS")
     ev = t_view["event"]
     assert ev["type"] == "evolution.published"
     assert ev["actor"] == {"role": "therapist", "id": w["t1_id"]}

@@ -425,7 +425,7 @@ export function initTherapistApp() {
       const tl = el("timeline-list");
       if (tl) clearElement(tl);
       // Typed drafts of the previous participant must not be recorded on the next one.
-      for (const fid of ["form-assessment", "form-goal", "form-prescription", "form-summary", "form-evolution"]) {
+      for (const fid of ["form-assessment", "form-goal", "form-prescription", "form-summary", "form-evolution", "form-read-evolution"]) {
         el(fid)?.reset();
       }
       applyI18n(); // reset restores the markup defaults: translate them again
@@ -869,6 +869,58 @@ export function initTherapistApp() {
     box.appendChild(card);
   }
 
+  function appendPublishedExplanation(card, explanation) {
+    const heading = document.createElement("h4");
+    heading.textContent = t("th.explanation.heading");
+    card.appendChild(heading);
+
+    const contextValue = (dimension, value) => {
+      if (value == null) return t("enum.unknown");
+      if (dimension === "assistance_level") return label("assistance", value);
+      if (dimension === "session_end_reason") return label("end_reason", value);
+      if (typeof value === "boolean") return t(value ? "common.yes" : "common.no");
+      return String(value);
+    };
+    const series = explanation.series;
+    const positions = new Map(series.map((entry, index) => [entry.series_key_hash, index + 1]));
+    if (!series.length) appendParagraph(card, t("th.explanation.insufficient_items"));
+    for (const notice of explanation.separations) {
+      appendParagraph(card, t("th.explanation.split", {
+        series: notice.series_key_hashes.map((hash) => positions.get(hash)).join(", "),
+        reasons: notice.differing_keys.map((key) => label("series_key", key)).join(", "),
+      }));
+    }
+
+    const list = document.createElement("ul");
+    list.className = "card-list";
+    for (const [index, entry] of series.entries()) {
+      const item = document.createElement("li");
+      item.className = "data-card";
+      appendParagraph(item, t("th.explanation.series", { n: index + 1, fact: label("fact", entry.technical_key.fact_type) }));
+      if (entry.status !== "published_descriptions_available") {
+        appendParagraph(item, t(`th.explanation.${entry.status}`));
+      }
+      const describe = (change, text) => {
+        appendParagraph(item, text);
+        for (const fact of [change.from_fact, change.to_fact]) {
+          appendParagraph(item, t("th.explanation.fact", { id: fact.fact_id, hash: fact.content_hash }), "mono");
+        }
+      };
+      for (const change of entry.context_changes) {
+        describe(change, t("th.explanation.change", {
+          dimension: label("series_key", change.dimension),
+          from: contextValue(change.dimension, change.from),
+          to: contextValue(change.dimension, change.to),
+        }));
+      }
+      for (const change of entry.reported_assistance) {
+        describe(change, label("transition", change.direction));
+      }
+      list.appendChild(item);
+    }
+    card.appendChild(list);
+  }
+
   function renderPublishedEvolution(evoData) {
     const box = el("evolution-result");
     clearElement(box);
@@ -923,8 +975,32 @@ export function initTherapistApp() {
       }
     }
     card.appendChild(ul);
+    if (evoData.explanation) appendPublishedExplanation(card, evoData.explanation);
     box.appendChild(card);
   }
+
+  el("form-read-evolution").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!requireParticipant()) return;
+    const participantId = state.participantId;
+    const op = ctxStore.begin("read-published-evolution");
+    try {
+      const id = el("read-evolution-id").value.trim();
+      const res = await client.getEvolution(id, { signal: op.signal });
+      if (!op.isCurrent()) return;
+      if (res.data?.event?.scope?.participant_id !== participantId) {
+        showError("NOT_FOUND", tm("th.explanation.not_found"));
+        return;
+      }
+      state.publishedEvolution = res.data;
+      renderPublishedEvolution(res.data);
+      showSuccess(tm("th.explanation.loaded"));
+    } catch (err) {
+      op.fail(err, handleApiError);
+    } finally {
+      op.done();
+    }
+  });
 
   function renderTimeline(items) {
     const list = el("timeline-list");
@@ -970,7 +1046,7 @@ export function initTherapistApp() {
       const box = el(id);
       if (box) { clearElement(box); box.hidden = true; for (const k of Object.keys(box.dataset)) delete box.dataset[k]; }
     }
-    for (const fid of ["form-assessment", "form-goal", "form-prescription", "form-summary", "form-evolution"]) el(fid)?.reset();
+    for (const fid of ["form-assessment", "form-goal", "form-prescription", "form-summary", "form-evolution", "form-read-evolution"]) el(fid)?.reset();
     clearEvolutionSeriesCache();
     renderFactsList();
     renderTimeline([]);
