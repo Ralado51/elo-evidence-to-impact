@@ -9,6 +9,7 @@ import { announce } from "./a11y.mjs";
 import { createV3Client } from "./api_client.mjs";
 import { createContextStore } from "./context_store.mjs";
 import { createFeedback } from "./feedback.mjs";
+import { loadCatalogs, legacyFindings } from "./domain_fields.mjs";
 import { describeApiError } from "./therapist_model.mjs";
 import { initI18n, t, tm, bindText, label as enumLabel, formatDateTime } from "./i18n.mjs";
 import { renderErrorTechnical } from "./ui_messages.mjs";
@@ -322,13 +323,19 @@ async function runVerify(kind) {
   }
 }
 
+let goalRules = null; // versioned goal rules for the legacy marker; absent => nothing is marked (never guessed)
+loadCatalogs().then((c) => { goalRules = c.goalRules; if (state.patient) renderPatientView(); }).catch(() => {});
+
 function renderPatientView() {
   const pt = state.patient;
   if (!pt) return;
   $("patient-name").textContent = pt.alias;
   const originText = pt.origin ? enumLabel("origin", pt.origin) : "";
   $("patient-meta").textContent = t("pn.js.meta", { side: pt.side ? enumLabel("side", pt.side) : "—", origin: originText });
-  $("patient-goal").textContent = pt.goal ? t("pn.js.goal", { text: pt.goal.goal_text }) : t("pn.js.no_goal");
+  const goalLegacy = pt.goal && goalRules && legacyFindings(goalRules, pt.goal.target).length > 0;
+  $("patient-goal").textContent = pt.goal ? t("pn.js.goal", { text: pt.goal.goal_text }) + (goalLegacy ? ` · ${t("shared.legacy_badge")}` : "") : t("pn.js.no_goal");
+  $("patient-goal").title = goalLegacy ? t("shared.legacy_hint") : "";
+  $("patient-goal").toggleAttribute("data-legacy", !!goalLegacy);
   const p = pt.rx;
   $("patient-rx").textContent = p
     ? t("pn.js.rx", { sets: p.target_sets, reps: p.target_repetitions, per: p.sessions_per_week, mode: enumLabel("exec_mode", "report_only").toLowerCase() })

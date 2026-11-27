@@ -340,6 +340,12 @@
   border-color: var(--elo-color-success-border);
 }
 
+.badge-legacy {
+  background-color: var(--elo-bg-warning, #fff4d6);
+  color: var(--elo-color-warning, #5b4200);
+  border-color: var(--elo-color-warning-border, #c9a227);
+}
+
 .limitations-list {
   margin: var(--elo-space-2) 0 0 0;
   padding-left: var(--elo-space-6);

@@ -152,6 +152,8 @@ export const PT = {
   "enum.transition.less_help_reported": "Menos ajuda relatada",
   "enum.transition.more_help_reported": "Mais ajuda relatada",
   "enum.transition.unchanged": "Sem mudança na ajuda relatada",
+  "shared.legacy_badge": "Registro legado",
+  "shared.legacy_hint": "Registro legado: não segue as regras atuais; exibido como foi gravado.",
   "enum.unit.1": "unidades",
   "enum.unit.cycles": "ciclos",
   "enum.unit.deg": "graus",

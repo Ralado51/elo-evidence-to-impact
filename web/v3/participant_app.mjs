@@ -11,6 +11,7 @@
 
 import { createContextStore } from "./context_store.mjs";
 import { createFeedback } from "./feedback.mjs";
+import { loadCatalogs, legacyFindings } from "./domain_fields.mjs";
 import { announce } from "./a11y.mjs";
 import { createCommandController } from "./command_controller.mjs";
 import { createParticipantClient, ParticipantApiError } from "./participant_api.mjs";
@@ -333,7 +334,12 @@ export function initParticipantApp() {
     }
   }
 
+  // ARQ-04 / CMP-02: legacy marker needs the versioned goal rules; without them (load failure) nothing is marked (never guessed).
+  let goalRules = null;
+  loadCatalogs().then((c) => { goalRules = c.goalRules; if (state.goals) renderGoals(state.goals); }).catch(() => {});
+
   function renderGoals(goals) {
+    state.goals = goals;
     const panel = el("goals-panel");
     const list = el("goals-list");
     clearElement(list);
@@ -365,6 +371,12 @@ export function initParticipantApp() {
           goal.status
         )
       );
+      if (legacyFindings(goalRules, goal.target).length) {
+        const lb = createBadge(t("shared.legacy_badge"), "badge-legacy", "data-legacy", "true");
+        lb.title = t("shared.legacy_hint");
+        badges.appendChild(lb);
+        li.dataset.legacy = "true";
+      }
       li.appendChild(badges);
 
       appendParagraph(li, String(goal.goal_text || ""));

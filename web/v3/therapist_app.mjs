@@ -1512,6 +1512,12 @@ export function initTherapistApp() {
       o.textContent = label("unit", u.unit);
       sel.appendChild(o);
     }
+    relabelUnits();
+  }
+  // I-01: unit options are built at runtime, so the language switch must relabel them (the value never changes).
+  function relabelUnits() {
+    const sel = el("assessment-item-unit");
+    for (const o of sel.options) if (o.value) o.textContent = label("unit", o.value);
   }
   function applyInstrument() {
     const sel = el("assessment-instrument-id");
@@ -1550,6 +1556,7 @@ export function initTherapistApp() {
   el("assessment-instrument-id").addEventListener("change", syncInstrument);
   document.addEventListener("elo:lang", () => {
     // Re-render dynamic content in the new language without touching what the user typed.
+    relabelUnits();
     updateSessionBar();
     updatePublishGates();
     renderFactsList();

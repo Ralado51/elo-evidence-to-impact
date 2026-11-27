@@ -152,6 +152,8 @@ export const EN = {
   "enum.transition.less_help_reported": "Less help reported",
   "enum.transition.more_help_reported": "More help reported",
   "enum.transition.unchanged": "No change in reported help",
+  "shared.legacy_badge": "Legacy record",
+  "shared.legacy_hint": "Legacy record: it does not follow the current rules; shown as stored.",
   "enum.unit.1": "units",
   "enum.unit.cycles": "cycles",
   "enum.unit.deg": "degrees",

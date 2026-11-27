@@ -83,6 +83,19 @@ export function parseItemValue(valueType, raw) {
 }
 
 /** The four states of an item (FIX-39 / P-05): observed value (zero included), unknown, not assessed. Absence is never inferred from an empty field. */
+/**
+ * ARQ-04 / CMP-02 (P-08): findings that mark a STORED goal as "legacy" — it predates, or does not meet, the current rules.
+ * Pure and display-only: the record is shown exactly as stored and is never corrected, migrated or hidden.
+ * @returns {{code:string, rule?:string}[]}
+ */
+export function legacyFindings(goalRules, target) {
+  if (!goalRules || !target || typeof target !== "object") return [];
+  const spec = goalTargetSpec(goalRules, target.kind);
+  if (!spec) return [{ code: "unknown_kind" }];
+  if (spec.legacy) return [{ code: "legacy_kind" }]; // measure_value: free value/unit, kept for history
+  return goalTargetViolations(goalRules, target).map((v) => ({ code: "rule", rule: v.rule }));
+}
+
 export const ITEM_STATES = Object.freeze(["observed", "unknown", "not_assessed"]);
 
 export function buildItem({ key, valueType, rawValue, unit, state = "observed", assistance, source = "therapist_observed" }) {

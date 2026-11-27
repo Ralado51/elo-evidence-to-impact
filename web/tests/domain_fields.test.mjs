@@ -98,3 +98,28 @@ test("JS-FIX38/40: ceiling comes from the catalog; empty goal text is a field vi
   assert.equal(reg.evaluate("goal", { goal_text: "   ", target: t })[0].rule, "goal.text_required");
   assert.deepEqual(reg.evaluate("goal", { goal_text: "ok", target: t }), []);
 });
+
+import { legacyFindings } from "../v3/domain_fields.mjs";
+const unitsCat = JSON.parse(readFileSync(new URL("../v3/catalogs/units.json", import.meta.url), "utf8"));
+
+test("I-05/P-08: legacyFindings marks stored goals outside current rules, never corrects them", () => {
+  assert.deepEqual(legacyFindings(rules, { kind: "session_count", value: 3, unit: "sessions" }), []);
+  assert.deepEqual(legacyFindings(rules, { kind: "descriptive_text", value: null, unit: null }), []);
+  assert.equal(legacyFindings(rules, { kind: "measure_value", value: 7.5, unit: "kg" })[0].code, "legacy_kind");
+  assert.equal(legacyFindings(rules, { kind: "session_count", value: 3, unit: "kg" })[0].rule, "goal.count_unit_compatible");
+  assert.equal(legacyFindings(rules, { kind: "session_count", value: 100001, unit: "sessions" })[0].rule, "goal.count_ceiling");
+  assert.equal(legacyFindings(rules, { kind: "inexistente", value: 1, unit: null })[0].code, "unknown_kind");
+  assert.deepEqual(legacyFindings(null, { kind: "session_count", value: 1, unit: "kg" }), []); // no rules loaded: never guess
+  const t0 = { kind: "session_count", value: 3, unit: "kg" }; const copy = JSON.stringify(t0);
+  legacyFindings(rules, t0); assert.equal(JSON.stringify(t0), copy);
+});
+
+test("I-01: every unit in the catalog has a PT and an EN label (no fallback to 'unknown')", async () => {
+  const { default: pt } = await import("../v3/i18n_pt.mjs").then((m) => ({ default: Object.values(m).find((v) => v && typeof v === "object" && "enum.unit.1" in v) }));
+  const { default: en } = await import("../v3/i18n_en.mjs").then((m) => ({ default: Object.values(m).find((v) => v && typeof v === "object" && "enum.unit.1" in v) }));
+  for (const u of unitsCat.units) {
+    assert.ok(pt[`enum.unit.${u.unit}`], `PT label for ${u.unit}`);
+    assert.ok(en[`enum.unit.${u.unit}`], `EN label for ${u.unit}`);
+    assert.notEqual(pt[`enum.unit.${u.unit}`], en[`enum.unit.${u.unit}`], `unit ${u.unit} must differ between languages`);
+  }
+});
