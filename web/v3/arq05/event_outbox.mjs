@@ -45,9 +45,9 @@ export class EventOutbox {
     return { ...record, phase };
   }
 
-  async append(previous, events, { replaceCompleted = false } = {}) {
+  async append(previous, events, { replaceCompleted = false, dismissed = false } = {}) {
     if (replaceCompleted && (previous.conflict ||
-        previous.phase !== SESSION_PHASE.REPORTED || previous.acknowledged !== previous.events.length)) {
+        previous.phase !== (dismissed ? SESSION_PHASE.ENDED : SESSION_PHASE.REPORTED) || previous.acknowledged !== previous.events.length)) {
       throw new Error("RECOVERY_STREAM_UNRESOLVED");
     }
     const copy = structuredClone(events);

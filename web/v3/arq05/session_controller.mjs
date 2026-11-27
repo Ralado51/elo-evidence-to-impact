@@ -27,9 +27,12 @@ export class SessionController {
     };
   }
 
-  async start({ prescriptionId, prescriptionRevision, exerciseId }) {
+  // dismissReport (PO ratification): an ENDED session whose events are ALL confirmed may be left without a report on explicit
+  // request. Unconfirmed events are never dropped silently: the call is refused (RECOVERY_STREAM_UNRESOLVED).
+  async start({ prescriptionId, prescriptionRevision, exerciseId }, { dismissReport = false } = {}) {
     const current = await this.#outbox.read();
-    const completed = current.phase === SESSION_PHASE.REPORTED;
+    const dismissed = dismissReport && current.phase === SESSION_PHASE.ENDED;
+    const completed = current.phase === SESSION_PHASE.REPORTED || dismissed;
     transition(completed ? SESSION_PHASE.IDLE : current.phase, "start");
     if (current.conflict || (completed && current.acknowledged !== current.events.length)) {
       throw new Error("RECOVERY_STREAM_UNRESOLVED");
@@ -47,7 +50,7 @@ export class SessionController {
     const second = await buildSessionControlEvent({
       ...params, seq: 2, prevHash: first.hash, occurredAt: nextMonotonicIso(first.occurred_at), action: "start",
     });
-    await this.#outbox.append(current, [first, second], { replaceCompleted: completed });
+    await this.#outbox.append(current, [first, second], { replaceCompleted: completed, dismissed });
     return this.restore();
   }
 
