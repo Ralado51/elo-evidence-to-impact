@@ -82,6 +82,17 @@
 <button class="btn btn-stop target" data-i18n="pa.btn-stop-fatigue" disabled="" id="btn-stop-fatigue" type="button">Parar por cansaço</button>
 </div>
 <div class="result-box" hidden="" id="session-result"></div>
+<div aria-live="polite" class="result-box" id="sync-panel" hidden="">
+<h3 data-i18n="pa.js.sync_title" id="sync-title">Envio das atividades</h3>
+<p id="sync-status"></p>
+<p id="sync-notice"></p>
+<p data-i18n="pa.js.sync_loss_warning" id="sync-loss-warning">Atenção: se você fechar esta aba, as pendências guardadas aqui podem ser perdidas e será preciso um novo convite.</p>
+<div class="actions-row">
+<button class="btn btn-secondary target" data-i18n="pa.btn-sync-now" id="btn-sync-now" type="button">Enviar pendências</button>
+<button class="btn btn-secondary target" data-i18n="pa.btn-dismiss-report" hidden="" id="btn-dismiss-report" type="button">Dispensar relato</button>
+</div>
+</div>
+
 </section>
 <!-- Etapa 4: Relato básico sem digitação -->
 <section aria-labelledby="heading-report" class="step-card" id="sec-report">

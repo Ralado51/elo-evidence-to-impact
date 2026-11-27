@@ -855,7 +855,9 @@ async function runPointerPass(browser, contractMatchers) {
       },
       { times: 1 }
     );
-    await page.click("#btn-session-start");
+    // S1 integration (ARQ-05): the local-first start already left an unconfirmed session; the forced server refusal is
+    // now exercised on the explicit "send pending" action (records stay saved locally, nothing is rebuilt).
+    await page.click("#btn-sync-now");
     await page.waitForSelector('#error-banner[data-error-code="FORBIDDEN"]:not([hidden])');
     assert.equal(await page.locator("#error-banner").getAttribute("role"), "alert");
     assert.equal(await page.locator("#success-banner").isHidden(), true);
@@ -863,6 +865,15 @@ async function runPointerPass(browser, contractMatchers) {
       const live = await page.locator("#elo-live-region").textContent();
       assert.ok(live.trim().length > 10 && !live.includes("FORBIDDEN"), `live region must be a friendly message: ${live}`);
     }
+
+    // Recovery of the stale unconfirmed session: real send, then end + dismiss (allowed only once fully confirmed).
+    await page.click("#btn-sync-now");
+    await page.waitForSelector('#sync-panel[data-sync-status="synced"]');
+    await page.click("#btn-session-end");
+    await page.waitForSelector('#session-result[data-session-phase="ended"]');
+    await page.waitForSelector('#sync-panel[data-sync-status="synced"]');
+    await page.click("#btn-dismiss-report");
+    await page.waitForSelector("#btn-dismiss-report", { state: "hidden" });
 
     // --- Step 3 & 4a: Normal report-only session + zero-typing basic report ("unreported") ---
     await assertBasicReportRequiresNoTyping(page);

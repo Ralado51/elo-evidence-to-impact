@@ -22,17 +22,19 @@ import {
   describeParticipantError,
   formatAssistanceTransition,
   organizarAMesaGuide,
-  buildReportSubmittedEvent,
-  buildSessionControlEvent,
-  buildSessionStartedEvent,
   formatExecutionMode,
   formatOriginLabel,
-  generateSessionId,
-  nextMonotonicIso,
   projectPrescriptionForDisplay,
   resolveEvolutionSeriesOriginLabel,
   resolveSummaryOriginLabel,
 } from "./participant_model.mjs";
+
+import { StorageAdapter } from "./arq05/storage_adapter.mjs";
+import { RecoveryStore } from "./arq05/recovery_store.mjs";
+import { EventOutbox } from "./arq05/event_outbox.mjs";
+import { EventDispatcher } from "./arq05/event_dispatcher.mjs";
+import { SessionController } from "./arq05/session_controller.mjs";
+import { retentionState } from "./arq05/retention.mjs";
 
 const SESSION_STORAGE_KEY = "elo_v3_participant_session";
 
@@ -106,7 +108,11 @@ export function initParticipantApp() {
     activeSession: null, // { sessionId, seq, lastHash, lastOccurredAt, phase: "active"|"ended", endAction }
     reportExecution: null,
     reportAssistance: null,
+    rec: null, // projection of the local recovery stream (ARQ-05)
+    dismissArmed: false,
   };
+  let recovery = null; // { outbox, controller, dispatcher, tk, needsReauth }
+  let retryTimer = null;
 
   // ARQ-04 / CMP-10: logout and sign-in are context boundaries; reads in flight never repaint another principal.
   const ctxStore = createContextStore();
@@ -571,62 +577,146 @@ export function initParticipantApp() {
     }
   }
 
+  // ---- ARQ-05: local-first recovery wiring (synthetic MVP; sessionStorage of this tab only) ----
+  function openRecovery() {
+    clearTimeout(retryTimer);
+    recovery = null;
+    state.rec = null;
+    const p = state.session?.principal;
+    if (!state.session?.token || !p?.id || !p?.org_id) return;
+    try {
+      const store = new RecoveryStore({ orgId: p.org_id, participantId: p.id }, new StorageAdapter());
+      const outbox = new EventOutbox(store);
+      recovery = {
+        outbox,
+        controller: new SessionController(outbox),
+        lastError: null,
+        dispatcher: new EventDispatcher(outbox, async (evs) => {
+          try {
+            const res = await client.postEventsBatch(evs);
+            if (recovery) recovery.lastError = null;
+            return res;
+          } catch (err) {
+            if (recovery) recovery.lastError = err;
+            throw err;
+          }
+        }),
+        tk: ctxStore.capture({ level: "principal" }),
+        needsReauth: true, // recovered events need an explicit user action before being transmitted
+      };
+    } catch {
+      state.rec = { error: true };
+    }
+  }
+
+  async function refreshRecovery() {
+    const rec = recovery;
+    if (!rec) { renderSync(); updateControlsState(); return; }
+    let r, record;
+    try {
+      record = await rec.outbox.read();
+      r = await rec.controller.restore();
+    } catch {
+      if (recovery === rec && rec.tk.isCurrent()) { state.rec = { error: true }; renderSync(); updateControlsState(); }
+      return;
+    }
+    if (recovery !== rec || !rec.tk.isCurrent()) return;
+    const ret = retentionState(record, Date.now());
+    state.activeSession = r.phase === "active" || r.phase === "ended"
+      ? { sessionId: r.sessionId, phase: r.phase, endAction: r.endAction }
+      : null;
+    if (r.pending === 0) rec.needsReauth = false;
+    state.rec = {
+      phase: r.phase, pending: r.pending, conflict: r.conflict,
+      expired: ret.expired, fullyConfirmed: ret.fullyConfirmed, needsReauth: rec.needsReauth,
+    };
+    if (r.phase !== "ended") state.dismissArmed = false;
+    renderSync();
+    updateControlsState();
+  }
+
+  function renderSync() {
+    const panel = el("sync-panel");
+    if (!panel) return;
+    const r = state.rec;
+    if (!state.session?.token || !r) { panel.hidden = true; return; }
+    panel.hidden = false;
+    const status = el("sync-status");
+    const notice = el("sync-notice");
+    if (r.error) {
+      panel.dataset.syncStatus = "error";
+      status.textContent = t("pa.js.storage_unavailable");
+      notice.textContent = "";
+      el("btn-sync-now").hidden = true;
+      el("btn-dismiss-report").hidden = true;
+      return;
+    }
+    panel.dataset.syncStatus = r.conflict ? "conflict" : r.pending ? "pending" : "synced";
+    panel.dataset.syncPending = String(r.pending);
+    status.textContent = r.conflict ? t("pa.js.sync_conflict")
+      : r.pending ? t("pa.js.sync_pending", { n: r.pending }) : t("pa.js.sync_synced");
+    let msg = "";
+    let kind = "";
+    if (r.pending && r.needsReauth) { msg = t("pa.js.sync_recovered"); kind = "recovered"; }
+    if (r.pending && r.expired) { msg = t("pa.js.sync_expired"); kind = "expired"; }
+    if (r.phase === "active" && state.recoveredOrphan) { msg = t("pa.js.sync_orphan"); kind = "orphan"; }
+    notice.textContent = msg;
+    notice.dataset.noticeKind = kind;
+    el("btn-sync-now").hidden = !r.pending || Boolean(r.conflict);
+    el("btn-dismiss-report").hidden = r.phase !== "ended" || state.dismissArmed;
+  }
+
+  // Single transmission attempt. Automatic mode makes at most one delayed retry; conflicts suspend sending entirely.
+  async function dispatchNow({ manual = false, retry = false } = {}) {
+    const rec = recovery;
+    if (!rec || !rec.tk.isCurrent() || !state.session?.token) return null;
+    if (!manual && rec.needsReauth) return null;
+    clearTimeout(retryTimer);
+    let res = null;
+    try { res = await rec.dispatcher.dispatch(); } catch { res = null; }
+    if (recovery !== rec || !rec.tk.isCurrent()) return null;
+    await refreshRecovery();
+    if (res?.status !== "synced" && rec.lastError) {
+      const e = rec.lastError;
+      rec.lastError = null;
+      res = { ...res, errorShown: true };
+      handleApiError(e); // a server refusal or transport failure is shown; the local records stay saved
+    }
+    if (res?.status !== "synced" && !manual && !retry && res?.status !== "conflict") {
+      retryTimer = setTimeout(() => { dispatchNow({ retry: true }); }, 3000);
+    }
+    return res;
+  }
+
   async function endActiveSession(action) {
     if (!requireAuth()) return;
-    if (!state.activeSession || state.activeSession.phase !== "active") {
+    const rec = recovery;
+    if (!rec || state.activeSession?.phase !== "active") {
       showError(
         "INVALID_TRANSITION",
         describeParticipantError({ code: "INVALID_TRANSITION", status: 200 }).msg
       );
       return;
     }
-    const rxPayload = state.prescription?.payload;
-    if (!rxPayload) {
-      showError(
-        "PRESCRIPTION_NOT_FOUND",
-        describeParticipantError({ code: "PRESCRIPTION_NOT_FOUND", status: 404 }).msg
-      );
-      return;
-    }
-    const nextSeq = state.activeSession.seq + 1;
-    const occurredAt = nextMonotonicIso(state.activeSession.lastOccurredAt);
     const tk = ctxStore.capture({ level: "principal" }); // BEFORE the await: the write is never aborted, only its rendering is guarded
     try {
-      const ev = await buildSessionControlEvent({
-        participantId: state.session.principal.id,
-        orgId: state.session.principal.org_id,
-        sessionId: state.activeSession.sessionId,
-        prescriptionId: rxPayload.prescription_id,
-        prescriptionRevision: rxPayload.revision,
-        exerciseId: rxPayload.exercise_id,
-        seq: nextSeq,
-        prevHash: state.activeSession.lastHash,
-        occurredAt,
-        action,
-      });
-      await client.postEventsBatch([ev]);
-      if (!tk.isCurrent()) return; // signed out meanwhile: the write is persisted server-side; nothing is shown or restored here
-
-      state.activeSession = {
-        ...state.activeSession,
-        seq: nextSeq,
-        lastHash: ev.hash,
-        lastOccurredAt: occurredAt,
-        phase: "ended",
-        endAction: action,
-      };
-      resetReportChoices();
-      updateControlsState();
-
-      const resBox = el("session-result");
-      resBox.dataset.sessionPhase = "ended";
-      resBox.dataset.endAction = action;
-      const msgKey = action === "pain" ? "pa.js.stop_pain" : action === "fatigue" ? "pa.js.stop_fatigue" : "pa.js.stop_done";
-      renderBox("session-result", (b) => appendParagraph(b, t(msgKey)));
-      showSuccess(tm(msgKey));
-    } catch (err) {
-      if (tk.isCurrent()) handleApiError(err);
+      await rec.controller.stop(action);
+    } catch {
+      if (tk.isCurrent()) showError("INVALID_TRANSITION", describeParticipantError({ code: "INVALID_TRANSITION", status: 200 }).msg);
+      return;
     }
+    if (!tk.isCurrent() || recovery !== rec) return; // signed out meanwhile: the event stays in the local stream; nothing is rendered
+    state.recoveredOrphan = false;
+    resetReportChoices();
+    await refreshRecovery();
+
+    const resBox = el("session-result");
+    resBox.dataset.sessionPhase = "ended";
+    resBox.dataset.endAction = action;
+    const msgKey = action === "pain" ? "pa.js.stop_pain" : action === "fatigue" ? "pa.js.stop_fatigue" : "pa.js.stop_done";
+    renderBox("session-result", (b) => appendParagraph(b, t(msgKey)));
+    showSuccess(tm(msgKey));
+    dispatchNow();
   }
 
   async function openSummaryById(summaryId) {
@@ -685,6 +775,12 @@ export function initParticipantApp() {
     state.prescription = null;
     state.goals = [];
     state.activeSession = null;
+    clearTimeout(retryTimer);
+    recovery = null; // the stored local stream is NOT erased: it stays isolated by organization and principal
+    state.rec = null;
+    state.dismissArmed = false;
+    state.recoveredOrphan = false;
+    renderSync();
     state.summaryData = null;
     state.evolutionData = null;
     resetReportChoices();
@@ -741,6 +837,9 @@ export function initParticipantApp() {
       writeStoredSession(state.session);
       ctxStore.switchTo({ principalId: res.data.principal.id, role: "participant", participantId: null });
       clearParticipantSurfaces();
+      openRecovery();
+      state.recoveredOrphan = true;
+      refreshRecovery();
       loadPublications();
 
       renderBox("signin-result", (b) => appendParagraph(b, t("pa.js.access_granted")));
@@ -760,59 +859,70 @@ export function initParticipantApp() {
   // Step 3: Start report-only "Organizar a mesa" session
   btnSessionStart.addEventListener("click", async () => {
     if (!requireAuth()) return;
+    const rec = recovery;
+    if (!rec) { showError("RECOVERY_UNAVAILABLE", tm("pa.js.storage_unavailable")); return; }
+    await refreshRecovery();
+    const r = state.rec;
+    if (!r || r.error) { showError("RECOVERY_UNAVAILABLE", tm("pa.js.storage_unavailable")); return; }
+    const autoDismiss = r.phase === "ended" && r.expired && r.fullyConfirmed;
+    const dismissReport = r.phase === "ended" && (state.dismissArmed || autoDismiss);
+    if (r.phase === "active") { showError("SESSION_BLOCKED", tm("pa.js.sync_blocked_active")); return; }
+    if (r.phase === "ended" && !dismissReport) { showError("SESSION_BLOCKED", tm("pa.js.sync_blocked_report")); return; }
+    if (r.conflict || (r.pending && r.phase !== "idle")) { showError("SESSION_BLOCKED", tm("pa.js.sync_blocked_unresolved")); return; }
     if (!state.prescription) {
       const loaded = await loadPlan();
       if (!loaded || !state.prescription) return;
     }
     const rxPayload = state.prescription.payload;
     const tk = ctxStore.capture({ level: "principal" });
-    const sessionId = generateSessionId();
-    const t1 = nextMonotonicIso();
-    const t2 = nextMonotonicIso(t1);
     try {
-      const ev1 = await buildSessionStartedEvent({
-        participantId: state.session.principal.id,
-        orgId: state.session.principal.org_id,
-        sessionId,
+      await rec.controller.start({
         prescriptionId: rxPayload.prescription_id,
         prescriptionRevision: rxPayload.revision,
         exerciseId: rxPayload.exercise_id,
-        occurredAt: t1,
-      });
-      const ev2 = await buildSessionControlEvent({
-        participantId: state.session.principal.id,
-        orgId: state.session.principal.org_id,
-        sessionId,
-        prescriptionId: rxPayload.prescription_id,
-        prescriptionRevision: rxPayload.revision,
-        exerciseId: rxPayload.exercise_id,
-        seq: 2,
-        prevHash: ev1.hash,
-        occurredAt: t2,
-        action: "start",
-      });
-      await client.postEventsBatch([ev1, ev2]);
-      if (!tk.isCurrent()) return;
-
-      state.activeSession = {
-        sessionId,
-        seq: 2,
-        lastHash: ev2.hash,
-        lastOccurredAt: t2,
-        phase: "active",
-        endAction: null,
-      };
-      resetReportChoices();
-      updateControlsState();
-
-      const resBox = el("session-result");
-      resBox.dataset.sessionPhase = "active";
-      resBox.dataset.sessionId = sessionId;
-      renderBox("session-result", (b) => appendParagraph(b, t("pa.js.started_detail")));
-      showSuccess(tm("pa.js.started"));
+      }, { dismissReport });
     } catch (err) {
-      if (tk.isCurrent()) handleApiError(err);
+      if (!tk.isCurrent()) return;
+      const code = err?.message === "RECOVERY_STREAM_UNRESOLVED" ? "pa.js.sync_blocked_unresolved" : null;
+      if (code) showError("SESSION_BLOCKED", tm(code));
+      else handleApiError(err);
+      return;
     }
+    if (!tk.isCurrent() || recovery !== rec) return;
+    state.dismissArmed = false;
+    state.recoveredOrphan = false;
+    resetReportChoices();
+    await refreshRecovery();
+    const resBox = el("session-result");
+    resBox.dataset.sessionPhase = "active";
+    resBox.dataset.sessionId = state.activeSession?.sessionId || "";
+    renderBox("session-result", (b) => appendParagraph(b, t("pa.js.started_detail")));
+    showSuccess(tm("pa.js.started"));
+    dispatchNow();
+  });
+
+  el("btn-sync-now")?.addEventListener("click", async () => {
+    if (!requireAuth() || !recovery) return;
+    const rec = recovery;
+    rec.needsReauth = false; // explicit user action = reauthorization to transmit recovered events
+    const res = await dispatchNow({ manual: true });
+    if (recovery !== rec) return;
+    if (res?.status === "synced") showSuccess(tm("pa.js.sync_sent"));
+    else if (res?.status === "conflict") showError("SYNC_CONFLICT", tm("pa.js.sync_conflict"));
+    else if (!res?.errorShown) showError("SYNC_FAILED", tm("pa.js.sync_failed"));
+  });
+
+  el("btn-dismiss-report")?.addEventListener("click", async () => {
+    if (!requireAuth()) return;
+    await refreshRecovery();
+    const r = state.rec;
+    if (!r || r.phase !== "ended") return;
+    if (r.pending || r.conflict) { showError("DISMISS_REFUSED", tm("pa.js.sync_dismiss_refused")); return; }
+    state.dismissArmed = true;
+    resetReportChoices();
+    renderSync();
+    updateControlsState();
+    showSuccess(tm("pa.js.sync_dismiss_info"));
   });
 
   btnSessionEnd.addEventListener("click", () => endActiveSession("end"));
@@ -849,41 +959,18 @@ export function initParticipantApp() {
       showError("RULE_VIOLATION", tm("pa.js.need_both"));
       return;
     }
-    const rxPayload = state.prescription?.payload;
-    if (!rxPayload) {
-      showError(
-        "PRESCRIPTION_NOT_FOUND",
-        describeParticipantError({ code: "PRESCRIPTION_NOT_FOUND", status: 404 }).msg
-      );
+    const rec = recovery;
+    if (!rec || state.dismissArmed) {
+      showError("INVALID_TRANSITION", describeParticipantError({ code: "INVALID_TRANSITION", status: 200 }).msg);
       return;
     }
     const tk = ctxStore.capture({ level: "principal" });
     const slot = `report@${state.activeSession.sessionId}`;
     const execution = state.reportExecution;
     const assistance = state.reportAssistance;
+    // The report is appended ONCE to the local chain (one event_id/seq/hash per intention); transmission is separate.
     const out = await commands.run(slot, async () => {
-      // The event is built once per intention: a retry after an ambiguous failure resends the SAME event_id/seq/hash.
-      if (!state.pendingReport || state.pendingReport.slot !== slot || state.pendingReport.execution !== execution || state.pendingReport.assistance !== assistance) {
-        const nextSeq = state.activeSession.seq + 1;
-        const occurredAt = nextMonotonicIso(state.activeSession.lastOccurredAt);
-        state.pendingReport = {
-          slot, execution, assistance, nextSeq, occurredAt,
-          ev: await buildReportSubmittedEvent({
-            participantId: state.session.principal.id,
-            orgId: state.session.principal.org_id,
-            sessionId: state.activeSession.sessionId,
-            prescriptionId: rxPayload.prescription_id,
-            prescriptionRevision: rxPayload.revision,
-            exerciseId: rxPayload.exercise_id,
-            seq: nextSeq,
-            prevHash: state.activeSession.lastHash,
-            occurredAt,
-            execution,
-            assistance,
-          }),
-        };
-      }
-      await client.postEventsBatch([state.pendingReport.ev]);
+      await rec.controller.submitReport({ execution, assistance });
     });
     if (!tk.isCurrent()) return; // signed out while in flight: nothing shown; the command slot keeps its state for recovery (ARQ-05)
     if (out.status === "ignored" || out.status === "settled") return; // same intention: one single outcome state
@@ -896,8 +983,7 @@ export function initParticipantApp() {
       return;
     }
     if (out.status === "error") {
-      state.pendingReport = null;
-      handleApiError(out.error);
+      showError("INVALID_TRANSITION", describeParticipantError({ code: "INVALID_TRANSITION", status: 200 }).msg);
       return;
     }
     try {
@@ -905,17 +991,19 @@ export function initParticipantApp() {
       const submittedAssist = assistance;
       const finishedSessionId = state.activeSession.sessionId;
       state.lastReportSlot = slot;
-      state.pendingReport = null;
-      state.activeSession = null;
       resetReportChoices();
-      updateControlsState();
+      await refreshRecovery();
+      if (recovery !== rec || !tk.isCurrent()) return;
 
       const resBox = el("report-result");
       resBox.dataset.reportSubmitted = finishedSessionId;
       resBox.dataset.reportExecution = submittedExec;
       resBox.dataset.reportAssistance = submittedAssist;
       renderBox("report-result", (b) => appendParagraph(b, t("pa.js.report_saved")));
-      showSuccess(tm("pa.js.report_sent"));
+      const sent = await dispatchNow();
+      if (recovery !== rec || !tk.isCurrent()) return;
+      if (sent?.status === "synced") showSuccess(tm("pa.js.report_sent"));
+      else showSuccess(tm("pa.js.report_saved"));
     } catch (err) {
       handleApiError(err);
     }
@@ -960,6 +1048,7 @@ export function initParticipantApp() {
   initI18n();
   document.addEventListener("elo:lang", () => {
     updateControlsState();
+    renderSync();
     for (const id of boxBuilders.keys()) runBox(id);
     if (state.session?.token) loadPublications();
     if (state.prescription) renderPrescription(state.prescription);
@@ -967,6 +1056,9 @@ export function initParticipantApp() {
     if (state.summaryData) renderSummaryView(state.summaryData);
     if (state.evolutionData) renderEvolutionView(state.evolutionData);
   });
+  openRecovery();
+  state.recoveredOrphan = true;
+  refreshRecovery();
   updateControlsState();
   if (state.session?.token) loadPublications();
 
