@@ -29,8 +29,11 @@ function renderResult() {
   const box = $("result-box"), table = $("rep-table"), tbody = table.querySelector("tbody");
   tbody.textContent = "";
   box.dataset.resultReady = String(sum.reps > 0);
+  $("ct-tiles").hidden = !sum.reps;
   if (!sum.reps) { box.textContent = t("ct.result.none"); table.hidden = true; return; }
   const dec = (x, d) => formatNumber(x, { minimumFractionDigits: d, maximumFractionDigits: d });
+  $("tile-reps").textContent = String(sum.reps); $("tile-duration").textContent = dec(sum.meanDurationS, 1);
+  $("tile-amplitude").textContent = dec(sum.meanAmplitude, 2); $("tile-atypical").textContent = String(n);
   box.textContent = t("ct.result.summary", { n: sum.reps, mean: dec(sum.meanDurationS, 1) }) + " " +
     (n ? t("ct.result.atypical", { n }) : t("ct.result.no_atypical"));
   box.dataset.reps = String(sum.reps); box.dataset.atypical = String(n);
@@ -47,6 +50,8 @@ function renderResult() {
 
 function ui(v) {
   const reps = $("rep-count"); reps.textContent = String(counter.reps); reps.dataset.reps = String(counter.reps);
+  $("hand-indicator").dataset.hand = counter.state;
+  $("stage").dataset.running = String(Boolean(mode));
   $("live-state").textContent = t("ct.state", { state: label("counter_state", counter.state) }) + (calibrating ? " · " + t("ct.state.calibrating") : "");
 }
 
@@ -68,20 +73,20 @@ function finishCalibration() {
 }
 
 function draw(lm) {
-  ctx.fillStyle = "#000"; ctx.fillRect(0, 0, cv.width, cv.height);
+  ctx.fillStyle = "#262626"; ctx.fillRect(0, 0, cv.width, cv.height);
   if (!lm || !HL) return;
   const W = cv.width, H = cv.height;
-  ctx.lineWidth = 3; ctx.strokeStyle = "#34a37f"; ctx.beginPath();
+  ctx.lineWidth = 3; ctx.strokeStyle = "#fff56b"; ctx.beginPath();
   for (const c of HL.HAND_CONNECTIONS || []) { const a = lm[c.start], b = lm[c.end]; ctx.moveTo(a.x * W, a.y * H); ctx.lineTo(b.x * W, b.y * H); }
-  ctx.stroke(); ctx.fillStyle = "#e8eaed";
+  ctx.stroke(); ctx.fillStyle = "#ffffff";
   for (const p of lm) { ctx.beginPath(); ctx.arc(p.x * W, p.y * H, 4, 0, 6.2832); ctx.fill(); }
 }
 
 function drawDemoHand(v) {
   // Abstract bar showing synthetic openness (no camera, no hand model).
-  ctx.fillStyle = "#000"; ctx.fillRect(0, 0, cv.width, cv.height);
+  ctx.fillStyle = "#262626"; ctx.fillRect(0, 0, cv.width, cv.height);
   const frac = Math.max(0, Math.min(1, (v - 0.5) / 1.3));
-  ctx.fillStyle = "#34a37f"; ctx.fillRect(40, cv.height - 40 - frac * (cv.height - 80), cv.width - 80, frac * (cv.height - 80));
+  ctx.fillStyle = "#fff56b"; ctx.fillRect(40, cv.height - 40 - frac * (cv.height - 80), cv.width - 80, frac * (cv.height - 80));
 }
 
 function resetAll() { counter.clear(); events = []; ui(null); renderResult(); }

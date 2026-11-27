@@ -8,9 +8,12 @@
 <link href="../v3/tokens.css" rel="stylesheet"/>
 <link href="../v3/base.css" rel="stylesheet"/>
 <link href="../v3/participant.css" rel="stylesheet"/>
+<link href="../v3/ds/ds-tokens.css" rel="stylesheet"/>
+<link href="../v3/ds/ds-components.css" rel="stylesheet"/>
+<link href="../v3/ds/ds-shell.css" rel="stylesheet"/>
 <link href="./contador.css" rel="stylesheet"/>
 </head>
-<body>
+<body data-ds="guided" class="ct-page">
 <a class="skip-link target" data-i18n="ct.root.a" href="#main">Pular para o conteúdo principal</a>
 <header class="site-header">
 <div class="site-header-inner">
@@ -23,45 +26,71 @@
 </nav>
 </div>
 </header>
-<main class="main" id="main" tabindex="-1">
+<main class="main ct-main" id="main" tabindex="-1">
+<div class="ct-hero">
 <h1 data-i18n="ct.main.h1">Contar abrir e fechar a mão</h1>
 <p class="hero-lead" data-i18n="ct.main.p">A câmera conta as repetições para você. Quem decide o que vale é o seu terapeuta.</p>
-<section aria-labelledby="h-priv" class="step-card" id="sec-privacidade">
-<h2 data-i18n="ct.h-priv" id="h-priv">Sua imagem não sai daqui</h2>
+</div>
+<section aria-labelledby="h-priv" class="ct-privacy" id="sec-privacidade">
+<details>
+<summary><span class="ct-lock" aria-hidden="true"></span><h2 data-i18n="ct.h-priv" id="h-priv">Sua imagem não sai daqui</h2></summary>
 <ul class="plain-list">
 <li data-i18n="ct.sec-privacidade.li">A câmera é lida só neste aparelho.</li>
 <li data-i18n="ct.sec-privacidade.li.2">Nenhuma foto ou vídeo é gravado ou enviado.</li>
 <li data-i18n="ct.sec-privacidade.li.3">A tela mostra apenas um esqueleto da mão. Ficam guardados só números: repetições, tempo e amplitude.</li>
 </ul>
+</details>
 </section>
-<section aria-labelledby="h-contar" class="step-card" id="sec-contar">
-<h2 data-i18n="ct.h-contar" id="h-contar">Contar</h2>
-<p class="step-lead" data-i18n="ct.sec-contar.p">Apoie o braço, deixe a palma virada para a câmera e abra e feche a mão devagar.</p>
-<div class="actions-row">
-<button class="btn btn-primary target" data-i18n="ct.btn-start" id="btn-start" type="button">Ligar a câmera</button>
-<button class="btn btn-secondary target" data-i18n="ct.btn-demo" id="btn-demo" type="button">Ver demonstração (sem câmera)</button>
+<section aria-labelledby="h-contar" class="ct-workspace" id="sec-contar">
+<h2 class="sr-only" data-i18n="ct.h-contar" id="h-contar">Contar</h2>
+<div class="ct-capture">
+<div class="ct-statusbar">
+<ul class="ct-hand" id="hand-indicator" data-hand="waiting">
+<li data-hand-state="open"><span class="ct-dot" aria-hidden="true"></span><span data-i18n="enum.counter_state.open">mão aberta</span></li>
+<li data-hand-state="closed"><span class="ct-dot" aria-hidden="true"></span><span data-i18n="enum.counter_state.closed">mão fechada</span></li>
+</ul>
+<p class="ct-live" id="live-state">Estado: aguardando mão aberta.</p>
 </div>
-<div class="actions-row">
-<button class="btn btn-secondary target" data-i18n="ct.btn-calibrate" disabled="" id="btn-calibrate" type="button">Calibrar (10 s)</button>
-<button class="btn btn-secondary target" data-i18n="ct.btn-reset" disabled="" id="btn-reset" type="button">Zerar</button>
-<button class="btn btn-stop target" data-i18n="ct.btn-stop" disabled="" id="btn-stop" type="button">Parar</button>
-</div>
-<p class="result-box" id="counter-msg" role="note">Câmera desligada.</p>
-<div class="stage">
+<div class="stage" id="stage" data-running="false">
 <canvas aria-label="Esqueleto da mão detectado. Nenhuma imagem da câmera é mostrada." data-i18n-attr="aria-label:ct.skeleton.aria" height="480" id="skeleton" width="640"></canvas>
 <video hidden="" id="cam" muted="" playsinline=""></video>
 </div>
+<p class="ct-message result-box" id="counter-msg" role="note">Câmera desligada.</p>
+</div>
+<aside class="ct-side">
+<div class="ct-counter">
 <p class="big-count"><span data-reps="0" id="rep-count">0</span> <span data-i18n="ct.sec-contar.span">repetições</span></p>
-<p class="step-lead" id="live-state">Estado: aguardando mão aberta.</p>
+</div>
+<div class="ct-controls">
+<p class="ct-guide" data-i18n="ct.sec-contar.p">Apoie o braço, deixe a palma virada para a câmera e abra e feche a mão devagar.</p>
+<div class="ct-actions ct-actions--main">
+<button class="btn btn-primary target" data-i18n="ct.btn-start" id="btn-start" type="button">Ligar a câmera</button>
+<button class="btn btn-secondary target" data-i18n="ct.btn-demo" id="btn-demo" type="button">Ver demonstração (sem câmera)</button>
+</div>
+<div class="ct-actions ct-actions--tools">
+<button class="btn btn-secondary target" data-i18n="ct.btn-calibrate" disabled="" id="btn-calibrate" type="button">Calibrar (10 s)</button>
+<button class="btn btn-secondary target" data-i18n="ct.btn-reset" disabled="" id="btn-reset" type="button">Zerar</button>
+</div>
+<button class="btn btn-stop target ct-stop" data-i18n="ct.btn-stop" disabled="" id="btn-stop" type="button">Parar</button>
+</div>
+</aside>
 </section>
-<section aria-labelledby="h-res" class="step-card" id="sec-resultado">
+<section aria-labelledby="h-res" class="step-card ct-results" id="sec-resultado">
 <h2 data-i18n="ct.h-res" id="h-res">Resultado</h2>
+<dl class="ct-tiles" id="ct-tiles" hidden="">
+<div><dt data-i18n="ct.sec-contar.span">repetições</dt><dd id="tile-reps">0</dd></div>
+<div><dt data-i18n="ct.sec-resultado.th">Duração (s)</dt><dd id="tile-duration">–</dd></div>
+<div><dt data-i18n="ct.sec-resultado.th.2">Amplitude</dt><dd id="tile-amplitude">–</dd></div>
+<div><dt data-i18n="ct.row.atypical">atípica</dt><dd id="tile-atypical">0</dd></div>
+</dl>
 <div class="result-box" data-result-ready="false" id="result-box">Ainda não há repetições.</div>
+<div class="ct-table-wrap">
 <table class="rep-table" hidden="" id="rep-table">
 <caption data-i18n="ct.sec-resultado.caption">Cada repetição contada</caption>
 <thead><tr><th scope="col" data-i18n="ct.th-n">Nº</th><th data-i18n="ct.sec-resultado.th" scope="col">Duração (s)</th><th data-i18n="ct.sec-resultado.th.2" scope="col">Amplitude</th><th data-i18n="ct.sec-resultado.th.3" scope="col">Observação</th></tr></thead>
 <tbody></tbody>
 </table>
+</div>
 <p class="step-lead" data-i18n="ct.sec-resultado.p">Estes números ficam só nesta tela. Repetições muito diferentes das outras aparecem marcadas como "atípica" e continuam contando.</p>
 </section>
 </main>
