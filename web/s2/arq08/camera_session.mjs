@@ -25,21 +25,24 @@ function loadOpenness(doc) {
 async function loadLandmarker() {
   const mod = await import(new URL("vision_bundle.mjs", VENDOR).href);
   const fileset = await mod.FilesetResolver.forVisionTasks(new URL("wasm", VENDOR).href);
-  let error;
-  for (const delegate of ["GPU", "CPU"]) {
-    try {
-      return await mod.HandLandmarker.createFromOptions(fileset, {
-        baseOptions: { modelAssetPath: new URL("hand_landmarker.task", VENDOR).href, delegate }, runningMode: "VIDEO", numHands: 1,
-        minHandDetectionConfidence: 0.5, minHandPresenceConfidence: 0.5, minTrackingConfidence: 0.5,
-      });
-    } catch (e) { error = e; }
-  }
-  throw error;
+  // CPU delegate, as in the original Organizar a Mesa prototype: the GPU delegate can stall or blank the preview on some physical cameras/drivers.
+  return mod.HandLandmarker.createFromOptions(fileset, {
+    baseOptions: { modelAssetPath: new URL("hand_landmarker.task", VENDOR).href, delegate: "CPU" }, runningMode: "VIDEO", numHands: 1,
+    minHandDetectionConfidence: 0.5, minHandPresenceConfidence: 0.5, minTrackingConfidence: 0.5,
+  });
+}
+
+const MODEL_TIMEOUT_MS = 30000;
+const PLAY_TIMEOUT_MS = 10000;
+/** Reject if `promise` does not settle in time, so a stalled initialisation never leaves the camera on. */
+function withTimeout(promise, ms, code) {
+  let timer;
+  return Promise.race([promise, new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(code)), ms); })]).finally(() => clearTimeout(timer));
 }
 
 /** @returns session with start()/collect()/watch()/stop(). `video` is a hidden-by-default element owned by the page. */
 export function createCameraSession({ video, doc = globalThis.document, mediaDevices = globalThis.navigator?.mediaDevices,
-  clock = () => performance.now(), loadDetector = null, onInterrupted = () => {}, engine = null, onPreview = () => {} } = {}) {
+  clock = () => performance.now(), loadDetector = null, onInterrupted = () => {}, engine = null, onPreview = () => {}, modelTimeoutMs = MODEL_TIMEOUT_MS, playTimeoutMs = PLAY_TIMEOUT_MS } = {}) {
   const port = createCameraPort(mediaDevices);
   let detector = null;
   let stream = null;
@@ -94,11 +97,11 @@ export function createCameraSession({ video, doc = globalThis.document, mediaDev
       try {
         if (!detector) {
           if (engine === "c04") {
-            const [landmarker, { createC04Detector }] = await Promise.all([(loadDetector ?? loadLandmarker)(), import("./c04_engine.mjs")]);
+            const [landmarker, { createC04Detector }] = await withTimeout(Promise.all([(loadDetector ?? loadLandmarker)(), import("./c04_engine.mjs")]), modelTimeoutMs, "MODEL_TIMEOUT");
             if (ticket !== generation) return { status: "cancelled" };
             detector = createC04Detector({ landmarker, swapDetectorLabels: SWAP_DETECTOR_LABELS, onPreview });
           } else {
-            const [landmarker, openness] = await Promise.all([(loadDetector ?? loadLandmarker)(), loadOpenness(doc)]);
+            const [landmarker, openness] = await withTimeout(Promise.all([(loadDetector ?? loadLandmarker)(), loadOpenness(doc)]), modelTimeoutMs, "MODEL_TIMEOUT");
             if (ticket !== generation) return { status: "cancelled" };
             detector = createHandDetector({ landmarker, openness, swapDetectorLabels: SWAP_DETECTOR_LABELS, onPreview });
           }
@@ -109,7 +112,9 @@ export function createCameraSession({ video, doc = globalThis.document, mediaDev
       if (out.status !== "ready") return out;
       stream = out.stream;
       video.srcObject = stream;
-      try { await video.play(); } catch {
+      video.hidden = false; // visible while it starts: hidden videos may not decode or render frames in some browsers
+      try { await withTimeout(video.play(), playTimeoutMs, "PLAY_TIMEOUT");
+      } catch {
         if (ticket !== generation) return { status: "cancelled" };
         release();
         return { status: "report_only" };

@@ -54,3 +54,7 @@ Branch `integration/s2-final` (base a859e4e, S1 aprovado). Dados sintéticos; us
 
 ### Ajuste visual — landmarks da mão (2026-11-27)
 - Os 21 pontos e as 21 conexões da mão são desenhados automaticamente sempre que há uma mão detectada, em ambos os motores (contador-exp-1 e c04), sem botão de ligar/desligar (checkbox removido). Canvas com a resolução do vídeo e o mesmo espelhamento/enquadramento (`object-fit`) do vídeo; linhas amarelas com contorno grafite e pontos brancos com contorno grafite. Limpo quando a mão some (ausente, várias mãos ou quadro insuficiente) e quando a câmera é desligada. Só desenho local: nada é guardado, codificado ou enviado. Algoritmo, calibração, ledger, contratos e mecânica inalterados.
+
+### Defeito — câmera com tela preta (2026-11-27)
+- Causa provável: o MediaPipe tentava primeiro o delegate GPU (o protótipo original usa só CPU), que pode travar ou deixar a pré-visualização preta em algumas câmeras/drivers; e o vídeo ficava oculto (`hidden`) durante o `play()`, sem limite de tempo, deixando o estado de carregamento indefinido.
+- Correção em `camera_session.mjs`: delegate CPU como no original; vídeo visível antes do `play()`; limites de tempo para carregar o modelo (30 s) e iniciar o vídeo (10 s); em caso de falha a câmera é liberada (trilhas paradas, vídeo oculto e `srcObject` nulo) e o estado cai para o fallback. Canvas dos landmarks inalterado (fica transparente sobre o vídeo e só é mostrado com mão detectada). Algoritmo, calibração, jogo, ledger e Design System inalterados.

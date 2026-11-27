@@ -230,3 +230,22 @@ test("consent conflict gates only camera dispatch and preserves the original con
   assert.equal(calls, 2);
   assert.deepEqual(await consent.read(), conflicted);
 });
+
+test("camera session: a stalled model load or a video that never plays releases the camera instead of loading forever", async () => {
+  let stopped = 0;
+  const track = { readyState: "live", stop: () => stopped++, addEventListener() {}, getSettings: () => ({}) };
+  const stream = { getTracks: () => [track], getVideoTracks: () => [track] };
+  const base = { hidden: true, readyState: 0, videoWidth: 0, videoHeight: 0, srcObject: null, pause() {} };
+  const hang = () => new Promise(() => {});
+  const stalledModel = createCameraSession({ video: { ...base, play: async () => {} }, doc: {}, mediaDevices: { getUserMedia: async () => stream }, loadDetector: hang, modelTimeoutMs: 30 });
+  assert.equal((await stalledModel.start({ consent: true })).status, "model_unavailable");
+  assert.equal(stopped, 0); // the camera was never opened
+  const v = { ...base, play: hang };
+  const stalledPlay = createCameraSession({ video: v, doc: {}, mediaDevices: { getUserMedia: async () => stream }, loadDetector: async () => ({ detectForVideo: () => ({ landmarks: [] }) }), playTimeoutMs: 30 });
+  globalThis.EloCounter = { openness: () => 1 };
+  assert.equal((await stalledPlay.start({ consent: true })).status, "report_only");
+  assert.equal(stopped, 1);
+  assert.equal(v.srcObject, null);
+  assert.equal(v.hidden, true);
+  assert.equal(stalledPlay.active, false);
+});
