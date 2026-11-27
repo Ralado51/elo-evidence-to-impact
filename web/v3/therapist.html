@@ -10,6 +10,7 @@
 <link href="./therapist.css" rel="stylesheet"/>
 <link href="./ds/ds-tokens.css" rel="stylesheet"/>
 <link href="./ds/ds-components.css" rel="stylesheet"/>
+<link href="./ds/ds-shell.css" rel="stylesheet"/>
 </head>
 <body data-ds="workspace">
 <a class="skip-link target" data-i18n="th.root.a" href="#main">Pular para o conteúdo principal</a>
@@ -225,7 +226,7 @@
 </div>
 </form>
 <div class="result-box" hidden="" id="assessment-result"></div>
-<section id="assisted-draft" hidden="" aria-labelledby="assisted-draft-heading">
+<section id="assisted-draft" class="ds-subsection ds-subsection--experimental" hidden="" aria-labelledby="assisted-draft-heading">
 <h3 id="assisted-draft-heading" data-i18n="th.s4.heading">Rascunho experimental</h3>
 <p data-i18n="th.s4.notice">Exemplo sintético. A revisão é local e não grava nem publica dados.</p>
 <button id="btn-draft-load" class="btn btn-secondary target" type="button" data-i18n="th.s4.load">Carregar exemplo sintético</button>
@@ -237,7 +238,7 @@
 <p id="draft-status" role="status"></p>
 </div>
 </section>
-<section aria-labelledby="heading-encounter">
+<section class="ds-subsection" aria-labelledby="heading-encounter">
 <h3 data-i18n="th.encounter.heading" id="heading-encounter">Atendimento remoto externo</h3>
 <form id="form-encounter" novalidate="">
 <div class="field-grid field-grid-two">

@@ -1,0 +1,109 @@
+/* Elo Design System — app shell. Loaded after ds-components.css. Pure CSS layer: DOM, IDs and behaviour untouched.
+ * Therapist (workspace, >=64rem): fixed graphite sidebar with the step navigation, light work area, numbered section cards.
+ * Participant (guided): single centred column, mobile-first, current step highlighted, large practice controls.
+ * Below 64rem the sidebar collapses back to the top bar defined in ds-components.css. */
+
+body[data-ds="workspace"] { counter-reset: sec; }
+body[data-ds="workspace"] main.main > h1 { margin: var(--ds-space-2) 0 var(--ds-space-4); font-size: var(--ds-text-2xl); }
+body[data-ds="workspace"] main.main > h1::after { content: ""; display: block; width: 3.5rem; height: 0.3rem; margin-top: var(--ds-space-2); background: var(--ds-yellow); border-radius: var(--ds-radius-pill); }
+
+/* section cards: header strip with step number, grouped forms */
+body[data-ds="workspace"] .step-card { counter-increment: sec; position: relative; padding: 0; overflow: visible; scroll-margin-top: var(--ds-space-4); box-shadow: 0 1px 0 var(--ds-line); }
+body[data-ds="workspace"] .step-card > h2 { margin: 0; border-radius: var(--ds-radius-lg) var(--ds-radius-lg) 0 0; padding: var(--ds-space-4) var(--ds-space-6); background: var(--ds-paper); border-bottom: 1px solid var(--ds-line); font-size: var(--ds-text-lg); }
+body[data-ds="workspace"] .step-card > :not(h2) { margin-left: var(--ds-space-6); margin-right: var(--ds-space-6); }
+body[data-ds="workspace"] .step-card > h2 + p { margin-top: var(--ds-space-4); }
+body[data-ds="workspace"] .step-card > :last-child { margin-bottom: var(--ds-space-6); }
+body[data-ds="workspace"] .step-card fieldset { padding: var(--ds-space-4); margin-top: var(--ds-space-4); background: #fff; }
+body[data-ds="workspace"] .step-card legend { padding: 0 var(--ds-space-2); font-size: var(--ds-text-sm); text-transform: uppercase; letter-spacing: .04em; }
+body[data-ds="workspace"] .step-card form { margin-top: var(--ds-space-3); }
+body[data-ds="workspace"] .actions-row { padding-top: var(--ds-space-4); border-top: 1px solid var(--ds-line); }
+body[data-ds="workspace"] .actions-row .btn-primary:first-child { order: -1; }
+body[data-ds="workspace"] .ds-table-wrap, body[data-ds="workspace"] .step-card table { max-width: calc(100% - 2 * var(--ds-space-6)); }
+body[data-ds="workspace"] .step-card ul:not(.card-list):not(.guide-list) { padding-left: var(--ds-space-5); }
+body[data-ds="workspace"] .session-bar { border-left: 0.375rem solid var(--ds-yellow); }
+
+@media (min-width: 64rem) {
+  body[data-ds="workspace"] { display: grid; grid-template-columns: 17rem minmax(0, 1fr); grid-template-areas: "side main" "side foot"; align-items: start; }
+  body[data-ds="workspace"] > .skip-link { position: absolute; }
+  body[data-ds="workspace"] > .site-header, body[data-ds="workspace"] > .painel-header { grid-area: side; position: sticky; top: 0; height: 100vh; border-bottom: 0; border-right: 4px solid var(--ds-yellow); overflow-y: auto; }
+  body[data-ds="workspace"] .site-header-inner, body[data-ds="workspace"] .painel-header-inner { flex-direction: column; align-items: stretch; flex-wrap: nowrap; max-width: none; padding: var(--ds-space-6) var(--ds-space-4); gap: var(--ds-space-3); min-height: 100%; }
+  body[data-ds="workspace"] .site-brand, body[data-ds="workspace"] .painel-brand { font-size: var(--ds-text-lg); }
+  body[data-ds="workspace"] .therapist-nav, body[data-ds="workspace"] .painel-nav { flex-direction: column; flex-wrap: nowrap; order: 2; gap: var(--ds-space-1); margin-top: var(--ds-space-4); padding-top: var(--ds-space-4); border-top: 1px solid var(--ds-graphite-line); }
+  body[data-ds="workspace"] .therapist-nav a, body[data-ds="workspace"] .painel-nav a { border-radius: var(--ds-radius-md); justify-content: flex-start; padding: 0 var(--ds-space-3); font-size: var(--ds-text-sm); min-height: var(--ds-target); }
+  body[data-ds="workspace"] .therapist-nav a::before { content: ""; width: .5rem; height: .5rem; border-radius: 50%; background: var(--ds-yellow); flex: none; }
+  body[data-ds="workspace"] .therapist-nav a:hover::before { background: var(--ds-ink); }
+  body[data-ds="workspace"] .site-header .lang-switch, body[data-ds="workspace"] .painel-header .lang-switch { order: 3; margin: auto 0 0; align-self: flex-start; }
+  body[data-ds="workspace"] main.main, body[data-ds="workspace"] .painel-main { grid-area: main; width: 100%; max-width: 64rem; margin: 0; padding: var(--ds-space-6) var(--ds-space-8) var(--ds-space-10); }
+  body[data-ds="workspace"] > .build-info, body[data-ds="workspace"] > .audit-details, body[data-ds="workspace"] > .painel-footer { grid-column: 2; }
+}
+
+/* ───────── participant: guided, one thing at a time ───────── */
+body[data-ds="guided"] .step-card { border-radius: var(--ds-radius-xl); padding: var(--ds-space-6); }
+body[data-ds="guided"] .step-card > h2 { font-size: var(--ds-text-xl); }
+body[data-ds="guided"] .step-card > h2::before { content: ""; flex: none; width: .75rem; height: 2rem; border-radius: var(--ds-radius-pill); background: var(--ds-yellow); border: 2px solid var(--ds-ink); }
+body[data-ds="guided"] .field { margin-bottom: var(--ds-space-3); }
+body[data-ds="guided"] .actions-row .btn-primary { flex: 1 1 14rem; }
+body[data-ds="guided"] .participant-nav { gap: var(--ds-space-2); }
+body[data-ds="guided"] .participant-nav a { min-height: var(--ds-target-lg); }
+/* practice stage: camera area proportional, big counter-style result, big controls */
+body[data-ds="guided"] #activity-panel { background: var(--ds-graphite); color: #fff; border-color: var(--ds-graphite); }
+body[data-ds="guided"] #activity-panel h2, body[data-ds="guided"] #activity-panel h3, body[data-ds="guided"] #activity-panel label, body[data-ds="guided"] #activity-panel legend, body[data-ds="guided"] #activity-panel p { color: #fff; }
+body[data-ds="guided"] #activity-panel .step-lead, body[data-ds="guided"] #activity-panel .elo-muted { color: var(--ds-muted-on-dark); }
+body[data-ds="guided"] #activity-panel .sub-panel { background: #1c1c1c; border-color: var(--ds-graphite-line); }
+body[data-ds="guided"] #activity-panel .btn-secondary { background: transparent; color: #fff; border-color: #fff; }
+body[data-ds="guided"] #activity-panel .btn-primary { background: var(--ds-yellow); color: var(--ds-ink); }
+body[data-ds="guided"] #act-cam { display: block; width: 100%; max-width: 28rem; aspect-ratio: 4 / 3; object-fit: cover; margin: var(--ds-space-3) auto; border-radius: var(--ds-radius-xl); border: 4px solid var(--ds-yellow); background: #000; }
+body[data-ds="guided"] #act-cam[hidden] { display: none; }
+body[data-ds="guided"] #activity-panel .result-box { background: var(--ds-yellow); color: var(--ds-ink); border-color: var(--ds-yellow); border-left-color: var(--ds-ink); font-size: var(--ds-text-lg); font-weight: 700; }
+body[data-ds="guided"] #activity-panel .result-box p { color: var(--ds-ink); }
+body[data-ds="guided"] #activity-panel input[type="checkbox"] { accent-color: var(--ds-yellow); }
+@media (max-width: 40rem) { body[data-ds="guided"] .step-card { padding: var(--ds-space-4); } body[data-ds="guided"] main.main { padding-inline: var(--ds-space-3); } }
+
+@media (max-width: 40rem) {
+  body[data-ds="workspace"] .step-card > :not(h2) { margin-left: var(--ds-space-3); margin-right: var(--ds-space-3); }
+  body[data-ds="workspace"] .step-card > h2 { padding: var(--ds-space-3); }
+  body[data-ds="workspace"] .step-card fieldset { min-width: 0; }
+  body[data-ds="workspace"] .step-card .field-grid-two { grid-template-columns: minmax(0, 1fr); }
+  body[data-ds="workspace"] .ds-table-wrap, body[data-ds="workspace"] .step-card table { max-width: calc(100% - 2 * var(--ds-space-3)); }
+}
+
+/* ───────── S3 / S4 / ARQ-10: sub-sections, assisted draft, audio, explanations, timeline (visual only) ───────── */
+.ds-subsection { margin-top: var(--ds-space-5); padding: var(--ds-space-5); background: var(--ds-paper); border: 1px solid var(--ds-line); border-radius: var(--ds-radius-lg); }
+.ds-subsection > h3 { display: flex; align-items: center; gap: var(--ds-space-2); margin: 0 0 var(--ds-space-3); font-size: var(--ds-text-md); }
+.ds-subsection > h3::before { content: ""; width: .5rem; height: 1.25rem; border-radius: var(--ds-radius-pill); background: var(--ds-yellow); border: 2px solid var(--ds-ink); flex: none; }
+.ds-subsection--experimental { background: #fff; border: 2px dashed var(--ds-ink); }
+.ds-subsection--experimental > h3::after { content: "Experimental"; margin-left: auto; padding: .1rem .7rem; border-radius: var(--ds-radius-pill); background: var(--ds-yellow); font-size: var(--ds-text-xs); font-weight: 700; }
+#assisted-draft pre { margin: 0 0 var(--ds-space-4); padding: var(--ds-space-4); background: var(--ds-graphite); color: #fff; border-radius: var(--ds-radius-md); font-family: var(--ds-font-mono); font-size: var(--ds-text-sm); white-space: pre-wrap; overflow-wrap: anywhere; }
+#assisted-draft h4 { margin: var(--ds-space-4) 0 var(--ds-space-2); font-size: var(--ds-text-sm); text-transform: uppercase; letter-spacing: .04em; color: var(--ds-muted); }
+#draft-fields .field { padding: var(--ds-space-3); background: var(--ds-paper); border: 1px solid var(--ds-line); border-radius: var(--ds-radius-md); }
+#draft-fields .field p { margin: 0; font-size: var(--ds-text-xs); color: var(--ds-muted); font-weight: 600; }
+#draft-status { margin: var(--ds-space-3) 0 0; font-weight: 700; }
+#draft-status:empty { display: none; }
+#draft-body { margin-top: var(--ds-space-3); }
+/* participant audio instructions */
+.ds-audio-card { margin: var(--ds-space-4) 0; padding: var(--ds-space-4); background: var(--ds-yellow-soft); border: 2px solid var(--ds-ink); border-radius: var(--ds-radius-xl); }
+.ds-audio-card .actions-row { margin: 0; }
+.ds-audio-card .btn { flex: 1 1 12rem; }
+.ds-audio-card #instruction-audio-start { background: var(--ds-yellow); border-color: var(--ds-ink); }
+.ds-audio-card #instruction-audio-start::before { content: "🔊"; margin-right: var(--ds-space-2); }
+.ds-audio-card [role="status"] { margin: var(--ds-space-3) 0 0; font-weight: 700; }
+.ds-audio-card [role="status"]:empty { display: none; }
+/* S3 explanations and ARQ-10 timeline */
+.result-box h4 { margin: var(--ds-space-4) 0 var(--ds-space-2); font-size: var(--ds-text-sm); text-transform: uppercase; letter-spacing: .04em; }
+.result-box .card-list { margin-top: var(--ds-space-2); }
+.result-box .data-card p { margin: 0 0 var(--ds-space-2); }
+.result-box .data-card p:last-child { margin: 0; }
+.result-box .data-card p.mono { font-size: var(--ds-text-xs); color: var(--ds-muted); overflow-wrap: anywhere; }
+#timeline-list { counter-reset: tl; position: relative; padding-left: var(--ds-space-6); }
+#timeline-list::before { content: ""; position: absolute; left: .55rem; top: .5rem; bottom: .5rem; width: .2rem; background: var(--ds-line-strong); border-radius: var(--ds-radius-pill); }
+#timeline-list > li { position: relative; background: #fff; border: 1px solid var(--ds-line); border-radius: var(--ds-radius-md); padding: var(--ds-space-4); }
+#timeline-list > li::before { content: ""; position: absolute; left: calc(-1 * var(--ds-space-6) + .2rem); top: var(--ds-space-5); width: .75rem; height: .75rem; border-radius: 50%; background: var(--ds-yellow); border: 2px solid var(--ds-ink); }
+#timeline-list > li p { margin: 0 0 var(--ds-space-1); }
+@media (max-width: 40rem) { .ds-subsection { padding: var(--ds-space-3); } }
+
+/* S3 explanation: a separate panel, series as cards with a yellow rail, descriptive lines readable, hashes secondary */
+#evolution-result h4:last-of-type { margin-top: var(--ds-space-6); padding-top: var(--ds-space-4); border-top: 2px solid var(--ds-ink); }
+#evolution-result .card-list > .data-card { border-left: 0.375rem solid var(--ds-yellow); padding: var(--ds-space-4) var(--ds-space-5); }
+#evolution-result .card-list > .data-card > p:first-child { font-size: var(--ds-text-md); font-weight: 700; }
+#evolution-result .card-list > .data-card > p:not(.mono):not(:first-child) { margin-top: var(--ds-space-3); font-weight: 600; }
+#evolution-result .card-list > .data-card > p.mono { margin: 0 0 var(--ds-space-1); padding-left: var(--ds-space-3); border-left: 2px solid var(--ds-line); font-size: 0.7rem; }

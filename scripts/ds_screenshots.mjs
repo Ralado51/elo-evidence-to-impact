@@ -23,6 +23,7 @@ async function shot(page, vp, name, target) {
 }
 
 for (const [vp, size] of Object.entries(VIEWPORTS)) {
+  if (args.vp && args.vp !== vp) continue;
   n = 0;
   const ctx = await browser.newContext({ viewport: size, locale: "pt-BR" });
   const page = await ctx.newPage();
@@ -32,7 +33,7 @@ for (const [vp, size] of Object.entries(VIEWPORTS)) {
   await page.goto(`${origin}/v3/ds/styleguide.html`); await shot(page, vp, "styleguide");
 
   // 2 Therapist
-  await page.goto(`${origin}/v3/therapist.html`); await page.waitForTimeout(300);
+  await page.goto(`${origin}/v3/therapist.html?s4=1`); await page.waitForTimeout(300);
   await shot(page, vp, "terapeuta-autenticacao-entrar", "#sec-signin");
   await page.fill("#signin-username", USER); await page.fill("#signin-password", PASS); await page.click("#btn-signin");
   await page.waitForSelector("#signin-result:not([hidden])");
@@ -42,12 +43,21 @@ for (const [vp, size] of Object.entries(VIEWPORTS)) {
   const participantId = await page.inputValue("#active-participant-id");
   await shot(page, vp, "terapeuta-gestao-participantes", "#sec-participant");
   await shot(page, vp, "terapeuta-avaliacao-funcional", "#sec-assessment");
+  await page.click("#btn-draft-load").catch(() => {}); await page.waitForTimeout(500);
+  await shot(page, vp, "terapeuta-s4-rascunho-assistido", "#assisted-draft");
+  await page.click("#btn-draft-reviewed").catch(() => {}); await page.waitForTimeout(300);
+  await shot(page, vp, "terapeuta-s4-rascunho-revisado", "#assisted-draft");
+  await page.fill("#encounter-date", "2026-10-20").catch(() => {}); await page.fill("#encounter-note", "Atendimento remoto sintético.").catch(() => {});
+  await page.click("#form-encounter button[type=submit]").catch(() => {}); await page.waitForTimeout(800);
+  await shot(page, vp, "terapeuta-arq10-atendimento-remoto", ".ds-subsection:has(#form-encounter)");
   await shot(page, vp, "terapeuta-metas", "#sec-goal");
   await shot(page, vp, "terapeuta-prescricao", "#sec-prescription");
   await page.click("#btn-load-facts"); await page.waitForTimeout(900);
   await shot(page, vp, "terapeuta-revisao-evidencias", "#sec-facts");
   await page.click("#btn-load-evolution-series").catch(() => {}); await page.waitForTimeout(700);
+  if (args.evolution) { await page.fill("#read-evolution-id", args.evolution); await page.click("#form-read-evolution button[type=submit]"); await page.waitForSelector("#evolution-result [data-published-evolution]", { timeout: 6000 }).catch((e) => console.log("s3 read", e.message.split("\n")[0])); }
   await shot(page, vp, "terapeuta-resumo-e-evolucao-funcional", "#sec-publications");
+  if (await page.locator("#evolution-result:not([hidden])").count()) await shot(page, vp, "terapeuta-s3-explicacao-da-evolucao", "#evolution-result");
   await page.click("#btn-load-timeline"); await page.waitForTimeout(700);
   await shot(page, vp, "terapeuta-linha-do-tempo", "#sec-timeline");
   await shot(page, vp, "terapeuta-pagina-completa");
@@ -58,13 +68,14 @@ for (const [vp, size] of Object.entries(VIEWPORTS)) {
   // 3 Participant (journey)
   const inv = await (await fetch(`${origin}/api/v3/invites`, { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${session.token}` }, body: JSON.stringify({ participant_id: participantId, ttl_seconds: 3600 }) })).json();
   const pp = await ctx.newPage();
-  await pp.goto(`${origin}/v3/participant.html`); await pp.waitForTimeout(300);
+  await pp.goto(`${origin}/v3/participant.html?s4=1`); await pp.waitForTimeout(300);
   await shot(pp, vp, "participante-entrar", "#sec-signin");
   await pp.fill("#invite-token", inv.invite_token); await pp.click("#btn-invite-signin"); await pp.waitForSelector("#signin-result:not([hidden])");
   await pp.click("#btn-load-plan"); await pp.waitForSelector('#prescription-view[data-prescription-loaded="true"]');
   await shot(pp, vp, "participante-meu-plano", "#sec-plan");
   await pp.click("#btn-session-start"); await pp.waitForSelector('#session-result[data-session-phase="active"]');
   await shot(pp, vp, "participante-execucao-da-atividade", "#sec-session");
+  await shot(pp, vp, "participante-s4-audio-das-instrucoes", "#instruction-audio");
   await pp.click("#btn-session-end"); await pp.waitForSelector('#session-result[data-session-phase="ended"]');
   await shot(pp, vp, "participante-relato", "#sec-report");
   await shot(pp, vp, "participante-pagina-completa");

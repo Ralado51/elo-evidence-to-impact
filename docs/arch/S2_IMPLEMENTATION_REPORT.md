@@ -30,3 +30,12 @@ Branch `integration/s2-final` (base a859e4e, S1 aprovado). Dados sintéticos; us
 - A cadeia de consentimento fica em localStorage do navegador: limpar os dados do site com consentimento já gravado faz o aceite seguinte conflitar com o ledger (HASH_CONFLICT) e a câmera fica indisponível (autorrelato segue). Não há endpoint para ler o topo da cadeia de consentimento.
 - B3: o contrato não tem motivo de cycle.rejected para lateralidade indeterminada; só o agregado `lost_events` é preservado.
 - Diferenças do contador-exp-1 vs counter.js documentadas no código. Upload no Drive dos bundles DS e do ZIP de 75 capturas bloqueado pelo limite do conector. Sem push/deploy.
+
+## Front-end Elo sobre a baseline 7e9dad4 (S2 câmera + S3 + S4 + ARQ-10)
+- Baseline importada de `elo-mvp-final.bundle` (3 partes, SHA-256 das partes e do bundle 290a597d… conferidos; commit 7e9dad4). Branch `integration/front-end`.
+- Reaproveitado `web/v3/ds/ds-shell.css` (sidebar do terapeuta, cartões por etapa, prática guiada do participante) e estendido para S3/S4/ARQ-10.
+- HTML: `.ds-subsection` (Atendimento remoto externo e Rascunho assistido, este com selo "Experimental"), `.ds-audio-card` (áudio das instruções); sem alterar IDs, JS, APIs ou contratos.
+- S3 (ELO_S3_EXPLANATIONS=1): painel "Explicação da evolução publicada" com cartões por série. S4 (?s4=1): rascunho assistido e áudio. ARQ-10: atendimento remoto e linha do tempo.
+- Verificação: run.mjs (a11y) igual à baseline (`live_region` falha em therapist e participant também na baseline); jornadas therapist/participant/e2e passam; s2_camera S2C-04 falha igual na baseline (revogação no ledger 1 !== 2), não tocado.
+- Capturas: `docs/design-system/screens` (30 por viewport, desktop/tablet/mobile).
+- Propostas de comportamento (não feitas): indicadores com valores vivos, contador grande e dose em tempo real, estados vazio/carregando/diálogo de confirmação, navegação de uma etapa por vez.
