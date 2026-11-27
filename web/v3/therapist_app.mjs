@@ -534,8 +534,9 @@ export function initTherapistApp() {
     const done = notes.filter((n) => !n.failed && n.kind !== "invite");
     for (const n of notes) if (n.kind === "invite" && !n.failed) renderInviteBox(pid, n.alias, n.link, n.expiresAt);
     if (done.length) {
-      showSuccess(tm("th.js.late_notice", { n: done.length }));
-      el("btn-load-timeline")?.click(); // reload the origin's readable data (read-only)
+      // Reload the origin's readable data (read-only) FIRST, then say what happened, so the notice is not overwritten by the reload's own banner.
+      const tk = ctxStore.capture();
+      void loadTimeline().then(() => { if (tk.isCurrent()) showSuccess(tm("th.js.late_notice", { n: done.length })); });
     } else if (failed) {
       showError("RESULT_UNCONFIRMED", tm("th.js.late_notice_failed", { n: failed }));
     }
@@ -1478,8 +1479,8 @@ export function initTherapistApp() {
   });
 
   // Step 8: Load participant timeline
-  el("btn-load-timeline").addEventListener("click", async () => {
-    if (!requireParticipant()) return;
+  async function loadTimeline() {
+    if (!requireParticipant()) return false;
     const op = ctxStore.begin("timeline");
     try {
       const res = await client.getTimeline(state.participantId, { signal: op.signal });
@@ -1492,12 +1493,15 @@ export function initTherapistApp() {
         appendParagraph(box, t("th.js.timeline_loaded", { n: items.length }));
       });
       showSuccess(tm("th.js.timeline_loaded", { n: items.length }));
+      return true;
     } catch (err) {
       op.fail(err, handleApiError);
+      return false;
     } finally {
       op.done();
     }
-  });
+  }
+  el("btn-load-timeline").addEventListener("click", () => { void loadTimeline(); });
 
   // Row 9: Unauthenticated navigation to any protected section redirects to sign-in.
   window.addEventListener("hashchange", () => {

@@ -7,7 +7,11 @@
  * @param {{ fetchImpl: typeof fetch, url: string, method: string, headers: Record<string,string>, body?: unknown,
  *           signal?: AbortSignal, makeError: (info: {code:string,status:number,message:string,details?:unknown}) => Error }} p
  */
-export async function performRequest({ fetchImpl, url, method, headers, body, signal, makeError }) {
+export async function performRequest({ fetchImpl, url, method, headers, body, signal: requestedSignal, makeError }) {
+  // Structural guarantee (FIX-37.1): only idempotent reads are cancellable. A signal handed to a write is ignored,
+  // so "request cancelled" can never be confused with "write cancelled": a write that left the browser is always
+  // either settled with the server's answer or fails as NETWORK_ERROR (outcome UNKNOWN), never as ABORTED.
+  const signal = String(method).toUpperCase() === "GET" ? requestedSignal : undefined;
   let response;
   try {
     response = await fetchImpl(url, {
@@ -17,7 +21,7 @@ export async function performRequest({ fetchImpl, url, method, headers, body, si
       ...(signal ? { signal } : {}),
     });
   } catch (err) {
-    if (err && (err.name === "AbortError" || signal?.aborted)) {
+    if (signal && signal.aborted) {
       throw makeError({ code: "ABORTED", status: 0, message: "Request aborted." });
     }
     throw makeError({ code: "NETWORK_ERROR", status: 0, message: err instanceof Error ? err.message : "Network request failed." });

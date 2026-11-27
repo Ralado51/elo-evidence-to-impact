@@ -44,3 +44,38 @@ test("HT-05 network failure keeps NETWORK_ERROR", async () => {
   const a = createV3Client({ fetchImpl: async () => { throw new Error("down"); }, getToken: () => "t" });
   await assert.rejects(a.getTimeline("p"), (e) => e.code === "NETWORK_ERROR");
 });
+
+test("HT-06 a signal handed to a write is ignored; aborting it later does not cancel the write", async () => {
+  let init; let release;
+  const fetchImpl = (u, i) => { init = i; return new Promise((r) => { release = () => r(json(201, { id: "g1" })); }); };
+  const c = createV3Client({ fetchImpl, getToken: () => "t" });
+  const ac = new AbortController();
+  const p = c.createGoal("p_1", { a: 1 }, { idempotencyKey: "k", signal: ac.signal });
+  ac.abort();
+  release();
+  const res = await p;
+  assert.equal(res.status, 201);
+  assert.equal(init.signal, undefined);
+});
+
+test("HT-07 a write that fails on the network is NETWORK_ERROR (unknown outcome), never ABORTED", async () => {
+  const c = createV3Client({ fetchImpl: async () => { throw Object.assign(new Error("net"), { name: "AbortError" }); }, getToken: () => "t" });
+  const err = await c.createGoal("p_1", { a: 1 }, { idempotencyKey: "k" }).catch((e) => e);
+  assert.notEqual(err.code, "ABORTED");
+});
+
+test("HT-08 aborted READ is ABORTED and a settled write on the same client is unaffected", async () => {
+  const calls = [];
+  const fetchImpl = (u, i) => new Promise((res, rej) => {
+    calls.push({ u, i });
+    if (i.method === "GET") i.signal.addEventListener("abort", () => rej(Object.assign(new Error("x"), { name: "AbortError" })));
+    else res(json(201, { ok: 1 }));
+  });
+  const c = createV3Client({ fetchImpl, getToken: () => "t" });
+  const ac = new AbortController();
+  const read = c.getTimeline("p_1", { signal: ac.signal });
+  const write = c.createGoal("p_1", { a: 1 }, { idempotencyKey: "k" });
+  ac.abort();
+  await assert.rejects(read, (e) => e.code === "ABORTED");
+  assert.equal((await write).status, 201);
+});
