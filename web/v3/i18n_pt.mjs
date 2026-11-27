@@ -201,7 +201,6 @@ export const PT = {
   "pa.act.err_begin": "Não foi possível iniciar a atividade agora.",
   "pa.act.device": "Câmera",
   "pa.act.device_default": "Câmera padrão",
-  "pa.act.overlay": "Mostrar pontos da mão",
   "pa.act.cam_label_guide": "Como fazer",
   "pa.act.btn_begin": "Iniciar atividade (simulação)",
   "pa.act.btn_calibrate": "Calibrar (simulação)",

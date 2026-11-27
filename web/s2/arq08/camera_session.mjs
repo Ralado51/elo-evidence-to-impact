@@ -55,6 +55,7 @@ export function createCameraSession({ video, doc = globalThis.document, mediaDev
   const release = () => {
     generation += 1;
     live = false;
+    onPreview(null);
     finishCollection?.();
     if (handle?.cancel) handle.cancel();
     handle = null;
@@ -99,7 +100,7 @@ export function createCameraSession({ video, doc = globalThis.document, mediaDev
           } else {
             const [landmarker, openness] = await Promise.all([(loadDetector ?? loadLandmarker)(), loadOpenness(doc)]);
             if (ticket !== generation) return { status: "cancelled" };
-            detector = createHandDetector({ landmarker, openness, swapDetectorLabels: SWAP_DETECTOR_LABELS });
+            detector = createHandDetector({ landmarker, openness, swapDetectorLabels: SWAP_DETECTOR_LABELS, onPreview });
           }
         }
       } catch { return { status: ticket === generation ? "model_unavailable" : "cancelled" }; }

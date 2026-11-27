@@ -201,7 +201,6 @@ export const EN = {
   "pa.act.err_begin": "Could not start the activity right now.",
   "pa.act.device": "Camera",
   "pa.act.device_default": "Default camera",
-  "pa.act.overlay": "Show hand points",
   "pa.act.cam_label_guide": "How to do it",
   "pa.act.btn_begin": "Start activity (simulation)",
   "pa.act.btn_calibrate": "Calibrate (simulation)",

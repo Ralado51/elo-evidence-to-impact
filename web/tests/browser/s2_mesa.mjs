@@ -106,7 +106,6 @@ await check("MESA-01 motor c04-hand-1: calibracao, contagem, dose e ledger (algo
   await shot(pa, "1-inicial");
   await pa.click("#btn-act-camera");
   await pa.waitForSelector('#session-result[data-session-phase="created"][data-session-mode="camera"]', { timeout: 60000 });
-  await pa.check("#act-overlay");
   await hand(pa, "open"); await pa.click("#btn-act-cal-open"); await sleep(3600);
   await shot(pa, "2-calibrando-aberta");
   await hand(pa, "closed"); await pa.click("#btn-act-cal-closed");
@@ -115,6 +114,11 @@ await check("MESA-01 motor c04-hand-1: calibracao, contagem, dose e ledger (algo
   await pa.click("#btn-act-start");
   await pa.waitForFunction((k) => JSON.parse(sessionStorage.getItem(k)).events.some((e) => e.type === "session.control"), skey(A), { timeout: 15000 });
   await hand(pa, "open"); await sleep(900);
+  assert.equal(await pa.evaluate(() => document.querySelector("#act-landmarks").hidden), false, "landmarks drawn automatically");
+  assert.ok(await pa.evaluate(() => { const c = document.querySelector("#act-landmarks"); return c.getContext("2d").getImageData(0, 0, c.width, c.height).data.some((v, i) => i % 4 === 3 && v > 0); }), "pixels drawn");
+  await hand(pa, "none"); await sleep(500);
+  assert.equal(await pa.evaluate(() => document.querySelector("#act-landmarks").hidden), true, "cleared when the hand is lost");
+  await hand(pa, "open"); await sleep(500);
   await hand(pa, "closed"); await sleep(900); await shot(pa, "4-fechada");
   await hand(pa, "open"); await sleep(1200); await shot(pa, "5-uma-peca");
   await hand(pa, "closed"); await sleep(900);

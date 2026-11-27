@@ -43,11 +43,12 @@ export function createCameraPort(mediaDevices) {
 /** Adapt a caller-provided MediaPipe Hand Landmarker without retaining frames or landmarks.
  *  The caller declares how the detector labels its input, independently of CSS preview mirroring.
  */
-export function createHandDetector({ landmarker, openness, swapDetectorLabels }) {
+export function createHandDetector({ landmarker, openness, swapDetectorLabels, onPreview = () => {} }) {
   if (typeof swapDetectorLabels !== "boolean") throw new TypeError("Declare detector label orientation");
   return {
     sample(video, timeMs) {
       const { landmarks, handedness } = landmarker.detectForVideo(video, timeMs);
+      onPreview(landmarks?.length === 1 ? landmarks[0] : null); // drawing only; nothing is kept
       if (!landmarks?.length) return { timeMs, status: "absent" };
       const hand = landmarks[0];
       if (landmarks.length !== 1 || hand?.length !== 21 ||

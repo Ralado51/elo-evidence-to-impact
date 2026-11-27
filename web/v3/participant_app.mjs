@@ -945,18 +945,25 @@ export function initParticipantApp() {
     dispatchNow();
   }
   const ENGINE_C04 = new URLSearchParams(globalThis.location?.search ?? "").get("engine") === "c04";
-  // Local preview of the hand points (drawing only: nothing is stored, encoded or sent).
+  // Local preview of the hand (21 points + connections), drawn automatically while a hand is detected. Drawing only: nothing is stored, encoded or sent.
+  const HAND_LINKS = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
   function drawPreview(lm) {
     const cvs = el("act-landmarks"), vid = el("act-cam");
     if (!cvs) return;
-    const on = Boolean(el("act-overlay")?.checked) && Boolean(lm);
-    if (!on) { if (!cvs.hidden) { cvs.getContext("2d").clearRect(0, 0, cvs.width, cvs.height); cvs.hidden = !el("act-overlay")?.checked; } return; }
-    cvs.hidden = false;
-    if (cvs.width !== (vid.videoWidth || 640)) { cvs.width = vid.videoWidth || 640; cvs.height = vid.videoHeight || 480; }
     const g = cvs.getContext("2d");
+    if (!lm || lm.length !== 21 || !vid.videoWidth) { g.clearRect(0, 0, cvs.width, cvs.height); cvs.hidden = true; return; }
+    if (cvs.width !== vid.videoWidth || cvs.height !== vid.videoHeight) { cvs.width = vid.videoWidth; cvs.height = vid.videoHeight; }
+    cvs.hidden = false;
     g.clearRect(0, 0, cvs.width, cvs.height);
-    g.fillStyle = "#fff56b"; g.strokeStyle = "#262626"; g.lineWidth = 2;
-    for (const p of lm) { g.beginPath(); g.arc(p.x * cvs.width, p.y * cvs.height, 5, 0, 6.2832); g.fill(); g.stroke(); }
+    const at = (p) => [p.x * cvs.width, p.y * cvs.height];
+    g.lineCap = "round";
+    for (const [w, c] of [[7, "#262626"], [3, "#fff56b"]]) {
+      g.lineWidth = w; g.strokeStyle = c; g.beginPath();
+      for (const [i, j] of HAND_LINKS) { g.moveTo(...at(lm[i])); g.lineTo(...at(lm[j])); }
+      g.stroke();
+    }
+    g.fillStyle = "#ffffff"; g.strokeStyle = "#262626"; g.lineWidth = 2;
+    for (const p of lm) { g.beginPath(); g.arc(...at(p), 5, 0, 6.2832); g.fill(); g.stroke(); }
   }
   async function fillDevices() {
     const sel = el("act-device");
@@ -968,7 +975,6 @@ export function initParticipantApp() {
       if ([...sel.options].some((o) => o.value === keep)) sel.value = keep;
     } catch { /* device list is optional */ }
   }
-  el("act-overlay")?.addEventListener("change", () => { if (!el("act-overlay").checked) drawPreview(null); });
   void fillDevices();
   async function startCameraActivity() {
     if (!requireAuth()) return;
