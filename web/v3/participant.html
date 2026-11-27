@@ -91,39 +91,60 @@
 <button class="btn btn-stop target" data-i18n="pa.btn-stop-fatigue" disabled="" id="btn-stop-fatigue" type="button">Parar por cansaço</button>
 </div>
 <div class="result-box" hidden="" id="session-result"></div>
-<div class="result-box" hidden="" id="activity-panel">
+<div class="result-box ds-mesa-panel" hidden="" id="activity-panel">
 <h3 data-i18n="pa.act.title">Atividade com contagem (experimental)</h3>
 <p data-i18n="pa.act.notice">Contagem experimental, sem valor clínico e sem uso com dados reais. Nenhuma imagem é guardada nem enviada.</p>
+<div class="ds-mesa-hero">
 <p id="act-dose"></p>
+<ol aria-hidden="true" class="ds-mesa" id="act-mesa"></ol>
+<progress id="act-progress" max="1" value="0" aria-labelledby="act-progress-text"></progress>
+<p aria-live="polite" id="act-progress-text"></p>
+<p aria-live="polite" id="act-status"></p>
+</div>
+<div class="ds-capture" id="act-capture">
+<video id="act-cam" muted="" playsinline="" hidden="" aria-label="Pré-visualização local da câmera"></video>
+<canvas aria-hidden="true" hidden="" id="act-landmarks"></canvas>
+</div>
+
+<div class="ds-capture-tools">
+<label for="act-device" data-i18n="pa.act.device">Câmera</label>
+<select id="act-device"><option data-i18n="pa.act.device_default" value="">Câmera padrão</option></select>
+<label class="ds-check"><input id="act-overlay" type="checkbox"/> <span data-i18n="pa.act.overlay">Mostrar pontos da mão</span></label>
+</div>
+<div class="ds-controls">
+<h4 data-i18n="pa.act.cam_label">Câmera local (experimental)</h4>
+<p id="act-camera-status" aria-live="polite" data-i18n="pa.act.camera_ready_hint">A câmera é lida só neste navegador. Nenhuma imagem ou ponto da mão é guardado ou enviado; só números derivados (ciclos, tempos) entram no registro. Você pode parar a qualquer momento ou usar o autorrelato.</p>
+<label><input id="act-camera-consent" type="checkbox"/> <span data-i18n="pa.act.camera_consent">Autorizo o uso da câmera neste teste experimental</span></label>
+<div class="actions-row ds-controls-main">
+<button class="btn btn-primary target" data-i18n="pa.act.btn_camera" id="btn-act-camera" type="button">Iniciar atividade com a câmera</button>
+<button class="btn btn-secondary target" data-i18n="pa.act.btn_cal_open" disabled="" id="btn-act-cal-open" type="button">Calibrar: mão aberta</button>
+<button class="btn btn-secondary target" data-i18n="pa.act.btn_cal_closed" disabled="" id="btn-act-cal-closed" type="button">Calibrar: mão fechada</button>
+<button class="btn btn-secondary target" data-i18n="pa.act.btn_start" disabled="" id="btn-act-start" type="button">Começar a contar</button>
+</div>
+<div class="actions-row ds-controls-secondary">
+<button class="btn btn-secondary target" data-i18n="pa.act.btn_revoke" disabled="" id="btn-act-revoke" type="button">Parar a câmera e revogar a autorização</button>
+</div>
+</div>
+<details class="ds-fold">
+<summary data-i18n="pa.act.cam_label_guide">Como fazer</summary>
 <ol class="guide-list">
 <li data-i18n="pa.act.instr1">1. Inicie a atividade e faça a calibração com a mão aberta e depois fechada.</li>
 <li data-i18n="pa.act.instr2">2. Comece a contar e repita abrir e fechar a mão, no seu ritmo.</li>
 <li data-i18n="pa.act.instr3">3. Se sentir dor ou cansaço, pare a qualquer momento com os botões de parar acima.</li>
 </ol>
-<h4 data-i18n="pa.act.cam_label">Câmera local (experimental)</h4>
-<p id="act-camera-status" aria-live="polite" data-i18n="pa.act.camera_ready_hint">A câmera é lida só neste navegador. Nenhuma imagem ou ponto da mão é guardado ou enviado; só números derivados (ciclos, tempos) entram no registro. Você pode parar a qualquer momento ou usar o autorrelato.</p>
-<label><input id="act-camera-consent" type="checkbox"/> <span data-i18n="pa.act.camera_consent">Autorizo o uso da câmera neste teste experimental</span></label>
-<div class="actions-row">
-<button class="btn btn-primary target" data-i18n="pa.act.btn_camera" id="btn-act-camera" type="button">Iniciar atividade com a câmera</button>
-<button class="btn btn-secondary target" data-i18n="pa.act.btn_cal_open" disabled="" id="btn-act-cal-open" type="button">Calibrar: mão aberta</button>
-<button class="btn btn-secondary target" data-i18n="pa.act.btn_cal_closed" disabled="" id="btn-act-cal-closed" type="button">Calibrar: mão fechada</button>
-<button class="btn btn-secondary target" data-i18n="pa.act.btn_revoke" disabled="" id="btn-act-revoke" type="button">Parar a câmera e revogar a autorização</button>
-</div>
-<video id="act-cam" muted="" playsinline="" hidden="" aria-label="Pré-visualização local da câmera"></video>
-<h4 data-i18n="pa.act.sim_label">Modo de simulação (teste, sem câmera)</h4>
+</details>
+<details class="ds-fold ds-sim" open="">
+<summary data-i18n="pa.act.sim_label">Modo de simulação (teste, sem câmera)</summary>
 <div class="actions-row">
 <button class="btn btn-primary target" data-i18n="pa.act.btn_begin" id="btn-act-begin" type="button">Iniciar atividade (simulação)</button>
 <button class="btn btn-secondary target" data-i18n="pa.act.btn_calibrate" disabled="" id="btn-act-calibrate" type="button">Calibrar (simulação)</button>
-<button class="btn btn-secondary target" data-i18n="pa.act.btn_start" disabled="" id="btn-act-start" type="button">Começar a contar</button>
 </div>
 <div class="actions-row">
 <label for="act-sim-side" data-i18n="pa.act.side_label">Mão simulada</label>
 <select disabled="" id="act-sim-side"><option value="right" data-i18n="enum.side.right">direita</option><option value="left" data-i18n="enum.side.left">esquerda</option><option value="unknown" data-i18n="pa.act.side_unknown">indeterminada</option></select>
 <button class="btn btn-secondary target" data-i18n="pa.act.btn_cycle" disabled="" id="btn-act-cycle" type="button">Simular um ciclo abrir e fechar</button>
 </div>
-<progress id="act-progress" max="1" value="0" aria-labelledby="act-progress-text"></progress>
-<p aria-live="polite" id="act-progress-text"></p>
-<p aria-live="polite" id="act-status"></p>
+</details>
 </div>
 <div aria-live="polite" class="result-box" id="sync-panel" hidden="">
 <h3 data-i18n="pa.js.sync_title" id="sync-title">Envio das atividades</h3>

@@ -3,7 +3,7 @@ import { contadorExp1, MIN_SPAN } from "./protocol.mjs";
 
 /** Minimal ActivityRunner (PO B5): prescribed activity -> calibration -> accepted-cycle counter -> dose progress -> closing.
  *  Orchestrates only: persistence/transmission belong to CaptureController/EventOutbox/EventDispatcher. No gamification. */
-export function createActivityRunner({ controller, scope, prescription, limits, clock = () => performance.now(), mode = "simulation" }) {
+export function createActivityRunner({ controller, scope, prescription, limits, clock = () => performance.now(), mode = "simulation", protocol = contadorExp1, minSpan: defaultMinSpan = MIN_SPAN, validateCalibration = null }) {
   if (mode !== "simulation" && mode !== "camera") throw new TypeError("Invalid activity mode");
   const rx = prescription;
   const target = rx.target_sets * rx.target_repetitions;
@@ -26,18 +26,19 @@ export function createActivityRunner({ controller, scope, prescription, limits, 
   return {
     target,
     progress: () => ({ ...(motion ? motion.snapshot() : { accepted: 0, candidates: 0 }), target }),
-    begin: (frame, opts, deviceHint) => controller.begin({ prescriptionId: rx.prescription_id, prescriptionRevision: rx.revision, exerciseId: rx.exercise_id, frame, mode, ...(deviceHint ? { deviceHint } : {}) }, opts),
+    begin: (frame, opts, deviceHint) => controller.begin({ prescriptionId: rx.prescription_id, prescriptionRevision: rx.revision, exerciseId: rx.exercise_id, frame, mode, algorithmVersion: protocol.version, ...(deviceHint ? { deviceHint } : {}) }, opts),
 
     async calibrate({ open, closed }) {
       t0 = clock();
-      const minSpan = Number.isFinite(rx.min_calibration_span) ? rx.min_calibration_span : MIN_SPAN;
+      const minSpan = Number.isFinite(rx.min_calibration_span) ? rx.min_calibration_span : defaultMinSpan;
+      if (validateCalibration && !validateCalibration({ open, closed })) return { status: "invalid_span" };
       const out = await controller.calibrate({ open, closed, minSpan });
       if (out.status !== "ready") return out;
       const state = await controller.restore();
       motion = createMotionSession({
         scope: { ...scope, session_id: state.sessionId, prescription_id: rx.prescription_id, prescription_revision: rx.revision, exercise_id: rx.exercise_id },
         prescription: { targetSets: rx.target_sets, targetRepetitions: rx.target_repetitions, prescribedSide: rx.side, limitsVersion: rx.limits_version },
-        limits, protocol: contadorExp1, calibration: out.calibration, executionMode: mode, dataOrigin: mode === "camera" ? "experimental_capture" : "synthetic_fixture",
+        limits, protocol, calibration: out.calibration, executionMode: mode, dataOrigin: mode === "camera" ? "experimental_capture" : "synthetic_fixture",
       });
       return out;
     },

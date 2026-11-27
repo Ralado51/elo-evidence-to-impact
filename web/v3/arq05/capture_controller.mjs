@@ -27,8 +27,9 @@ export class CaptureController {
     };
   }
 
-  async begin({ prescriptionId, prescriptionRevision, exerciseId, frame = { width: 640, height: 480 }, deviceHint = "desktop-other", mode = "simulation" }, { dismissReport = false } = {}) {
+  async begin({ prescriptionId, prescriptionRevision, exerciseId, frame = { width: 640, height: 480 }, deviceHint = "desktop-other", mode = "simulation", algorithmVersion = PROTOCOL_VERSION }, { dismissReport = false } = {}) {
     if (mode !== "simulation" && mode !== "camera") throw new Error("INVALID_SESSION_MODE");
+    if (!/^[a-z0-9][a-z0-9.-]{1,40}$/.test(algorithmVersion)) throw new Error("INVALID_ALGORITHM_VERSION");
     const current = await this.#outbox.read();
     const dismissed = dismissReport && current.phase === SESSION_PHASE.ENDED;
     const completed = current.phase === SESSION_PHASE.REPORTED || dismissed;
@@ -41,7 +42,7 @@ export class CaptureController {
     const first = await buildCaptureEvent({
       type: "session.started", scope: { org_id: scope.orgId, participant_id: scope.participantId, session_id: sessionId, prescription_id: prescriptionId, prescription_revision: prescriptionRevision, exercise_id: scope.exercise_id },
       seq: 1, prevHash: null, occurredAt: nextMonotonicIso(), tMonoMs: 0,
-      mode, payload: { source_mode: mode, prescription_id: prescriptionId, prescription_revision: prescriptionRevision,
+      mode, algorithmVersion, payload: { source_mode: mode, prescription_id: prescriptionId, prescription_revision: prescriptionRevision,
         capture_context: { device_hint: deviceHint, frame_width: frame.width, frame_height: frame.height } },
     });
     await this.#outbox.append(current, [first], { replaceCompleted: completed, dismissed });
@@ -116,7 +117,7 @@ export class CaptureController {
         const ev = await buildCaptureEvent({
           type, scope: scopeOf, seq: last.seq + 1, prevHash: last.hash, occurredAt: nextMonotonicIso(last.occurred_at),
           tMonoMs: Math.max(Number.isFinite(tMonoMs) ? Math.round(tMonoMs) : 0, last.t_mono_ms ?? 0), payload,
-          algorithmVersion: PROTOCOL_VERSION, mode: record.mode,
+          algorithmVersion: prev.source?.algorithm_version ?? PROTOCOL_VERSION, mode: record.mode,
         });
         events.push(ev);
         return ev;

@@ -780,6 +780,12 @@ export function initParticipantApp() {
     const prog = el("act-progress");
     prog.max = Math.max(target, 1);
     prog.value = Math.min(accepted, prog.max);
+    const mesa = el("act-mesa");
+    if (mesa) {
+      const slots = Math.min(Math.max(target, 0), 40);
+      if (mesa.childElementCount !== slots) mesa.replaceChildren(...Array.from({ length: slots }, () => document.createElement("li")));
+      Array.from(mesa.children).forEach((c, i) => c.classList.toggle("placed", i < accepted));
+    }
     el("act-progress-text").textContent = t("pa.act.progress", { a: accepted, t: target, c: sim || cam ? state.rec.candidates : 0 });
     el("btn-act-begin").disabled = ["created", "calibrated", "active"].includes(ph);
     const open = ["created", "calibrated", "active"].includes(ph);
@@ -816,9 +822,13 @@ export function initParticipantApp() {
       const limits = await loadLimits();
       if (!isCurrent()) return false;
       const p = state.session.principal;
+      // Opt-in engine (?engine=c04): original c04-hand-1 measurement/guards/calibration checks over the same runner, ledger and Elo repetition definition.
+      const c04 = mode === "camera" && ENGINE_C04 ? await import("../s2/arq08/c04_engine.mjs") : null;
+      if (!isCurrent()) return false;
       rec.runner = createActivityRunner({
         controller: rec.capture, scope: { org_id: p.org_id, participant_id: p.id },
         prescription: state.prescription.payload, limits, mode,
+        ...(c04 ? { protocol: c04.c04Protocol, minSpan: c04.MIN_SPAN, validateCalibration: ({ open, closed }) => c04.calibrationStable(open, closed) } : {}),
       });
       if (beforeBegin) await beforeBegin();
       if (!isCurrent()) return false;
@@ -934,6 +944,32 @@ export function initParticipantApp() {
     if (messageKey) actMessage(messageKey);
     dispatchNow();
   }
+  const ENGINE_C04 = new URLSearchParams(globalThis.location?.search ?? "").get("engine") === "c04";
+  // Local preview of the hand points (drawing only: nothing is stored, encoded or sent).
+  function drawPreview(lm) {
+    const cvs = el("act-landmarks"), vid = el("act-cam");
+    if (!cvs) return;
+    const on = Boolean(el("act-overlay")?.checked) && Boolean(lm);
+    if (!on) { if (!cvs.hidden) { cvs.getContext("2d").clearRect(0, 0, cvs.width, cvs.height); cvs.hidden = !el("act-overlay")?.checked; } return; }
+    cvs.hidden = false;
+    if (cvs.width !== (vid.videoWidth || 640)) { cvs.width = vid.videoWidth || 640; cvs.height = vid.videoHeight || 480; }
+    const g = cvs.getContext("2d");
+    g.clearRect(0, 0, cvs.width, cvs.height);
+    g.fillStyle = "#fff56b"; g.strokeStyle = "#262626"; g.lineWidth = 2;
+    for (const p of lm) { g.beginPath(); g.arc(p.x * cvs.width, p.y * cvs.height, 5, 0, 6.2832); g.fill(); g.stroke(); }
+  }
+  async function fillDevices() {
+    const sel = el("act-device");
+    if (!sel || !navigator.mediaDevices?.enumerateDevices) return;
+    try {
+      const cams = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === "videoinput" && d.deviceId);
+      const keep = sel.value;
+      sel.replaceChildren(new Option(t("pa.act.device_default"), ""), ...cams.map((d, i) => new Option(d.label || `${t("pa.act.device")} ${i + 1}`, d.deviceId)));
+      if ([...sel.options].some((o) => o.value === keep)) sel.value = keep;
+    } catch { /* device list is optional */ }
+  }
+  el("act-overlay")?.addEventListener("change", () => { if (!el("act-overlay").checked) drawPreview(null); });
+  void fillDevices();
   async function startCameraActivity() {
     if (!requireAuth()) return;
     const rec = recovery;
@@ -961,17 +997,18 @@ export function initParticipantApp() {
       }
       const { createCameraSession } = await import("../s2/arq08/camera_session.mjs");
       if (!isCurrent()) return;
-      const session = createCameraSession({ video: el("act-cam"), onInterrupted: (reason) => {
+      const session = createCameraSession({ video: el("act-cam"), engine: ENGINE_C04 ? "c04" : null, onPreview: drawPreview, onInterrupted: (reason) => {
         if (recovery === rec && rec.tk.isCurrent() && rec.cam === session)
           void closeCameraActivity(rec, { action: "interrupt", interruptReason: reason, messageKey: "pa.act.cam_interrupted" });
       } });
       rec.cam = cam = session;
-      const out = await cam.start({ consent: true });
+      const out = await cam.start({ consent: true, deviceId: el("act-device")?.value || null });
       if (!isCurrent()) return;
       if (out.status !== "ready") throw new Error("CAMERA_UNAVAILABLE");
       const ok = await beginActivity({ mode: "camera", frame: out.frame, deviceHint: camHint(), stillCurrent: isCurrent });
       if (!isCurrent() || !ok) return;
       camStatus("pa.act.cam_ready");
+      void fillDevices();
       renderActivity();
       cam = null; // leave the current session open
     } catch {

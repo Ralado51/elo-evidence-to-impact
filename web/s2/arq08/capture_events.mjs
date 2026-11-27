@@ -7,7 +7,7 @@ export const CAMERA_MODE = "camera";
 export const CAMERA_ORIGIN = "experimental_capture"; // real capture is never classified as simulation (PO B1); "live" stays closed (PD-05)
 export const CONSENT_VERSION = "consent-2026-11-27-v1";
 // origin_ref identifies the experimental capture configuration (protocol + local model/library); it is not a clinical identifier.
-export const originRef = () => hashCanonical({ origin: CAMERA_ORIGIN, protocol: PROTOCOL_VERSION, library: "tasks-vision-0.10.21", model: "hand_landmarker-float16-v1" });
+export const originRef = (protocol = PROTOCOL_VERSION) => hashCanonical({ origin: CAMERA_ORIGIN, protocol, library: "tasks-vision-0.10.21", model: "hand_landmarker-float16-v1" });
 
 /** Build and hash one v3 client-authored event on a simulation capture stream. Stream position is owned by the caller. */
 export async function buildCaptureEvent({ type, scope, seq, prevHash, occurredAt, tMonoMs, payload, algorithmVersion = PROTOCOL_VERSION, mode = SIMULATION_MODE }) {
@@ -28,7 +28,7 @@ export async function buildCaptureEvent({ type, scope, seq, prevHash, occurredAt
     source: isReport ? { type: "participant_report" } : { type: mode, algorithm_version: algorithmVersion },
     execution_mode: mode,
     data_origin: camera ? CAMERA_ORIGIN : DATA_ORIGIN,
-    ...(camera ? { origin_ref: await originRef() } : {}),
+    ...(camera ? { origin_ref: await originRef(algorithmVersion) } : {}),
     payload,
   };
   return { ...body, hash: await hashCanonical(body) };

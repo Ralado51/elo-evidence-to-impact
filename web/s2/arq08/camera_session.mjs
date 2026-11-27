@@ -39,7 +39,7 @@ async function loadLandmarker() {
 
 /** @returns session with start()/collect()/watch()/stop(). `video` is a hidden-by-default element owned by the page. */
 export function createCameraSession({ video, doc = globalThis.document, mediaDevices = globalThis.navigator?.mediaDevices,
-  clock = () => performance.now(), loadDetector = null, onInterrupted = () => {} } = {}) {
+  clock = () => performance.now(), loadDetector = null, onInterrupted = () => {}, engine = null, onPreview = () => {} } = {}) {
   const port = createCameraPort(mediaDevices);
   let detector = null;
   let stream = null;
@@ -87,17 +87,23 @@ export function createCameraSession({ video, doc = globalThis.document, mediaDev
   return {
     get active() { return live; },
     /** Requires consent === true. Returns { status: "ready" } or a fallback status (consent_required|report_only|busy|cancelled|model_unavailable). */
-    async start({ consent } = {}) {
+    async start({ consent, deviceId = null } = {}) {
       if (consent !== true) return { status: "consent_required" };
       const ticket = ++generation;
       try {
         if (!detector) {
-          const [landmarker, openness] = await Promise.all([(loadDetector ?? loadLandmarker)(), loadOpenness(doc)]);
-          if (ticket !== generation) return { status: "cancelled" };
-          detector = createHandDetector({ landmarker, openness, swapDetectorLabels: SWAP_DETECTOR_LABELS });
+          if (engine === "c04") {
+            const [landmarker, { createC04Detector }] = await Promise.all([(loadDetector ?? loadLandmarker)(), import("./c04_engine.mjs")]);
+            if (ticket !== generation) return { status: "cancelled" };
+            detector = createC04Detector({ landmarker, swapDetectorLabels: SWAP_DETECTOR_LABELS, onPreview });
+          } else {
+            const [landmarker, openness] = await Promise.all([(loadDetector ?? loadLandmarker)(), loadOpenness(doc)]);
+            if (ticket !== generation) return { status: "cancelled" };
+            detector = createHandDetector({ landmarker, openness, swapDetectorLabels: SWAP_DETECTOR_LABELS });
+          }
         }
       } catch { return { status: ticket === generation ? "model_unavailable" : "cancelled" }; }
-      const out = await port.start({ consent: true });
+      const out = await port.start({ consent: true, deviceId });
       if (ticket !== generation) return { status: "cancelled" };
       if (out.status !== "ready") return out;
       stream = out.stream;

@@ -395,4 +395,3 @@ body[data-stage="practice"] #btn-session-start:not(:disabled),
 body[data-stage="practice"] #btn-session-end:not(:disabled) { min-height: 4rem; font-size: var(--elo-font-size-md); }
 #btn-stop-pain, #btn-stop-fatigue { font-weight: 700; }
 .guide-list li { margin-bottom: var(--elo-space-3); font-size: var(--elo-font-size-md); }
-#act-cam { max-width: 320px; transform: scaleX(-1); }

@@ -11,14 +11,14 @@ export function createCameraPort(mediaDevices) {
     stream = null;
   }
   return {
-    async start({ consent } = {}) {
+    async start({ consent, deviceId = null } = {}) {
       if (consent !== true) return { status: "consent_required" };
       if (pending || stream) return { status: "busy" };
       if (!mediaDevices?.getUserMedia) return { status: "report_only" };
       const ticket = ++epoch;
       pending = true;
       try {
-        const acquired = await mediaDevices.getUserMedia({ video: true, audio: false });
+        const acquired = await mediaDevices.getUserMedia({ video: deviceId ? { deviceId: { exact: deviceId } } : true, audio: false });
         if (ticket !== epoch) {
           release(acquired);
           return { status: "cancelled" };
