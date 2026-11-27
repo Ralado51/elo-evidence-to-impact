@@ -1,0 +1,94 @@
+{
+  "phase": 0,
+  "passed": true,
+  "observations": {
+    "fx37_1_goal": {
+      "before": {
+        "active": "p_9f1b175faae70806",
+        "resultVisible": false
+      },
+      "after": {
+        "active": "p_9f1b175faae70806",
+        "resultVisibleInBeta": true,
+        "successBanner": true,
+        "errorBanner": false
+      },
+      "defect": true
+    },
+    "fx37_1_assessment": {
+      "before": {
+        "active": "p_9f1b175faae70806",
+        "resultVisible": false
+      },
+      "after": {
+        "active": "p_9f1b175faae70806",
+        "resultVisibleInBeta": true,
+        "successBanner": true,
+        "errorBanner": false
+      },
+      "defect": true
+    },
+    "fx37_1_invite": {
+      "active": "p_9f1b175faae70806",
+      "inviteResultVisible": true,
+      "inviteLabelledFor": "BETA",
+      "defect": true
+    },
+    "fx37_2_timeline": {
+      "errorBannerInBeta": true,
+      "defect": true
+    },
+    "fx37_2_series": {
+      "errorBannerInBeta": true,
+      "defect": true
+    },
+    "logout_inflight_list": {
+      "listBefore": 0,
+      "listAfter": 2,
+      "defect": true
+    },
+    "i01_units": {
+      "en": [
+        "No unit",
+        "units",
+        "degrees"
+      ],
+      "pt": [
+        "No unit",
+        "units",
+        "degrees"
+      ],
+      "defect": true
+    }
+  },
+  "results": [
+    {
+      "id": "C0-1 FX37.1 meta tardia (G-01)",
+      "ok": true
+    },
+    {
+      "id": "C0-2 FX37.1 avaliação tardia (G-02)",
+      "ok": true
+    },
+    {
+      "id": "C0-3 FX37.1 convite tardio (G-04)",
+      "ok": true
+    },
+    {
+      "id": "C0-4 FX37.2 erro tardio da linha do tempo (G-05)",
+      "ok": true
+    },
+    {
+      "id": "C0-5 FX37.2 erro tardio da série de evolução (G-05)",
+      "ok": true
+    },
+    {
+      "id": "C0-6 logout com leitura de lista em voo (G-09)",
+      "ok": true
+    },
+    {
+      "id": "C0-7 I-01 unidade não retraduz na troca de idioma",
+      "ok": true
+    }
+  ]
+}
