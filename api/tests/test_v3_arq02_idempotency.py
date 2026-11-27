@@ -145,6 +145,24 @@ def test_response_lost_after_commit_is_recoverable_by_the_original_key(monkeypat
     assert n_entities(app, "goal", ctx["p1_id"]) == 1
 
 
+def test_remote_encounter_response_loss_replays_one_record(monkeypatch):
+    app, client, ctx = _make_seeded_app(monkeypatch)
+    path = f"/api/v3/participants/{ctx['p1_id']}/encounters"
+    headers = auth(ctx["t1_tok"], key())
+    payload = {"encounter_date": "2026-11-23", "modality": "remote_external",
+               "duration_min": None, "prescription_ref": None, "assessment_ref": None,
+               "therapist_note": "Nota sintetica"}
+    committed = client.post(path, headers=headers, json=payload)
+    assert committed.status_code == 201, committed.text
+    retry = client.post(path, headers=headers, json=payload)
+    assert retry.status_code == 201 and retry.headers.get(REPLAYED) == "true"
+    assert retry.json() == committed.json()
+    assert n_entities(app, "encounter", ctx["p1_id"]) == 1
+    entity = retry.json()
+    trail = client.get(f"/api/v3/entities/{entity['entity_id']}/versions", headers=headers)
+    assert trail.status_code == 200 and trail.json() == [entity]
+
+
 def test_failure_before_commit_leaves_nothing_and_the_retry_executes_once(monkeypatch):
     app, client, ctx = _make_seeded_app(monkeypatch)
     store = app.state.v3_store

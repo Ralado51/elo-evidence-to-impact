@@ -225,6 +225,37 @@
 </div>
 </form>
 <div class="result-box" hidden="" id="assessment-result"></div>
+<section id="assisted-draft" hidden="" aria-labelledby="assisted-draft-heading">
+<h3 id="assisted-draft-heading" data-i18n="th.s4.heading">Rascunho experimental</h3>
+<p data-i18n="th.s4.notice">Exemplo sintético. A revisão é local e não grava nem publica dados.</p>
+<button id="btn-draft-load" class="btn btn-secondary target" type="button" data-i18n="th.s4.load">Carregar exemplo sintético</button>
+<div id="draft-body" hidden="">
+<h4 data-i18n="th.s4.source">Texto original</h4>
+<pre id="draft-source"></pre>
+<div class="field-grid" id="draft-fields"></div>
+<button id="btn-draft-reviewed" class="btn btn-secondary target" type="button" data-i18n="th.s4.review">Marcar como revisado localmente</button>
+<p id="draft-status" role="status"></p>
+</div>
+</section>
+<section aria-labelledby="heading-encounter">
+<h3 data-i18n="th.encounter.heading" id="heading-encounter">Atendimento remoto externo</h3>
+<form id="form-encounter" novalidate="">
+<div class="field-grid field-grid-two">
+<div class="field">
+<label data-i18n="th.encounter.date" for="encounter-date">Data clínica do atendimento</label>
+<input id="encounter-date" type="date" required=""/>
+</div>
+<div class="field">
+<label data-i18n="th.encounter.note" for="encounter-note">Nota clínica (opcional)</label>
+<textarea id="encounter-note" maxlength="2000" rows="2"></textarea>
+</div>
+</div>
+<div class="actions-row">
+<button class="btn btn-primary target" data-i18n="th.encounter.save" type="submit">Registrar atendimento remoto</button>
+</div>
+</form>
+<div class="result-box" hidden="" id="encounter-result"></div>
+</section>
 </section>
 <!-- Etapa 4: Meta funcional -->
 <section aria-labelledby="heading-goal" class="step-card" id="sec-goal">
@@ -396,6 +427,15 @@
 </div>
 <div class="actions-row">
 <button class="btn btn-primary target" data-i18n="th.btn-publish-evolution" disabled="" id="btn-publish-evolution" type="submit">Publicar evolução</button>
+</div>
+</form>
+<form id="form-read-evolution">
+<div class="field">
+<label data-i18n="th.explanation.code" for="read-evolution-id">Código da evolução publicada</label>
+<input id="read-evolution-id" required="" type="text"/>
+</div>
+<div class="actions-row">
+<button class="btn btn-secondary target" data-i18n="th.explanation.open" type="submit">Consultar evolução publicada</button>
 </div>
 </form>
 <div class="result-box" hidden="" id="evolution-result"></div>

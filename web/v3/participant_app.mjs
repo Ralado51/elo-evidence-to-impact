@@ -1,3 +1,4 @@
+import { mountInstructionAudio } from "./assistance/instruction_audio_ui.mjs";
 /**
  * Elo v3 — Participant journey browser controller (S1-04).
  *
@@ -153,6 +154,8 @@ export function initParticipantApp() {
   }
   renderGuide();
   document.addEventListener("elo:lang", renderGuide);
+  const audioPreview = new URLSearchParams(location.search).get("s4") === "1"
+    ? mountInstructionAudio(el("instruction-audio"), organizarAMesaGuide) : null;
 
   // Result boxes are rebuilt from their builder so a language switch re-translates them.
   const boxBuilders = new Map();
@@ -1010,6 +1013,7 @@ export function initParticipantApp() {
   el("btn-act-revoke")?.addEventListener("click", revokeCamera);
 
   async function endActiveSession(action) {
+    audioPreview?.stop();
     if (!requireAuth()) return;
     const rec = recovery;
     if (!rec || !["active", "created", "calibrated"].includes(state.activeSession?.phase)) {
@@ -1093,6 +1097,7 @@ export function initParticipantApp() {
   // (goals, prescription, publications, summary, evolution, identification, session/report results, feedback).
   // Pending-session recovery data (pendingReport / command slots) is NOT touched here: that policy belongs to ARQ-05.
   function clearParticipantSurfaces() {
+    audioPreview?.stop();
     boxBuilders.clear();
     state.prescription = null;
     state.goals = [];
