@@ -12,7 +12,8 @@
   "contracts_version": "1.0.0",
   "api": "v1"
  },
- "status": "CANDIDATE Addendum A2 (domain validation); NOT frozen; NOT declared fully backward-compatible",
+ "status": "Addendum A2 (domain validation) FROZEN by PO on 2026-11-26, accepted revision 2cf4babe516bc806ff89f87d28ae3f3ac608e730; backward compatibility: preserved for historical reads and pre-A2 idempotent replay; NOT declared fully backward-compatible for writes (P-07 accepted)",
  "amends_contracts_version": "3.1.0",
- "base_package": "contracts/CL06_3-A1"
+ "base_package": "contracts/CL06_3-A1",
+ "base_manifest_sha256": "e9e19aae872984b26f79eca6fe3c6078c3205cc1c1358eeb26d6362c90be9e46"
 }

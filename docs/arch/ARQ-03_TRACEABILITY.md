@@ -24,3 +24,13 @@
 | FIX-39 quatro estados | select `assessment-item-state` (observado/desconhecido/não avaliado); regra de UI `item.observed_requires_value` (sem código de contrato); `buildItem({state})` | JS-A2-07, JS-FIX39; BR-A2-08/09 (atualizados), BR-FIX-39 |
 | FIX-40 descrição vazia | `goal.text_required` (UI) via `createDomainRegistry` + `setFieldError` | JS-FIX38/40; BR-FIX-40 |
 | FIX-17/D01 | `pa.guide.4` PT/EN | BR-FIX-D01 |
+
+## Encerramento (26/11/2026)
+| Item | Estado |
+|---|---|
+| Revisão aceita | `2cf4bab` |
+| `goal.count_ceiling`, V-G14, V-G15 | ratificados; contrato A2 congelado |
+| P-07 | aceito como ressalva formal |
+| FIX-38/39/40/17(D01) | aceitos nos escopos homologados |
+| Regras de UI | fora do contrato |
+| Registro | `ARQ-03_ACCEPTANCE_RECORD.md` |

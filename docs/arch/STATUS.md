@@ -14,3 +14,6 @@ Escalações aguardando o PO: PD-01..PD-08 (`ARCHITECTURE_DECISIONS.md`).
 
 ## Atualização 26/11/2026 (noite)
 Baseline candidata do ARQ-03: `2cf4bab` (FIX-01: FIX-38/39/40/17); docs de ratificação em `67bc619`. ARQ-03 FIX-01 aguarda validação do Gemini e homologação dirigida do Codex. A2 candidato (3.2.0), **não congelado**; manifesto íntegro. ARQ-04 e ARQ-05: **planejamento documental concluído, implementação bloqueada**. ARQ-06/07, S2: não iniciados. Sem push/deploy.
+
+## Atualização 26/11/2026 (aceite do ARQ-03)
+**ARQ-03 ACEITO** na revisão `2cf4bab` (Gemini 4/4 + regressões; Codex 10/10). **A2 3.2.0 CONGELADO** (`ARQ-03_ACCEPTANCE_RECORD.md`). **ARQ-04 LIBERADO**, sujeito às decisões de `ARQ-04_PO_DECISION_MATRIX.md`; ARQ-05, ARQ-06 e S2 não iniciados. Sem push/deploy.

@@ -4,7 +4,7 @@
 |---|---|---|---|
 | ARQ-01 | DateField + validação civil no servidor (CMP-04, parte de 03/05) | **Concluído** | — |
 | ARQ-02 | CommandController + idempotência transacional (CMP-07/08) | **Implementado; aguarda verificação externa** | — |
-| ARQ-03 | Catálogos e campos de domínio (CMP-06/13) | Planejado | PD-03 (matriz tipo/unidade/instrumento) |
+| ARQ-03 | Catálogos e campos de domínio (CMP-06/13) | **Aceito em 2cf4bab; A2 3.2.0 congelado** | — |
 | ARQ-04 | i18n/erros/contexto (CMP-02/03/10) | **Planejamento documental concluído** (`ARQ-04_*`); implementação bloqueada | liberação do PO; preservar E-01/02/03; I-01 incluído |
 | ARQ-05 | SessionController/Outbox (CMP-11/12) | **Planejamento documental concluído** (`ARQ-05_*`); implementação bloqueada | liberação do PO; ARQ-04 Fases 1–4; decisões D-ARQ5-01..05 |
 | ARQ-06 | Segurança/evolução/evidência (CMP-09/17/18/19) | Planejado | PD-04 |

@@ -1,4 +1,4 @@
-"""A2 candidate package: integrity, frozen-package preservation, catalog parity, vector well-formedness."""
+"""A2 frozen package: integrity, frozen-package preservation, catalog parity, vector well-formedness."""
 import hashlib, json, pathlib, subprocess, sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
@@ -16,6 +16,7 @@ def _verify(pkg: pathlib.Path):
 def test_frozen_packages_untouched():
     assert _verify(ROOT / "contracts/CL06_3-r1") == []
     assert _verify(ROOT / "contracts/CL06_3-A1") == []
+    assert _verify(ROOT / "contracts/CL06_3-A2") == []  # frozen on 2026-11-26 (accepted revision 2cf4bab)
 
 
 def test_a2_manifest_integrity_and_versions():
@@ -23,7 +24,8 @@ def test_a2_manifest_integrity_and_versions():
     assert _verify(pkg) == []
     v = json.loads((pkg / "contracts/VERSIONS.json").read_text())
     assert v["contracts_version"] == "3.2.0" and v["base_package"] == "contracts/CL06_3-A1"
-    assert "NOT declared fully backward-compatible" in v["status"]
+    assert "FROZEN" in v["status"] and "NOT declared fully backward-compatible" in v["status"]
+    assert v["base_manifest_sha256"] == hashlib.sha256((ROOT / "contracts/CL06_3-A1/INTEGRITY_MANIFEST.sha256").read_bytes()).hexdigest()
 
 
 def test_rules_registry_adds_no_error_codes():
