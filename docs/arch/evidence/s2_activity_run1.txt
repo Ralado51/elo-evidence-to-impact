@@ -1,0 +1,43 @@
+{
+  "suite": "s2_activity",
+  "total": 9,
+  "failed": 0,
+  "results": [
+    {
+      "id": "S2-01 jornada completa em simulacao ate a dose, aceita pelo ledger real (stream completo)",
+      "ok": true
+    },
+    {
+      "id": "S2-02 verificador: fatos derivados do stream de simulacao pelo servidor",
+      "ok": true
+    },
+    {
+      "id": "S2-03 camera indisponivel: nenhuma chamada a getUserMedia, consentimento desabilitado, autorrelato disponivel",
+      "ok": true
+    },
+    {
+      "id": "S2-04 autorrelato continua funcionando no mesmo outbox apos atividade com contagem",
+      "ok": true
+    },
+    {
+      "id": "S2-05 lateralidade: mao indeterminada e mao incompativel nao contam para a dose",
+      "ok": true
+    },
+    {
+      "id": "S2-06 recarga real no meio da atividade: sessao orfa sinalizada, so pode ser interrompida, depois relato",
+      "ok": true
+    },
+    {
+      "id": "S2-07 resposta perdida na captura: mesmos ids, reenvio vira duplicate",
+      "ok": true
+    },
+    {
+      "id": "S2-08 bloqueio: nova atividade bloqueada com sessao aberta; PT/EN do painel de atividade",
+      "ok": true
+    },
+    {
+      "id": "S2-09 isolamento: outro participante nao ve nem envia a atividade pendente de A",
+      "ok": true
+    }
+  ]
+}

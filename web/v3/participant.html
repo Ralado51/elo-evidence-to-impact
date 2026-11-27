@@ -82,6 +82,33 @@
 <button class="btn btn-stop target" data-i18n="pa.btn-stop-fatigue" disabled="" id="btn-stop-fatigue" type="button">Parar por cansaço</button>
 </div>
 <div class="result-box" hidden="" id="session-result"></div>
+<div class="result-box" hidden="" id="activity-panel">
+<h3 data-i18n="pa.act.title">Atividade com contagem (experimental)</h3>
+<p data-i18n="pa.act.notice">Contagem experimental, sem valor clínico e sem uso com dados reais. Nenhuma imagem é guardada nem enviada.</p>
+<p id="act-dose"></p>
+<ol class="guide-list">
+<li data-i18n="pa.act.instr1">1. Inicie a atividade e faça a calibração com a mão aberta e depois fechada.</li>
+<li data-i18n="pa.act.instr2">2. Comece a contar e repita abrir e fechar a mão, no seu ritmo.</li>
+<li data-i18n="pa.act.instr3">3. Se sentir dor ou cansaço, pare a qualquer momento com os botões de parar acima.</li>
+</ol>
+<p id="act-camera-status" data-i18n="pa.act.camera_unavailable">Câmera indisponível nesta versão: os arquivos do detector ainda não foram verificados. Use a simulação abaixo ou o autorrelato (“Iniciar sessão”).</p>
+<label><input disabled="" id="act-camera-consent" type="checkbox"/> <span data-i18n="pa.act.camera_consent">Autorizo o uso da câmera quando ela estiver disponível</span></label>
+<button aria-disabled="true" class="btn btn-secondary target" data-i18n="pa.act.btn_camera" disabled="" id="btn-act-camera" type="button">Usar câmera (indisponível)</button>
+<h4 data-i18n="pa.act.sim_label">Modo de simulação (teste, sem câmera)</h4>
+<div class="actions-row">
+<button class="btn btn-primary target" data-i18n="pa.act.btn_begin" id="btn-act-begin" type="button">Iniciar atividade (simulação)</button>
+<button class="btn btn-secondary target" data-i18n="pa.act.btn_calibrate" disabled="" id="btn-act-calibrate" type="button">Calibrar (simulação)</button>
+<button class="btn btn-secondary target" data-i18n="pa.act.btn_start" disabled="" id="btn-act-start" type="button">Começar a contar</button>
+</div>
+<div class="actions-row">
+<label for="act-sim-side" data-i18n="pa.act.side_label">Mão simulada</label>
+<select disabled="" id="act-sim-side"><option value="right" data-i18n="enum.side.right">direita</option><option value="left" data-i18n="enum.side.left">esquerda</option><option value="unknown" data-i18n="pa.act.side_unknown">indeterminada</option></select>
+<button class="btn btn-secondary target" data-i18n="pa.act.btn_cycle" disabled="" id="btn-act-cycle" type="button">Simular um ciclo abrir e fechar</button>
+</div>
+<progress id="act-progress" max="1" value="0" aria-labelledby="act-progress-text"></progress>
+<p aria-live="polite" id="act-progress-text"></p>
+<p aria-live="polite" id="act-status"></p>
+</div>
 <div aria-live="polite" class="result-box" id="sync-panel" hidden="">
 <h3 data-i18n="pa.js.sync_title" id="sync-title">Envio das atividades</h3>
 <p id="sync-status"></p>

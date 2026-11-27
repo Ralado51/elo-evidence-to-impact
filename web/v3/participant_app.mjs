@@ -34,6 +34,9 @@ import { RecoveryStore } from "./arq05/recovery_store.mjs";
 import { EventOutbox } from "./arq05/event_outbox.mjs";
 import { EventDispatcher } from "./arq05/event_dispatcher.mjs";
 import { SessionController } from "./arq05/session_controller.mjs";
+import { CaptureController } from "./arq05/capture_controller.mjs";
+import { createActivityRunner } from "../s2/arq08/activity_runner.mjs";
+import { simulateCalibrationSamples, simulateCycleFrames } from "../s2/arq08/simulation_source.mjs";
 import { retentionState } from "./arq05/retention.mjs";
 
 const SESSION_STORAGE_KEY = "elo_v3_participant_session";
@@ -218,6 +221,8 @@ export function initParticipantApp() {
 
     if (!state.activeSession) {
       phaseStatusEl.textContent = t("pa.js.no_session");
+    } else if (state.activeSession.phase === "created" || state.activeSession.phase === "calibrated") {
+      phaseStatusEl.textContent = t(state.activeSession.phase === "created" ? "pa.act.status_created" : "pa.act.status_calibrated");
     } else if (state.activeSession.phase === "active") {
       phaseStatusEl.textContent = t("pa.js.session_active");
     } else if (state.activeSession.phase === "ended") {
@@ -279,8 +284,9 @@ export function initParticipantApp() {
   }
 
   function updateControlsState() {
-    const isActive = state.activeSession?.phase === "active";
-    const isEnded = state.activeSession?.phase === "ended";
+    const ph = state.activeSession?.phase;
+    const isActive = ph === "active" || ph === "created" || ph === "calibrated"; // an open session of either mode
+    const isEnded = ph === "ended";
 
     btnSessionStart.disabled = isActive;
     btnSessionEnd.disabled = !isActive;
@@ -298,6 +304,7 @@ export function initParticipantApp() {
       reportGateStatus.textContent = t("pa.js.report_need_session");
     }
     updateStatusBar();
+    renderActivity();
   }
 
   function resetReportChoices() {
@@ -567,6 +574,7 @@ export function initParticipantApp() {
       state.goals = Array.isArray(goalsRes.data) ? goalsRes.data : [];
       renderPrescription(state.prescription);
       renderGoals(state.goals);
+      renderActivity();
       showSuccess(tm("pa.js.plan_loaded"));
       return true;
     } catch (err) {
@@ -590,6 +598,8 @@ export function initParticipantApp() {
       recovery = {
         outbox,
         controller: new SessionController(outbox),
+        capture: new CaptureController(outbox),
+        runner: null,
         lastError: null,
         dispatcher: new EventDispatcher(outbox, async (evs) => {
           try {
@@ -615,24 +625,25 @@ export function initParticipantApp() {
     let r, record;
     try {
       record = await rec.outbox.read();
-      r = await rec.controller.restore();
+      r = await rec.capture.restore(); // same outbox for every mode; adds mode and capture stats
     } catch {
       if (recovery === rec && rec.tk.isCurrent()) { state.rec = { error: true }; renderSync(); updateControlsState(); }
       return;
     }
     if (recovery !== rec || !rec.tk.isCurrent()) return;
     const ret = retentionState(record, Date.now());
-    state.activeSession = r.phase === "active" || r.phase === "ended"
-      ? { sessionId: r.sessionId, phase: r.phase, endAction: r.endAction }
+    state.activeSession = ["created", "calibrated", "active", "ended"].includes(r.phase)
+      ? { sessionId: r.sessionId, phase: r.phase, endAction: r.endAction, mode: r.mode }
       : null;
     if (r.pending === 0) rec.needsReauth = false;
     state.rec = {
-      phase: r.phase, pending: r.pending, conflict: r.conflict,
+      phase: r.phase, mode: r.mode, accepted: r.accepted, candidates: r.candidates, pending: r.pending, conflict: r.conflict,
       expired: ret.expired, fullyConfirmed: ret.fullyConfirmed, needsReauth: rec.needsReauth,
     };
     if (r.phase !== "ended") state.dismissArmed = false;
     renderSync();
     updateControlsState();
+    renderActivity();
   }
 
   function renderSync() {
@@ -688,10 +699,156 @@ export function initParticipantApp() {
     return res;
   }
 
+  // One gate for a new session of either mode: no open session, no pending report (unless explicitly dismissed), nothing unconfirmed.
+  function startGate(r) {
+    const autoDismiss = r.phase === "ended" && r.expired && r.fullyConfirmed;
+    const dismissReport = r.phase === "ended" && (state.dismissArmed || autoDismiss);
+    if (["active", "created", "calibrated"].includes(r.phase)) { showError("SESSION_BLOCKED", tm("pa.js.sync_blocked_active")); return null; }
+    if (r.phase === "ended" && !dismissReport) { showError("SESSION_BLOCKED", tm("pa.js.sync_blocked_report")); return null; }
+    if (r.conflict || (r.pending && r.phase !== "idle")) { showError("SESSION_BLOCKED", tm("pa.js.sync_blocked_unresolved")); return null; }
+    return { dismissReport };
+  }
+
+  // ---- S2 experimental activity (simulation). Real camera is NOT available in this candidate (MediaPipe assets pending). ----
+  let simClock = 0;
+  let limitsCatalog = null;
+  async function loadLimits() {
+    if (!limitsCatalog) limitsCatalog = await (await fetch(new URL("./catalogs/limits.v1.json", import.meta.url))).json();
+    return limitsCatalog;
+  }
+  async function finishCapture(rec, action) {
+    if (rec.runner) { await rec.runner.finish({ action }); return; }
+    // Orphan session after a reload: stop it and close the capture with an empty summary (nothing to count).
+    const st = await rec.capture.restore();
+    if (["created", "calibrated", "active"].includes(st.phase)) await rec.capture.stop(action);
+    await rec.capture.captureSummary({ frames_total: 0, fps_mean: null, fps_min: null, usable_fraction: null, lost_events: 0 });
+  }
+  function renderActivity() {
+    const panel = el("activity-panel");
+    if (!panel) return;
+    const signed = Boolean(state.session?.token) && state.rec && !state.rec.error;
+    panel.hidden = !signed;
+    if (!signed) return;
+    const ph = state.activeSession?.phase ?? "idle";
+    const sim = state.activeSession?.mode === "simulation";
+    const rx = state.prescription?.payload;
+    el("act-dose").textContent = rx ? t("pa.act.dose", { sets: rx.target_sets, reps: rx.target_repetitions, side: label("side", rx.side) }) : t("pa.act.dose_unknown");
+    const target = (rx?.target_sets ?? 0) * (rx?.target_repetitions ?? 0);
+    const accepted = sim ? state.rec.accepted : 0;
+    const prog = el("act-progress");
+    prog.max = Math.max(target, 1);
+    prog.value = Math.min(accepted, prog.max);
+    el("act-progress-text").textContent = t("pa.act.progress", { a: accepted, t: target, c: sim ? state.rec.candidates : 0 });
+    el("btn-act-begin").disabled = ["created", "calibrated", "active"].includes(ph);
+    el("btn-act-calibrate").disabled = !(sim && (ph === "created" || ph === "calibrated") && recovery?.runner);
+    el("btn-act-start").disabled = !(sim && ph === "calibrated" && recovery?.runner);
+    el("btn-act-cycle").disabled = !(sim && ph === "active" && recovery?.runner);
+    el("act-sim-side").disabled = el("btn-act-cycle").disabled;
+  }
+  function actMessage(key, extra) {
+    el("act-status").textContent = t(key, extra);
+    showSuccess(tm(key, extra));
+  }
+  async function beginActivity() {
+    if (!requireAuth()) return;
+    const rec = recovery;
+    if (!rec) { showError("RECOVERY_UNAVAILABLE", tm("pa.js.storage_unavailable")); return; }
+    await refreshRecovery();
+    const r = state.rec;
+    if (!r || r.error) { showError("RECOVERY_UNAVAILABLE", tm("pa.js.storage_unavailable")); return; }
+    const gate = startGate(r);
+    if (!gate) return;
+    if (!state.prescription) {
+      const loaded = await loadPlan();
+      if (!loaded || !state.prescription) return;
+    }
+    const tk = ctxStore.capture({ level: "principal" });
+    try {
+      const p = state.session.principal;
+      rec.runner = createActivityRunner({
+        controller: rec.capture, scope: { org_id: p.org_id, participant_id: p.id },
+        prescription: state.prescription.payload, limits: await loadLimits(),
+      });
+      await rec.runner.begin({ width: 640, height: 480 }, { dismissReport: gate.dismissReport });
+    } catch (err) {
+      rec.runner = null;
+      if (tk.isCurrent()) showError("SESSION_BLOCKED", tm(err?.message === "RECOVERY_STREAM_UNRESOLVED" ? "pa.js.sync_blocked_unresolved" : "pa.act.err_begin"));
+      return;
+    }
+    if (!tk.isCurrent() || recovery !== rec) return;
+    state.dismissArmed = false;
+    state.recoveredOrphan = false;
+    simClock = 0;
+    resetReportChoices();
+    await refreshRecovery();
+    const resBox = el("session-result");
+    resBox.dataset.sessionPhase = "created";
+    resBox.dataset.sessionMode = "simulation";
+    resBox.dataset.sessionId = state.activeSession?.sessionId || "";
+    renderBox("session-result", (b) => appendParagraph(b, t("pa.act.begun")));
+    actMessage("pa.act.begun");
+    dispatchNow();
+  }
+  async function activityStep(fn, okKey) {
+    const rec = recovery;
+    if (!requireAuth() || !rec?.runner) return;
+    const tk = ctxStore.capture({ level: "principal" });
+    let out;
+    try { out = await fn(rec.runner); } catch { if (tk.isCurrent()) showError("INVALID_TRANSITION", describeParticipantError({ code: "INVALID_TRANSITION", status: 200 }).msg); return; }
+    if (!tk.isCurrent() || recovery !== rec) return;
+    await refreshRecovery();
+    if (okKey) actMessage(okKey);
+    dispatchNow();
+    return out;
+  }
+  async function calibrateActivity() {
+    const rec = recovery;
+    if (!rec?.runner) return;
+    const tk = ctxStore.capture({ level: "principal" });
+    let out;
+    try { out = await rec.runner.calibrate(simulateCalibrationSamples()); } catch { if (tk.isCurrent()) showError("INVALID_TRANSITION", describeParticipantError({ code: "INVALID_TRANSITION", status: 200 }).msg); return; }
+    if (!tk.isCurrent() || recovery !== rec) return;
+    await refreshRecovery();
+    el("btn-act-calibrate").dataset.calibration = out.status;
+    if (out.status === "ready") actMessage("pa.act.calibrated");
+    else showError("CALIBRATION_FAILED", tm(out.status === "invalid_span" ? "pa.act.cal_span" : "pa.act.cal_insufficient"));
+    dispatchNow();
+  }
+  async function simulateCycle() {
+    const rec = recovery;
+    if (!rec?.runner) return;
+    const tk = ctxStore.capture({ level: "principal" });
+    const raw = el("act-sim-side").value;
+    const side = raw === "unknown" ? null : raw;
+    const frames = simulateCycleFrames({ startMs: (simClock += 2000), side });
+    simClock = frames.at(-1).timeMs;
+    let last;
+    for (const fr of frames) last = rec.runner.feed(fr);
+    await rec.runner.flush();
+    if (!tk.isCurrent() || recovery !== rec) return;
+    await refreshRecovery();
+    const phase = state.activeSession?.phase;
+    const key = state.rec.phase === "ended" ? "pa.act.dose_reached" : side === null ? "pa.act.cycle_unknown"
+      : side !== state.prescription?.payload?.side ? "pa.act.cycle_rejected" : "pa.act.cycle_ok";
+    if (state.rec.phase === "ended" && phase === "ended") {
+      try { await rec.runner.finish({ action: "end" }); } catch { /* summary appended once; a failed append stays visible as pending */ }
+      await refreshRecovery();
+      resetReportChoices();
+      updateControlsState();
+    }
+    el("act-status").dataset.lastCycle = last?.status ?? "";
+    actMessage(key);
+    dispatchNow();
+  }
+  el("btn-act-begin")?.addEventListener("click", beginActivity);
+  el("btn-act-calibrate")?.addEventListener("click", calibrateActivity);
+  el("btn-act-start")?.addEventListener("click", () => activityStep((r) => r.start(), "pa.act.counting"));
+  el("btn-act-cycle")?.addEventListener("click", simulateCycle);
+
   async function endActiveSession(action) {
     if (!requireAuth()) return;
     const rec = recovery;
-    if (!rec || state.activeSession?.phase !== "active") {
+    if (!rec || !["active", "created", "calibrated"].includes(state.activeSession?.phase)) {
       showError(
         "INVALID_TRANSITION",
         describeParticipantError({ code: "INVALID_TRANSITION", status: 200 }).msg
@@ -700,7 +857,8 @@ export function initParticipantApp() {
     }
     const tk = ctxStore.capture({ level: "principal" }); // BEFORE the await: the write is never aborted, only its rendering is guarded
     try {
-      await rec.controller.stop(action);
+      if (state.activeSession.mode === "simulation") await finishCapture(rec, action);
+      else await rec.controller.stop(action);
     } catch {
       if (tk.isCurrent()) showError("INVALID_TRANSITION", describeParticipantError({ code: "INVALID_TRANSITION", status: 200 }).msg);
       return;
@@ -781,6 +939,8 @@ export function initParticipantApp() {
     state.dismissArmed = false;
     state.recoveredOrphan = false;
     renderSync();
+    renderActivity();
+    el("act-status") && (el("act-status").textContent = "");
     state.summaryData = null;
     state.evolutionData = null;
     resetReportChoices();
@@ -864,11 +1024,9 @@ export function initParticipantApp() {
     await refreshRecovery();
     const r = state.rec;
     if (!r || r.error) { showError("RECOVERY_UNAVAILABLE", tm("pa.js.storage_unavailable")); return; }
-    const autoDismiss = r.phase === "ended" && r.expired && r.fullyConfirmed;
-    const dismissReport = r.phase === "ended" && (state.dismissArmed || autoDismiss);
-    if (r.phase === "active") { showError("SESSION_BLOCKED", tm("pa.js.sync_blocked_active")); return; }
-    if (r.phase === "ended" && !dismissReport) { showError("SESSION_BLOCKED", tm("pa.js.sync_blocked_report")); return; }
-    if (r.conflict || (r.pending && r.phase !== "idle")) { showError("SESSION_BLOCKED", tm("pa.js.sync_blocked_unresolved")); return; }
+    const gate = startGate(r);
+    if (!gate) return;
+    const { dismissReport } = gate;
     if (!state.prescription) {
       const loaded = await loadPlan();
       if (!loaded || !state.prescription) return;
@@ -970,7 +1128,7 @@ export function initParticipantApp() {
     const assistance = state.reportAssistance;
     // The report is appended ONCE to the local chain (one event_id/seq/hash per intention); transmission is separate.
     const out = await commands.run(slot, async () => {
-      await rec.controller.submitReport({ execution, assistance });
+      await (state.activeSession?.mode === "simulation" ? rec.capture : rec.controller).submitReport({ execution, assistance });
     });
     if (!tk.isCurrent()) return; // signed out while in flight: nothing shown; the command slot keeps its state for recovery (ARQ-05)
     if (out.status === "ignored" || out.status === "settled") return; // same intention: one single outcome state
@@ -1049,6 +1207,7 @@ export function initParticipantApp() {
   document.addEventListener("elo:lang", () => {
     updateControlsState();
     renderSync();
+    renderActivity();
     for (const id of boxBuilders.keys()) runBox(id);
     if (state.session?.token) loadPublications();
     if (state.prescription) renderPrescription(state.prescription);
