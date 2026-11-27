@@ -133,6 +133,10 @@ await check("S2C-04 revogacao: camera desligada, sessao interrompida, revogacao 
   const ctl = s.events.filter((e) => e.type === "session.control").map((e) => e.payload);
   assert.deepEqual(ctl.at(-1), { action: "interrupt", interrupt_reason: "consent_revoked" });
   assert.equal(s.events.at(-1).type, "session.capture_summary");
+  await pa.waitForFunction((key) => {
+    const record = JSON.parse(localStorage.getItem(key) || "null");
+    return record?.events.at(-1)?.type === "consent.revoked" && record.acknowledged === record.events.length;
+  }, ckey(A));
   const c = await consent(pa, A);
   assert.deepEqual(c.events.map((e) => e.type), ["consent.accepted", "consent.revoked", "consent.accepted", "consent.revoked"].slice(0, c.events.length));
   assert.equal(c.events.at(-1).type, "consent.revoked");
@@ -159,6 +163,89 @@ await check("S2C-05 camera sem consentimento ativo no ledger e recusada (CONSENT
   assert.ok(okc.body.results.every((r) => r.status === "stored"), JSON.stringify(okc.body));
   const ok = await post(tok, [built.start]);
   assert.ok(ok.body.results.every((r) => r.status === "stored"), JSON.stringify(ok.body));
+});
+
+await check("FIX-CAM-01 logout ativo encerra as trilhas e nova identidade não herda o vídeo", async () => {
+  const activeId = await seed("Cam FIX logout");
+  const ctx = await newCtx();
+  const page = await open(activeId, ctx);
+  await startCamera(page);
+  await page.evaluate(() => { window.fixOldTracks = document.querySelector("#act-cam").srcObject.getTracks(); });
+  const before = await session(page, activeId);
+  await page.click("#btn-participant-signout");
+  await page.waitForFunction(() => window.fixOldTracks.every((track) => track.readyState === "ended"));
+  assert.deepEqual((await session(page, activeId)).events, before.events);
+  await page.fill("#invite-token", await invite(B));
+  await page.click("#btn-invite-signin");
+  await page.waitForSelector("#signin-result:not([hidden])");
+  assert.deepEqual(await page.evaluate(() => {
+    const video = document.querySelector("#act-cam");
+    return [video.srcObject, video.hidden, document.querySelector("#act-camera-consent").checked,
+      document.querySelector("#act-camera-status").textContent];
+  }), [null, true, false, ""]);
+  await ctx.close();
+});
+
+await check("FIX-CAM-01 aquisição tardia após logout encerra todas as trilhas", async () => {
+  const C = await seed("Cam FIX tardia");
+  const ctx = await newCtx();
+  const page = await open(C, ctx);
+  await page.evaluate(() => {
+    const original = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+    navigator.mediaDevices.getUserMedia = async (...args) => {
+      const stream = await original(...args);
+      window.fixLateTracks = stream.getTracks();
+      await new Promise((resolve) => { window.fixReleaseMedia = resolve; });
+      return stream;
+    };
+  });
+  await page.check("#act-camera-consent");
+  await page.click("#btn-act-camera");
+  await page.waitForFunction(() => Boolean(window.fixReleaseMedia), null, { timeout: 60000 });
+  await page.click("#btn-participant-signout");
+  await page.evaluate(() => window.fixReleaseMedia());
+  await page.waitForFunction(() => window.fixLateTracks.every((track) => track.readyState === "ended"));
+  assert.deepEqual(await page.evaluate(() => {
+    const video = document.querySelector("#act-cam");
+    return [video.srcObject, video.hidden, document.querySelector("#act-camera-status").textContent];
+  }), [null, true, ""]);
+  const record = await session(page, C);
+  assert.ok(!record || record.events.length === 0);
+  await ctx.close();
+});
+
+await check("FIX-CAM-02 conflito real bloqueia câmera, sem bloquear autorrelato ou simulação", async () => {
+  // B já tem um consentimento gravado pelo S2C-05. Um contexto novo cria um
+  // aceite divergente com o mesmo seq e recebe HASH_CONFLICT do ledger.
+  const ctx = await newCtx();
+  const page = await open(B, ctx);
+  await page.check("#act-camera-consent");
+  await page.click("#btn-act-camera");
+  await page.waitForFunction((key) => JSON.parse(localStorage.getItem(key) || "null")?.conflict?.code === "HASH_CONFLICT", ckey(B));
+  assert.equal(await page.evaluate(() => document.querySelector("#act-cam").srcObject), null);
+  const conflicted = await consent(page, B);
+  const complete = async (mode) => {
+    await page.click(mode === "report_only" ? "#btn-session-start" : "#btn-act-begin");
+    if (mode === "simulation") {
+      await page.click("#btn-act-calibrate");
+      await page.waitForSelector('#btn-act-calibrate[data-calibration="ready"]');
+      await page.click("#btn-act-start");
+    }
+    await page.waitForSelector("#btn-session-end:enabled");
+    await page.click("#btn-session-end");
+    await report(page);
+    await waitSync(page, "synced");
+    const record = await session(page, B);
+    assert.ok(record.events.length > 0 && record.events.every((event) => event.execution_mode === mode));
+    assert.equal(record.events.at(-1).type, "report.submitted");
+    assert.equal(record.acknowledged, record.events.length);
+    const duplicate = await post(await token(page), record.events);
+    assert.ok(duplicate.body.results.every((event) => event.status === "duplicate"));
+  };
+  await complete("report_only");
+  await complete("simulation");
+  assert.deepEqual(await consent(page, B), conflicted);
+  await ctx.close();
 });
 
 await browser.close();

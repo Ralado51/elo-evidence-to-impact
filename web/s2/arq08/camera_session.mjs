@@ -47,16 +47,24 @@ export function createCameraSession({ video, doc = globalThis.document, mediaDev
   let listener = null; // current frame consumer
   let base = 0;
   let live = false;
+  let generation = 0;
+  let finishCollection = null;
   let starting = false; // failures while starting are reported by start()'s return value, not by onInterrupted
   const interrupt = (reason) => { if (!starting) onInterrupted(reason); };
 
   const release = () => {
+    generation += 1;
     live = false;
+    finishCollection?.();
     if (handle?.cancel) handle.cancel();
     handle = null;
     listener = null;
     port.stop();
-    if (video) { try { video.pause?.(); } catch { /* ignore */ } video.srcObject = null; video.hidden = true; }
+    if (video && stream && video.srcObject === stream) {
+      try { video.pause?.(); } catch { /* ignore */ }
+      video.srcObject = null;
+      video.hidden = true;
+    }
     stream = null;
   };
 
@@ -81,17 +89,25 @@ export function createCameraSession({ video, doc = globalThis.document, mediaDev
     /** Requires consent === true. Returns { status: "ready" } or a fallback status (consent_required|report_only|busy|cancelled|model_unavailable). */
     async start({ consent } = {}) {
       if (consent !== true) return { status: "consent_required" };
+      const ticket = ++generation;
       try {
         if (!detector) {
           const [landmarker, openness] = await Promise.all([(loadDetector ?? loadLandmarker)(), loadOpenness(doc)]);
+          if (ticket !== generation) return { status: "cancelled" };
           detector = createHandDetector({ landmarker, openness, swapDetectorLabels: SWAP_DETECTOR_LABELS });
         }
-      } catch { return { status: "model_unavailable" }; }
+      } catch { return { status: ticket === generation ? "model_unavailable" : "cancelled" }; }
       const out = await port.start({ consent: true });
+      if (ticket !== generation) return { status: "cancelled" };
       if (out.status !== "ready") return out;
       stream = out.stream;
       video.srcObject = stream;
-      try { await video.play(); } catch { release(); return { status: "report_only" }; }
+      try { await video.play(); } catch {
+        if (ticket !== generation) return { status: "cancelled" };
+        release();
+        return { status: "report_only" };
+      }
+      if (ticket !== generation) return { status: "cancelled" };
       const tracks = stream.getVideoTracks();
       for (const track of tracks) track.addEventListener("ended", () => { if (live) { release(); interrupt("track_ended"); } });
       base = clock();
@@ -106,13 +122,20 @@ export function createCameraSession({ video, doc = globalThis.document, mediaDev
     },
     /** Collect detected openness values for `ms`; resolves with the samples (derived numbers only). */
     collect(ms) {
+      if (!live) return Promise.resolve([]);
+      finishCollection?.();
       return new Promise((resolve) => {
         const values = [];
         const end = clock() + ms;
         const previous = listener;
+        finishCollection = () => {
+          finishCollection = null;
+          listener = previous;
+          resolve(values);
+        };
         listener = (frame) => {
           if (frame.status === "detected") values.push(frame.value);
-          if (clock() >= end || !live) { listener = previous; resolve(values); }
+          if (clock() >= end || !live) finishCollection?.();
         };
       });
     },

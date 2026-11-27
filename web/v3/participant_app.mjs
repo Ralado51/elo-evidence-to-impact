@@ -33,7 +33,7 @@ import {
 import { StorageAdapter } from "./arq05/storage_adapter.mjs";
 import { RecoveryStore } from "./arq05/recovery_store.mjs";
 import { EventOutbox } from "./arq05/event_outbox.mjs";
-import { EventDispatcher } from "./arq05/event_dispatcher.mjs";
+import { EventDispatcher, dispatchSessionWithConsent } from "./arq05/event_dispatcher.mjs";
 import { SessionController } from "./arq05/session_controller.mjs";
 import { CaptureController } from "./arq05/capture_controller.mjs";
 import { ConsentOutbox } from "./arq05/consent_outbox.mjs";
@@ -590,22 +590,38 @@ export function initParticipantApp() {
   }
 
   // ---- ARQ-05: local-first recovery wiring (synthetic MVP; sessionStorage of this tab only) ----
-  function openRecovery() {
+  function discardRecovery() {
     clearTimeout(retryTimer);
+    if (recovery) {
+      recovery.cameraStart = null;
+      recovery.cam?.unwatch();
+      recovery.cam?.stop();
+    }
+    const video = el("act-cam");
+    video?.srcObject?.getTracks().forEach((track) => track.stop());
+    if (video) { video.srcObject = null; video.hidden = true; }
+    if (el("act-camera-consent")) el("act-camera-consent").checked = false;
+    if (el("act-camera-status")) el("act-camera-status").textContent = "";
     recovery = null;
+  }
+
+  function openRecovery() {
+    discardRecovery();
     state.rec = null;
     const p = state.session?.principal;
     if (!state.session?.token || !p?.id || !p?.org_id) return;
     try {
       const store = new RecoveryStore({ orgId: p.org_id, participantId: p.id }, new StorageAdapter());
       const outbox = new EventOutbox(store);
+      let owner;
       const transport = async (evs) => {
+        if (recovery !== owner || !owner.tk.isCurrent() || !state.session?.token) throw new Error("STALE_CONTEXT");
         try {
           const res = await client.postEventsBatch(evs);
-          if (recovery) recovery.lastError = null;
+          if (recovery === owner && owner.tk.isCurrent()) owner.lastError = null;
           return res;
         } catch (err) {
-          if (recovery) recovery.lastError = err;
+          if (recovery === owner && owner.tk.isCurrent()) owner.lastError = err;
           throw err;
         }
       };
@@ -621,7 +637,7 @@ export function initParticipantApp() {
         if (!part.length) return { data: { results: [] } };
         return transport(part);
       };
-      recovery = {
+      recovery = owner = {
         consent, consentDispatcher: consent ? new EventDispatcher(consent, consentTransport) : null, cam: null, camCal: null,
         outbox,
         controller: new SessionController(outbox),
@@ -649,6 +665,8 @@ export function initParticipantApp() {
       return;
     }
     if (recovery !== rec || !rec.tk.isCurrent()) return;
+    const consentActive = Boolean(rec.consent && (await rec.consent.read().catch(() => ({ active: false }))).active);
+    if (recovery !== rec || !rec.tk.isCurrent()) return;
     const ret = retentionState(record, Date.now());
     state.activeSession = ["created", "calibrated", "active", "ended"].includes(r.phase)
       ? { sessionId: r.sessionId, phase: r.phase, endAction: r.endAction, mode: r.mode }
@@ -657,7 +675,7 @@ export function initParticipantApp() {
     state.rec = {
       phase: r.phase, mode: r.mode, accepted: r.accepted, candidates: r.candidates, pending: r.pending, conflict: r.conflict,
       expired: ret.expired, fullyConfirmed: ret.fullyConfirmed, needsReauth: rec.needsReauth,
-      consentActive: Boolean(rec.consent && (await rec.consent.read().catch(() => ({ active: false }))).active),
+      consentActive,
     };
     if (r.phase !== "ended") state.dismissArmed = false;
     renderSync();
@@ -704,18 +722,11 @@ export function initParticipantApp() {
     clearTimeout(retryTimer);
     let res = null;
     try {
-      // The consent chain is stored first: capture events of a camera session are refused by the ledger without an active camera consent.
-      let consentRes = rec.consentDispatcher ? await rec.consentDispatcher.dispatch() : null;
-      const cs = rec.consent ? await rec.consent.read() : null;
-      if (consentRes && consentRes.status !== "synced" && cs?.events[cs.acknowledged]?.type === "consent.accepted") res = consentRes;
-      else {
-        res = await rec.dispatcher.dispatch();
-        if (consentRes && consentRes.status === "pending" && res.status === "synced") consentRes = await rec.consentDispatcher.dispatch();
-        if (res.status === "synced" && consentRes) res = consentRes;
-      }
+      res = await dispatchSessionWithConsent(rec, () => recovery === rec && rec.tk.isCurrent());
     } catch { res = null; }
     if (recovery !== rec || !rec.tk.isCurrent()) return null;
     await refreshRecovery();
+    if (recovery !== rec || !rec.tk.isCurrent()) return null;
     if (res?.status !== "synced" && rec.lastError) {
       const e = rec.lastError;
       rec.lastError = null;
@@ -785,39 +796,45 @@ export function initParticipantApp() {
     el("act-status").textContent = t(key, extra);
     showSuccess(tm(key, extra));
   }
-  async function beginActivity({ mode = "simulation", frame = { width: 640, height: 480 }, deviceHint, beforeBegin } = {}) {
+  async function beginActivity({ mode = "simulation", frame = { width: 640, height: 480 }, deviceHint, beforeBegin, stillCurrent = () => true } = {}) {
     if (!requireAuth()) return false;
     const rec = recovery;
     if (!rec) { showError("RECOVERY_UNAVAILABLE", tm("pa.js.storage_unavailable")); return false; }
+    const tk = ctxStore.capture({ level: "principal" });
+    const isCurrent = () => tk.isCurrent() && recovery === rec && stillCurrent();
     await refreshRecovery();
+    if (!isCurrent()) return false;
     const r = state.rec;
     if (!r || r.error) { showError("RECOVERY_UNAVAILABLE", tm("pa.js.storage_unavailable")); return false; }
     const gate = startGate(r);
     if (!gate) return false;
     if (!state.prescription) {
       const loaded = await loadPlan();
-      if (!loaded || !state.prescription) return false;
+      if (!isCurrent() || !loaded || !state.prescription) return false;
     }
-    const tk = ctxStore.capture({ level: "principal" });
     try {
+      const limits = await loadLimits();
+      if (!isCurrent()) return false;
       const p = state.session.principal;
       rec.runner = createActivityRunner({
         controller: rec.capture, scope: { org_id: p.org_id, participant_id: p.id },
-        prescription: state.prescription.payload, limits: await loadLimits(), mode,
+        prescription: state.prescription.payload, limits, mode,
       });
       if (beforeBegin) await beforeBegin();
+      if (!isCurrent()) return false;
       await rec.runner.begin(frame, { dismissReport: gate.dismissReport }, deviceHint);
     } catch (err) {
       rec.runner = null;
-      if (tk.isCurrent()) showError("SESSION_BLOCKED", tm(err?.message === "RECOVERY_STREAM_UNRESOLVED" ? "pa.js.sync_blocked_unresolved" : "pa.act.err_begin"));
+      if (isCurrent()) showError("SESSION_BLOCKED", tm(err?.message === "RECOVERY_STREAM_UNRESOLVED" ? "pa.js.sync_blocked_unresolved" : "pa.act.err_begin"));
       return false;
     }
-    if (!tk.isCurrent() || recovery !== rec) return false;
+    if (!isCurrent()) return false;
     state.dismissArmed = false;
     state.recoveredOrphan = false;
     simClock = 0;
     resetReportChoices();
     await refreshRecovery();
+    if (!isCurrent()) return false;
     const resBox = el("session-result");
     resBox.dataset.sessionPhase = "created";
     resBox.dataset.sessionMode = mode;
@@ -896,10 +913,12 @@ export function initParticipantApp() {
   async function refreshAfterCamera(rec) {
     if (recovery !== rec) return;
     await refreshRecovery();
+    if (recovery !== rec || !rec.tk.isCurrent()) return;
     updateControlsState();
     renderActivity();
   }
   async function closeCameraActivity(rec, { action, interruptReason = null, messageKey, doseReached = false }) {
+    rec.cameraStart = null;
     rec.cam?.unwatch();
     rec.cam?.stop();
     rec.camCal = null;
@@ -911,6 +930,7 @@ export function initParticipantApp() {
     if (recovery !== rec) return;
     resetReportChoices();
     await refreshAfterCamera(rec);
+    if (recovery !== rec || !rec.tk.isCurrent()) return;
     if (messageKey) actMessage(messageKey);
     dispatchNow();
   }
@@ -919,39 +939,53 @@ export function initParticipantApp() {
     const rec = recovery;
     if (!rec?.consent) { showError("CAMERA_UNAVAILABLE", tm("pa.act.cam_fallback")); return; }
     if (!el("act-camera-consent").checked) { showError("CONSENT_REQUIRED", tm("pa.act.cam_consent_needed")); return; }
-    await refreshRecovery();
-    const gate = state.rec && !state.rec.error ? startGate(state.rec) : null;
-    if (!gate) return;
+    if (rec.cameraStart || rec.cam?.active) return;
     const tk = ctxStore.capture({ level: "principal" });
-    camStatus("pa.act.cam_loading");
+    rec.cameraStart = tk;
+    const isCurrent = () => tk.isCurrent() && recovery === rec && rec.cameraStart === tk;
+    let cam;
     try {
-      // 1) Consent is recorded and stored on the ledger BEFORE the camera is turned on.
+      await refreshRecovery();
+      if (!isCurrent() || !(state.rec && !state.rec.error && startGate(state.rec))) return;
+      camStatus("pa.act.cam_loading");
       await rec.consent.record("consent.accepted");
+      if (!isCurrent()) return;
       await dispatchNow({ manual: true });
+      if (!isCurrent()) return;
       const cs = await rec.consent.read();
+      if (!isCurrent()) return;
       if (cs.acknowledged !== cs.events.length || cs.conflict || !cs.active) {
-        if (tk.isCurrent()) { camStatus("pa.act.cam_consent_unsent"); showError("CONSENT_UNCONFIRMED", tm("pa.act.cam_consent_unsent")); }
+        camStatus("pa.act.cam_consent_unsent");
+        showError("CONSENT_UNCONFIRMED", tm("pa.act.cam_consent_unsent"));
         return;
       }
-      // 2) Local detector + camera. Any failure falls back to self-report with nothing captured.
       const { createCameraSession } = await import("../s2/arq08/camera_session.mjs");
-      const cam = createCameraSession({ video: el("act-cam"), onInterrupted: (reason) => { closeCameraActivity(rec, { action: "interrupt", interruptReason: reason, messageKey: "pa.act.cam_interrupted" }); } });
+      if (!isCurrent()) return;
+      const session = createCameraSession({ video: el("act-cam"), onInterrupted: (reason) => {
+        if (recovery === rec && rec.tk.isCurrent() && rec.cam === session)
+          void closeCameraActivity(rec, { action: "interrupt", interruptReason: reason, messageKey: "pa.act.cam_interrupted" });
+      } });
+      rec.cam = cam = session;
       const out = await cam.start({ consent: true });
-      if (out.status !== "ready") {
-        cam.stop();
-        if (tk.isCurrent()) { camStatus("pa.act.cam_fallback"); showError("CAMERA_UNAVAILABLE", tm("pa.act.cam_fallback")); }
-        return;
-      }
-      rec.cam = cam;
-      // 3) The same ActivityRunner/outbox, now in camera mode.
-      const ok = await beginActivity({ mode: "camera", frame: out.frame, deviceHint: camHint() });
-      if (!ok) { cam.stop(); rec.cam = null; return; }
+      if (!isCurrent()) return;
+      if (out.status !== "ready") throw new Error("CAMERA_UNAVAILABLE");
+      const ok = await beginActivity({ mode: "camera", frame: out.frame, deviceHint: camHint(), stillCurrent: isCurrent });
+      if (!isCurrent() || !ok) return;
       camStatus("pa.act.cam_ready");
       renderActivity();
+      cam = null; // leave the current session open
     } catch {
-      rec.cam?.stop();
-      rec.cam = null;
-      if (tk.isCurrent()) { camStatus("pa.act.cam_fallback"); showError("CAMERA_UNAVAILABLE", tm("pa.act.cam_fallback")); }
+      if (isCurrent()) {
+        camStatus("pa.act.cam_fallback");
+        showError("CAMERA_UNAVAILABLE", tm("pa.act.cam_fallback"));
+      }
+    } finally {
+      if (cam) {
+        cam.unwatch();
+        cam.stop();
+        if (rec.cam === cam) rec.cam = null;
+      }
+      if (rec.cameraStart === tk) rec.cameraStart = null;
     }
   }
   async function calibrateCamera(posture) {
@@ -968,8 +1002,9 @@ export function initParticipantApp() {
     const samples = { open: rec.camCal.open, closed: rec.camCal.closed };
     rec.camCal = null;
     let out;
-    try { out = await rec.runner.calibrate(samples); } catch { showError("INVALID_TRANSITION", describeParticipantError({ code: "INVALID_TRANSITION", status: 200 }).msg); renderActivity(); return; }
+    try { out = await rec.runner.calibrate(samples); } catch { if (!tk.isCurrent() || recovery !== rec) return; showError("INVALID_TRANSITION", describeParticipantError({ code: "INVALID_TRANSITION", status: 200 }).msg); renderActivity(); return; }
     await refreshAfterCamera(rec);
+    if (!tk.isCurrent() || recovery !== rec || !rec.cam?.active) return;
     el("btn-act-cal-open").dataset.calibration = out.status;
     if (out.status === "ready") { camStatus("pa.act.calibrated"); showSuccess(tm("pa.act.calibrated")); }
     else showError("CALIBRATION_FAILED", tm(out.status === "invalid_span" ? "pa.act.cal_span" : "pa.act.cal_insufficient"));
@@ -979,7 +1014,9 @@ export function initParticipantApp() {
     const rec = recovery;
     if (!rec?.cam?.active || !rec.runner) return;
     await activityStep((r) => r.start(), null);
-    if ((await rec.capture.restore()).phase !== "active") return;
+    if (recovery !== rec || !rec.tk.isCurrent() || !rec.cam?.active) return;
+    const { phase } = await rec.capture.restore();
+    if (recovery !== rec || !rec.tk.isCurrent() || !rec.cam?.active || phase !== "active") return;
     camStatus("pa.act.cam_counting_hint");
     let busy = false;
     rec.cam.watch((frame) => {
@@ -988,6 +1025,7 @@ export function initParticipantApp() {
         busy = true;
         rec.runner.flush().then(async () => {
           await refreshAfterCamera(rec);
+          if (recovery !== rec || !rec.tk.isCurrent() || !rec.cam?.active) return;
           if (state.rec?.phase === "ended") await closeCameraActivity(rec, { action: "end", messageKey: "pa.act.dose_reached", doseReached: true });
           else dispatchNow();
         }).finally(() => { busy = false; });
@@ -1000,10 +1038,13 @@ export function initParticipantApp() {
     const open = ["created", "calibrated", "active"].includes(state.activeSession?.phase ?? "");
     // The camera is switched off first; the session (if any) is closed as interrupted; the revocation is chained after it.
     await closeCameraActivity(rec, { action: "interrupt", interruptReason: open ? "consent_revoked" : null });
+    if (recovery !== rec || !rec.tk.isCurrent()) return;
     try { await rec.consent?.record("consent.revoked"); } catch { /* chain unresolved: shown through the sync panel */ }
+    if (recovery !== rec || !rec.tk.isCurrent()) return;
     rec.cam = null;
     el("act-camera-consent").checked = false;
     await refreshAfterCamera(rec);
+    if (recovery !== rec || !rec.tk.isCurrent()) return;
     camStatus("pa.act.cam_revoked");
     dispatchNow({ manual: true });
   }
@@ -1102,8 +1143,7 @@ export function initParticipantApp() {
     state.prescription = null;
     state.goals = [];
     state.activeSession = null;
-    clearTimeout(retryTimer);
-    recovery = null; // the stored local stream is NOT erased: it stays isolated by organization and principal
+    discardRecovery(); // the stored local stream is NOT erased
     state.rec = null;
     state.dismissArmed = false;
     state.recoveredOrphan = false;

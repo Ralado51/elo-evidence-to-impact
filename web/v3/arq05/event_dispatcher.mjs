@@ -47,3 +47,29 @@ export class EventDispatcher {
       conflict: record.conflict };
   }
 }
+
+// Only camera session events depend on a confirmed camera consent. A pending
+// revocation is sent after the capture prefix, while consent conflicts stay intact.
+export async function dispatchSessionWithConsent(rec, isCurrent) {
+  let consentResult = await rec.consentDispatcher?.dispatch().catch(() => null);
+  if (!isCurrent()) return null;
+  const session = await rec.outbox.read();
+  if (!isCurrent()) return null;
+  if (session.mode === "camera" && session.acknowledged < session.events.length) {
+    const consent = await rec.consent?.read().catch(() => null);
+    if (!isCurrent()) return null;
+    const lastConfirmed = consent?.events[consent.acknowledged - 1];
+    if (!consent || consent.conflict || consent.events[consent.acknowledged]?.type === "consent.accepted" ||
+        lastConfirmed?.type !== "consent.accepted" || !lastConfirmed.payload.scopes.includes("camera")) {
+      return consentResult?.status === "conflict" ? consentResult
+        : { status: "pending", pending: session.events.length - session.acknowledged };
+    }
+  }
+  const result = await rec.dispatcher.dispatch();
+  if (!isCurrent()) return null;
+  if (consentResult?.status === "pending" && result.status === "synced") {
+    consentResult = await rec.consentDispatcher.dispatch().catch(() => consentResult);
+    if (!isCurrent()) return null;
+  }
+  return session.mode === "camera" && result.status === "synced" && consentResult ? consentResult : result;
+}

@@ -5,7 +5,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { StorageAdapter } from "../../v3/arq05/storage_adapter.mjs";
 import { RecoveryStore } from "../../v3/arq05/recovery_store.mjs";
 import { EventOutbox } from "../../v3/arq05/event_outbox.mjs";
-import { EventDispatcher } from "../../v3/arq05/event_dispatcher.mjs";
+import { EventDispatcher, dispatchSessionWithConsent } from "../../v3/arq05/event_dispatcher.mjs";
 import { CaptureController } from "../../v3/arq05/capture_controller.mjs";
 import { ConsentOutbox } from "../../v3/arq05/consent_outbox.mjs";
 import { createActivityRunner } from "./activity_runner.mjs";
@@ -172,4 +172,61 @@ test("camera session: no capture without consent, local detector only, tracks re
   // model unavailable falls back
   const nomodel = createCameraSession({ video: { ...video }, doc: {}, mediaDevices: { getUserMedia: async () => stream }, loadDetector: async () => { throw new Error("missing"); } });
   assert.equal((await nomodel.start({ consent: true })).status, "model_unavailable");
+});
+test("stale video.play completion cannot reattach or stop another participant's camera", async () => {
+  let releasePlay, attached;
+  const playing = new Promise((resolve) => { attached = resolve; });
+  const oldTrack = { readyState: "live", stop() { this.readyState = "ended"; }, addEventListener() {} };
+  const newTrack = { readyState: "live", stop() { this.readyState = "ended"; }, addEventListener() {} };
+  const makeStream = (track) => ({ getTracks: () => [track], getVideoTracks: () => [track] });
+  const video = {
+    readyState: 0, hidden: true, srcObject: null, pause() {},
+    play() { attached(); return new Promise((resolve) => { releasePlay = resolve; }); },
+    requestVideoFrameCallback: () => 1, cancelVideoFrameCallback() {},
+  };
+  const create = (track) => createCameraSession({ video, doc: {},
+    mediaDevices: { getUserMedia: async () => makeStream(track) },
+    loadDetector: async () => ({ detectForVideo: () => ({ landmarks: [] }) }),
+  });
+  const old = create(oldTrack);
+  const opening = old.start({ consent: true });
+  await playing;
+  const completeOldPlay = releasePlay;
+  old.unwatch(); old.stop();
+  assert.equal(oldTrack.readyState, "ended");
+  assert.equal(video.srcObject, null);
+  assert.equal(video.hidden, true);
+  video.play = async () => {};
+  const next = create(newTrack);
+  assert.equal((await next.start({ consent: true })).status, "ready");
+  completeOldPlay();
+  assert.equal((await opening).status, "cancelled");
+  old.stop();
+  assert.equal(video.srcObject.getTracks()[0], newTrack);
+  assert.equal(newTrack.readyState, "live");
+  next.stop();
+});
+
+
+test("consent conflict gates only camera dispatch and preserves the original consent chain", async () => {
+  const { consent } = camSetup();
+  await consent.record("consent.accepted");
+  const consentDispatcher = new EventDispatcher(consent, async ([event]) => ({
+    data: { results: [{ event_id: event.event_id, status: "rejected", codes: ["HASH_CONFLICT"] }] },
+  }));
+  const session = { acknowledged: 0, events: [{}], mode: "camera" };
+  let calls = 0;
+  const rec = { consent, consentDispatcher, outbox: { read: async () => session }, dispatcher: {
+    async dispatch() { calls++; return { status: "synced", pending: 0 }; },
+  }};
+  assert.equal((await dispatchSessionWithConsent(rec, () => true)).status, "conflict");
+  assert.equal(calls, 0);
+  const conflicted = await consent.read();
+  assert.equal(conflicted.conflict.code, "HASH_CONFLICT");
+  for (const mode of ["report_only", "simulation"]) {
+    session.mode = mode;
+    assert.equal((await dispatchSessionWithConsent(rec, () => true)).status, "synced");
+  }
+  assert.equal(calls, 2);
+  assert.deepEqual(await consent.read(), conflicted);
 });
