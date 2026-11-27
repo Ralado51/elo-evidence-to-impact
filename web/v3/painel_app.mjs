@@ -400,15 +400,20 @@ async function openPatient(participantId) {
 async function onSignin(event) {
   event.preventDefault();
   clearError();
+  const authOp = ctxStore.begin("auth", { level: "principal" }); // PN-01: obsolete sign-in responses never install a session
   try {
     const res = await state.client.loginTherapist($("signin-username").value.trim(), $("signin-password").value);
+    if (!authOp.isCurrent()) return;
+    authOp.done();
     state.session = { token: res.data.token, principal: res.data.principal, expires_at: res.data.expires_at };
     ctxStore.switchTo({ principalId: res.data.principal.id, role: "therapist", participantId: null });
     saveSession(state.session);
     $("signin-password").value = "";
     afterSignin();
   } catch (error) {
-    showError(error);
+    authOp.fail(error, showError);
+  } finally {
+    authOp.done();
   }
 }
 
@@ -420,6 +425,29 @@ function afterSignin() {
   if (param) openPatient(param);
 }
 
+// FIX-43: logout empties every patient-bound surface (not only hides it) and the participant identification.
+function clearPatientSurfaces() {
+  for (const id of ["patient-name", "patient-meta", "patient-goal", "patient-rx", "evolution-headline", "evolution-chart-desc", "verify-claim", "verify-verdict"]) {
+    const n = $(id);
+    if (n) n.textContent = "";
+  }
+  const goal = $("patient-goal");
+  if (goal) { goal.removeAttribute("title"); goal.removeAttribute("data-legacy"); }
+  for (const id of ["kpi-list", "approved-list", "evolution-chart", "session-list", "timeline-list", "transition-list", "verify-session", "recents-list"]) {
+    const n = $(id);
+    if (n) n.replaceChildren();
+  }
+  const out = $("verify-output");
+  if (out) out.hidden = true;
+  const recents = $("recents");
+  if (recents) recents.hidden = true;
+  const pid = $("participant-id");
+  if (pid) pid.value = "";
+  const pw = $("signin-password");
+  if (pw) pw.value = "";
+  clearError();
+}
+
 function signOut() {
   ctxStore.reset("logout"); // logout is a context boundary
   state.session = null;
@@ -429,6 +457,7 @@ function signOut() {
   } catch {
     /* ignore */
   }
+  clearPatientSurfaces();
   $("paciente").hidden = true;
   setSignedIn(false);
   announce(tm("pn.js.signed_out"));

@@ -17,7 +17,7 @@ import { violationFromApiError } from "./validation_registry.mjs";
 import { createContextStore } from "./context_store.mjs";
 import { createFeedback } from "./feedback.mjs";
 import { loadCatalogs, instrumentEntries, instrumentFromSelection, instrumentViolations, doseViolations, buildItem, createDomainRegistry, goalTargetSpec, buildGoalTarget, goalTargetViolations, FIELD_FOR_PATH } from "./domain_fields.mjs";
-import { applyI18n, initI18n, t, tm, lref, bindText, label, formatDate, formatDateTime, formatIsoDate } from "./i18n.mjs";
+import { applyI18n, initI18n, t, tm, lref, bindText, label, unitLabel, formatDate, formatDateTime, formatIsoDate } from "./i18n.mjs";
 import {
   canPublishEvolution,
   canPublishSummary,
@@ -220,12 +220,17 @@ export function initTherapistApp() {
     errorBanner.querySelector("#btn-cmd-new-intention")?.remove();
     const ticket = ctxStore.capture(); // BEFORE the await: the write itself is never aborted (FIX-37.1)
     const out = await commands.run(formId, send, { signature });
-    if (out.status === "ignored") return;
+    if (out.status === "ignored") { restoreSurfaces(rawFormId); offerAnotherIntention(formId); return; }
     if (out.status === "settled") {
+      restoreSurfaces(rawFormId);
+      offerAnotherIntention(formId);
       if (ticket.isCurrent()) announce(tm("th.js.cmd_settled"), { politeness: "polite" }); // same intention already fulfilled: no new record
       return;
     }
     if (!ticket.isCurrent()) {
+      // Logout / principal change while the write was in flight (TH-03 et al.): the write is persisted server-side and the next
+      // authorised list shows it; nothing is rendered, no request is issued without a session, no notice crosses principals.
+      if (ctxStore.current().principalGen !== ticket.scope.principalGen) return;
       // The context moved on while the write was in flight: never render here; reconcile for the participant it belongs to.
       if (out.status === "error" && (out.error?.status === 401 || out.error?.code === "UNAUTHENTICATED")) { handleApiError(out.error); return; }
       if (out.status === "ok") {
@@ -265,6 +270,46 @@ export function initTherapistApp() {
     }
     handleApiError(out.error);
   }
+  // FIX-42: a secondary read that follows a persisted write is bound to the ORIGIN participant (ticket), is abortable,
+  // and is re-validated after the await. If the context moved on, nothing is shown; the write is reconciled on return.
+  const STALE = "stale";
+  async function readAfterWrite(ticket, kind, read) {
+    const orphaned = () => { ctxStore.addNotice(ticket.participantId, { kind }); return STALE; };
+    if (!ticket.isCurrent()) return orphaned();
+    const op = ctxStore.begin(`${kind}.after-write`);
+    try {
+      const res = await read(op.signal, ticket.participantId);
+      if (!ticket.isCurrent() || !op.isCurrent()) return orphaned();
+      return res;
+    } catch (err) {
+      if (!ticket.isCurrent() || !op.isCurrent()) return orphaned();
+      throw err;
+    } finally {
+      op.done();
+    }
+  }
+  // FIX-41: the lifecycle of result surfaces is owned by the shared feedback component; this app only says WHICH surfaces exist.
+  const RESULT_SURFACES = { assessment: ["assessment-result"], goal: ["goal-result"], prescription: ["prescription-result"], summary: ["summary-result"], evolution: ["evolution-result"] };
+  const parkedBuilders = new Map(); // builders of the hidden surfaces, restored only for a no-op attempt
+  for (const [kind, ids] of Object.entries(RESULT_SURFACES)) {
+    feedback.registerSurface(kind, {
+      clear() {
+        document.getElementById("btn-cmd-another")?.remove();
+        for (const id of ids) {
+          parkedBuilders.delete(id);
+          if (boxBuilders.has(id)) parkedBuilders.set(id, boxBuilders.get(id));
+          boxBuilders.delete(id);
+          const box = el(id);
+          if (box) { clearElement(box); box.hidden = true; }
+        }
+      },
+      restore() {
+        for (const id of ids) { const b = parkedBuilders.get(id); if (b && !boxBuilders.has(id)) renderBox(id, b); }
+      },
+    });
+  }
+  const beginAttempt = (kind) => feedback.beginAttempt(kind);
+  const restoreSurfaces = (kind) => feedback.restoreAttempt(kind);
   const domainCatalogs = { goalRules: null, instruments: null, units: null, limits: null };
 
   function handleApiError(err) {
@@ -490,7 +535,10 @@ export function initTherapistApp() {
   }
 
   async function restoreContext() {
+    const rop = ctxStore.begin("restore"); // TH-07: any manual selection / logout / new login while the list loads cancels the restore
     const items = await refreshParticipantList("");
+    if (!rop.isCurrent()) { rop.done(); return; }
+    rop.done();
     const ctx = readStoredContext();
     if (!ctx || ctx.therapistId !== (state.session?.principal?.id || "")) {
       writeStoredContext(null);
@@ -908,6 +956,31 @@ export function initTherapistApp() {
     }
   }
 
+  // FIX-43: logout empties every visible surface and every participant-bound in-memory datum, even with no active participant.
+  function clearTherapistSurfaces() {
+    state.factEntries = [];
+    state.effectiveReviews = {};
+    state.publishedSummary = null;
+    state.publishedEvolution = null;
+    state.timelineItems = [];
+    state.participantAlias = "";
+    state.careLinkId = "";
+    boxBuilders.clear();
+    for (const id of [...PARTICIPANT_RESULT_BOXES, "signin-result", "timeline-summary"]) {
+      const box = el(id);
+      if (box) { clearElement(box); box.hidden = true; for (const k of Object.keys(box.dataset)) delete box.dataset[k]; }
+    }
+    for (const fid of ["form-assessment", "form-goal", "form-prescription", "form-summary", "form-evolution"]) el(fid)?.reset();
+    clearEvolutionSeriesCache();
+    renderFactsList();
+    renderTimeline([]);
+    const link = el("invite-link");
+    if (link) link.value = "";
+    clearError();
+    clearSuccess();
+    applyI18n();
+  }
+
   // --- Event bindings ---
 
   btnSignout.addEventListener("click", () => {
@@ -916,6 +989,7 @@ export function initTherapistApp() {
     writeStoredSession(null);
     writeStoredContext(null);
     setActiveParticipant("");
+    clearTherapistSurfaces();
     renderParticipantList([]);
     state.listView = null;
     paintParticipantStatus();
@@ -935,8 +1009,11 @@ export function initTherapistApp() {
       showError("UNAUTHENTICATED", tm("th.js.need_credentials"));
       return;
     }
+    const authOp = ctxStore.begin("auth", { level: "principal" }); // TH-01: a late/obsolete sign-in response (after logout or a newer attempt) is discarded
     try {
       const res = await client.loginTherapist(username, password);
+      if (!authOp.isCurrent()) return;
+      authOp.done();
       state.session = {
         token: res.data.token,
         expires_at: res.data.expires_at,
@@ -956,7 +1033,9 @@ export function initTherapistApp() {
       showSuccess(tm("th.js.signed_in", { id: res.data.principal.id }));
       restoreContext();
     } catch (err) {
-      handleApiError(err);
+      authOp.fail(err, handleApiError);
+    } finally {
+      authOp.done();
     }
   });
 
@@ -1120,6 +1199,7 @@ export function initTherapistApp() {
   // Step 3: Record functional assessment
   el("form-assessment").addEventListener("submit", async (event) => {
     event.preventDefault();
+    beginAttempt("assessment");
     if (!requireParticipant()) return;
     if (!validateDateFields([{ input: el("assessment-date"), required: true }])) return;
     if (!domainCatalogs.instruments) Object.assign(domainCatalogs, await loadCatalogs());
@@ -1185,6 +1265,7 @@ export function initTherapistApp() {
   // Step 4: Create functional goal
   el("form-goal").addEventListener("submit", async (event) => {
     event.preventDefault();
+    beginAttempt("goal");
     if (!requireParticipant()) return;
     if (!validateDateFields([{ input: el("goal-deadline"), required: false }])) return;
     if (!domainCatalogs.goalRules) Object.assign(domainCatalogs, await loadCatalogs());
@@ -1237,6 +1318,7 @@ export function initTherapistApp() {
   // Step 5: Publish prescription (organizar-a-mesa, report-only)
   el("form-prescription").addEventListener("submit", async (event) => {
     event.preventDefault();
+    beginAttempt("prescription");
     if (!requireParticipant()) return;
     if (!validateDateFields([{ input: el("rx-valid-from"), required: true }, { input: el("rx-valid-to"), notBefore: el("rx-valid-from") }])) return;
     if (!domainCatalogs.limits) Object.assign(domainCatalogs, await loadCatalogs());
@@ -1268,9 +1350,10 @@ export function initTherapistApp() {
       min_calibration_span: null,
       instructions_ptbr: el("rx-instructions").value.trim(),
     };
-    await cmd("prescription", (key) => client.publishPrescription(draft, { idempotencyKey: key }), async (res) => {
+    await cmd("prescription", (key) => client.publishPrescription(draft, { idempotencyKey: key }), async (res, ticket) => {
       const rxData = res.data;
-      const curRes = await client.getCurrentPrescription(state.participantId);
+      const curRes = await readAfterWrite(ticket, "prescription", (signal, pid) => client.getCurrentPrescription(pid, { signal }));
+      if (curRes === STALE) return STALE;
       const rxEvent = curRes.data;
       const execMode = rxEvent.execution_mode || "not_applicable";
 
@@ -1374,6 +1457,7 @@ export function initTherapistApp() {
   // Step 7a: Publish summary
   el("form-summary").addEventListener("submit", async (event) => {
     event.preventDefault();
+    beginAttempt("summary");
     if (!requireParticipant()) return;
     if (!validateDateFields([{ input: el("summary-period-from"), required: true }, { input: el("summary-period-to"), required: true, notBefore: el("summary-period-from") }])) return;
     const items = getPublishableSummaryItems(state.factEntries);
@@ -1393,8 +1477,8 @@ export function initTherapistApp() {
       note_refs: [],
     };
     await cmd("summary", (key) => client.publishSummary(summaryBody, { idempotencyKey: key }), async (pubRes, ticket) => {
-      const getRes = await client.getSummary(pubRes.data.summary_id);
-      if (!ticket.isCurrent()) return "stale";
+      const getRes = await readAfterWrite(ticket, "summary", (signal) => client.getSummary(pubRes.data.summary_id, { signal }));
+      if (getRes === STALE) return STALE;
       state.publishedSummary = getRes.data;
       renderPublishedSummary(getRes.data);
       showSuccess(tm("th.js.summary_ok"));
@@ -1425,6 +1509,7 @@ export function initTherapistApp() {
   // Step 7b: Publish evolution
   el("form-evolution").addEventListener("submit", async (event) => {
     event.preventDefault();
+    beginAttempt("evolution");
     if (!requireParticipant()) return;
     if (!validateDateFields([{ input: el("evolution-period-from"), required: true }, { input: el("evolution-period-to"), required: true, notBefore: el("evolution-period-from") }])) return;
     const publishableSeries = getPublishableEvolutionSeries(state.evolutionSeries, state.factEntries);
@@ -1448,8 +1533,8 @@ export function initTherapistApp() {
       series_keys: seriesKeys,
     };
     await cmd("evolution", (key) => client.publishEvolution(evolutionBody, { idempotencyKey: key }), async (pubRes, ticket) => {
-      const getRes = await client.getEvolution(pubRes.data.evolution_id);
-      if (!ticket.isCurrent()) return "stale";
+      const getRes = await readAfterWrite(ticket, "evolution", (signal) => client.getEvolution(pubRes.data.evolution_id, { signal }));
+      if (getRes === STALE) return STALE;
       state.publishedEvolution = getRes.data;
       renderPublishedEvolution(getRes.data);
       showSuccess(tm("th.js.evo_ok"));
@@ -1509,15 +1594,17 @@ export function initTherapistApp() {
       if ([...sel.options].some((o) => o.value === u.unit)) continue;
       const o = document.createElement("option");
       o.value = u.unit;
-      o.textContent = label("unit", u.unit);
+      o.textContent = unitLabel(u.unit);
       sel.appendChild(o);
     }
     relabelUnits();
   }
   // I-01: unit options are built at runtime, so the language switch must relabel them (the value never changes).
   function relabelUnits() {
+    const gu = el("goal-target-unit");
+    if (gu) gu.value = unitLabel(gu.dataset.unit || "");
     const sel = el("assessment-item-unit");
-    for (const o of sel.options) if (o.value) o.textContent = label("unit", o.value);
+    for (const o of sel.options) if (o.value) o.textContent = unitLabel(o.value);
   }
   function applyInstrument() {
     const sel = el("assessment-instrument-id");
@@ -1542,7 +1629,8 @@ export function initTherapistApp() {
     if (!spec) return;
     const v = el("goal-target-value"), u = el("goal-target-unit");
     v.disabled = !spec.numeric;
-    u.value = spec.unit || "";
+    u.dataset.unit = spec.unit || ""; // canonical value (payload/state); the visible text is translated (I-01)
+    u.value = unitLabel(spec.unit);
     if (!spec.numeric) v.value = "";
     else if (v.value === "") v.value = "3";
     v.min = String(spec.min ?? 0);

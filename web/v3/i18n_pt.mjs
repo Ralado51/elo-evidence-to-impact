@@ -157,6 +157,8 @@ export const PT = {
   "enum.unit.1": "unidades",
   "enum.unit.cycles": "ciclos",
   "enum.unit.deg": "graus",
+  "enum.unit.reps": "repetições",
+  "enum.unit.sessions": "sessões",
   "enum.unknown": "Não informado",
   "err.BATCH_TOO_LARGE": "Foram enviados registros demais de uma vez.",
   "err.CLIPBOARD": "Não consegui copiar automaticamente.",

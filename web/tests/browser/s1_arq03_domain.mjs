@@ -29,23 +29,23 @@ const pid = await t.inputValue("#active-participant-id");
 const login = await ctx.request.post(origin + "/api/v3/auth/therapist", { data: { username: "terapeuta_demo", password: "senha-sintetica-demo" } });
 const H = { Authorization: `Bearer ${(await login.json()).token}` };
 const goals = async () => { const b = await (await ctx.request.get(`${origin}/api/v3/participants/${pid}/goals`, { headers: H })).json(); return b.items ?? b.entities ?? b; };
-await t.waitForFunction(() => document.getElementById("goal-target-unit").value === "sessions");
+await t.waitForFunction(() => document.getElementById("goal-target-unit").dataset.unit === "sessions");
 
 await check("BR-A2-01 meta: padrão válido, unidade derivada somente leitura, medida livre (measure_value) fora das opções", async () => {
   assert.equal(await t.getAttribute("#goal-target-unit", "readonly"), "");
-  assert.equal(await t.inputValue("#goal-target-unit"), "sessions");
+  assert.equal(await t.getAttribute("#goal-target-unit", "data-unit"), "sessions");
   const kinds = await t.$$eval("#goal-target-kind option", (o) => o.map((x) => x.value));
   assert.deepEqual(kinds, ["session_count", "repetitions", "descriptive_text"]);
 });
 await check("BR-A2-02 trocar o tipo muda a unidade derivada; descritivo desabilita o valor", async () => {
   await t.selectOption("#goal-target-kind", "repetitions");
-  assert.equal(await t.inputValue("#goal-target-unit"), "reps");
+  assert.equal(await t.getAttribute("#goal-target-unit", "data-unit"), "reps");
   await t.selectOption("#goal-target-kind", "descriptive_text");
   assert.equal(await t.isDisabled("#goal-target-value"), true);
-  assert.equal(await t.inputValue("#goal-target-unit"), "");
+  assert.equal(await t.getAttribute("#goal-target-unit", "data-unit"), "");
   await t.selectOption("#goal-target-kind", "session_count");
   assert.equal(await t.isDisabled("#goal-target-value"), false);
-  assert.equal(await t.inputValue("#goal-target-unit"), "sessions");
+  assert.equal(await t.getAttribute("#goal-target-unit", "data-unit"), "sessions");
 });
 await check("BR-A2-03 valor fracionário/zero: erro no campo, foco, nenhuma escrita, nada persiste", async () => {
   await t.fill("#goal-text", "Meta sintética A2");

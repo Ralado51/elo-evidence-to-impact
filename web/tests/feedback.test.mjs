@@ -44,3 +44,26 @@ test("FB-04 ErrorMapper accepts details object, code list and absence", () => {
   assert.deepEqual(mapErrorDetails({ code: "X", details: ["a", { rule: "b", path: "$.p" }] }).rules, [{ rule: "a" }, { rule: "b", path: "$.p" }]);
   assert.deepEqual(mapErrorDetails({ code: "X" }).rules, []);
 });
+
+test("FB-05 beginAttempt replaces previous feedback and result surface even without any write (ARQ04-UAT-01)", () => {
+  const { fb, s, e } = mk();
+  const log = [];
+  fb.registerSurface("assessment", { clear: () => log.push("clear"), restore: () => log.push("restore") });
+  fb.showSuccess("saved");
+  assert.equal(s.hidden, false);
+  fb.beginAttempt("assessment"); // new attempt, stopped afterwards by local validation: nothing else is called
+  assert.equal(s.hidden, true); assert.equal(e.hidden, true);
+  assert.deepEqual(log, ["clear"]);
+});
+
+test("FB-06 a no-op attempt (same intention settled) gives the previous feedback and result back; new feedback cancels the parking", () => {
+  const { fb, s, st } = mk();
+  const log = [];
+  fb.registerSurface("goal", { clear: () => log.push("clear"), restore: () => log.push("restore") });
+  fb.showSuccess("goal saved");
+  fb.beginAttempt("goal");
+  fb.restoreAttempt("goal");
+  assert.equal(s.hidden, false); assert.equal(st.text, "goal saved"); assert.deepEqual(log, ["clear", "restore"]);
+  fb.beginAttempt("goal"); fb.showError("X", "bad"); fb.restoreAttempt("goal");
+  assert.equal(s.hidden, true, "an error raised by the attempt must not be overwritten by the old success");
+});

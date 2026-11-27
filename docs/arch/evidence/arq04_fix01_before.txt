@@ -1,0 +1,52 @@
+FAIL FIX42-01 prescription.publish: leitura secundaria tardia nao vaza para Beta (TH-11) prescription result leaked into Beta (rxLeakedIntoBeta=true) /  / true !== false
+FAIL FIX41-01 avaliacao valida e depois tentativa sem data: feedback anterior substituido (UAT-01) previous success feedback must be replaced/cleared / + actual - expected / 
+FAIL FIX41-02 meta valida e depois tentativa invalida: superficies de resultado limpas goal result of the previous attempt must not stay visible /  / true !== false
+FAIL I-01 unidade derivada (meta) traduzida; canonico preservado; sem escrita ao alternar idioma Expected values to be strictly equal: / + actual - expected / 
+FAIL FIX44 meta historica com unidade fora do catalogo (cm): literal + marcador legado, nunca 'Nao informado' unit must be shown literally: [Synthetic data]ActiveLegacy record<b>Meta legada</b>Body part: Hand • Target: 12 Not provided
+FAIL FIX43 / PA-02 logout limpa todas as superficies e leitura tardia nao repopula surfaces must be empty right after logout: {"goals":1,"rx":265,"signin":57,"pubs":0,"err":false} / + actual - expected / 
+FAIL FIX43 terapeuta: logout limpa participante, listas e resultados {"pid":"","list":0,"boxes":["signin-result"],"facts":0,"tl":0} / + actual - expected / 
+{
+  "phase": "arq04-fix01-blocking",
+  "passed": false,
+  "results": [
+    {
+      "id": "FIX42-01 prescription.publish: leitura secundaria tardia nao vaza para Beta (TH-11)",
+      "ok": false,
+      "error": "prescription result leaked into Beta (rxLeakedIntoBeta=true)"
+    },
+    {
+      "id": "FIX42-02 prescription.publish: leitura secundaria usa o participante de ORIGEM",
+      "ok": true
+    },
+    {
+      "id": "FIX41-01 avaliacao valida e depois tentativa sem data: feedback anterior substituido (UAT-01)",
+      "ok": false,
+      "error": "previous success feedback must be replaced/cleared"
+    },
+    {
+      "id": "FIX41-02 meta valida e depois tentativa invalida: superficies de resultado limpas",
+      "ok": false,
+      "error": "goal result of the previous attempt must not stay visible"
+    },
+    {
+      "id": "I-01 unidade derivada (meta) traduzida; canonico preservado; sem escrita ao alternar idioma",
+      "ok": false,
+      "error": "Expected values to be strictly equal:"
+    },
+    {
+      "id": "FIX44 meta historica com unidade fora do catalogo (cm): literal + marcador legado, nunca 'Nao informado'",
+      "ok": false,
+      "error": "unit must be shown literally: [Synthetic data]ActiveLegacy record<b>Meta legada</b>Body part: Hand • Target: 12 Not provided"
+    },
+    {
+      "id": "FIX43 / PA-02 logout limpa todas as superficies e leitura tardia nao repopula",
+      "ok": false,
+      "error": "surfaces must be empty right after logout: {\"goals\":1,\"rx\":265,\"signin\":57,\"pubs\":0,\"err\":false}"
+    },
+    {
+      "id": "FIX43 terapeuta: logout limpa participante, listas e resultados",
+      "ok": false,
+      "error": "{\"pid\":\"\",\"list\":0,\"boxes\":[\"signin-result\"],\"facts\":0,\"tl\":0}"
+    }
+  ]
+}

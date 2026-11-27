@@ -88,6 +88,19 @@ export function label(group, value) {
   return t("enum.unknown");
 }
 
+/**
+ * Unit of a stored value (FIX-44). A unit the catalog knows is translated; a unit the catalog does NOT know
+ * (legacy, e.g. "cm") is shown literally and verbatim; an absent unit is "" (never "Not informed").
+ * The result is a plain string: callers must assign it with textContent, never as markup.
+ */
+export function unitLabel(unit) {
+  if (unit === null || unit === undefined || unit === "") return "";
+  const key = `enum.unit.${unit}`;
+  const cat = CATALOGS[current];
+  if (Object.prototype.hasOwnProperty.call(cat, key)) return cat[key];
+  return String(unit);
+}
+
 export function formatDate(value, opts = { dateStyle: "medium" }) {
   const d = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(d.getTime())) return String(value ?? "");

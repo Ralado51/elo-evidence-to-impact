@@ -1,0 +1,113 @@
+{
+ "baseline": "b1e7a51f2c58b2d5228780ea7cb8c5a3ae863c62",
+ "browser_suites": {
+  "s1_arq04_context": {
+   "exit": 0,
+   "pass_lines": 9,
+   "fail_lines": 0
+  },
+  "s1_arq04_i18n": {
+   "exit": 0,
+   "pass_lines": 3,
+   "fail_lines": 0
+  },
+  "s1_arq04_fix01": {
+   "exit": 0,
+   "pass_lines": 8,
+   "fail_lines": 0
+  },
+  "s1_arq04_residual": {
+   "exit": 0,
+   "pass_lines": 6,
+   "fail_lines": 0
+  },
+  "s1_arq03_fix01": {
+   "exit": 0,
+   "pass_lines": 5,
+   "fail_lines": 0
+  },
+  "s1_arq03_domain": {
+   "exit": 0,
+   "pass_lines": 11,
+   "fail_lines": 0
+  },
+  "s1_arq02_fix01": {
+   "exit": 0,
+   "pass_lines": 20,
+   "fail_lines": 0
+  },
+  "s1_arq02_fix03": {
+   "exit": 0,
+   "pass_lines": 14,
+   "fail_lines": 0
+  },
+  "s1_arq02_fix03b_concurrency": {
+   "exit": 0,
+   "pass_lines": 6,
+   "fail_lines": 0
+  },
+  "s1_arq02_commands": {
+   "exit": 0,
+   "pass_lines": 9,
+   "fail_lines": 0
+  },
+  "s1_arq01_dates": {
+   "exit": 0,
+   "pass_lines": 10,
+   "fail_lines": 0
+  },
+  "s1_corr_ae": {
+   "exit": 0,
+   "pass_lines": 15,
+   "fail_lines": 0
+  },
+  "s1_corr_e01": {
+   "exit": 0,
+   "pass_lines": 7,
+   "fail_lines": 0
+  },
+  "s1_corr_e02e03": {
+   "exit": 0,
+   "pass_lines": 11,
+   "fail_lines": 0
+  },
+  "s1_stab_a": {
+   "exit": 0,
+   "pass_lines": 8,
+   "fail_lines": 0
+  },
+  "s1_stab_e": {
+   "exit": 0,
+   "pass_lines": 9,
+   "fail_lines": 0
+  },
+  "therapist_journey": {
+   "exit": 0,
+   "pass_lines": 0,
+   "fail_lines": 0
+  },
+  "participant_journey": {
+   "exit": 0,
+   "pass_lines": 0,
+   "fail_lines": 0
+  },
+  "e2e_journey": {
+   "exit": 0,
+   "pass_lines": 3,
+   "fail_lines": 0
+  }
+ },
+ "node": "143/143",
+ "pytest": "524 passed, 1 skipped, 1 failed (pre-existing external: test_cl06_1_streams_fixtures_exact_parity)",
+ "catalogs": "in sync",
+ "before": {
+  "s1_arq04_fix01": {
+   "ok": 1,
+   "fail": 7
+  },
+  "s1_arq04_residual": {
+   "ok": 1,
+   "fail": 5
+  }
+ }
+}

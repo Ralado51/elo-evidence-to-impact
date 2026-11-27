@@ -15,7 +15,7 @@ import { loadCatalogs, legacyFindings } from "./domain_fields.mjs";
 import { announce } from "./a11y.mjs";
 import { createCommandController } from "./command_controller.mjs";
 import { createParticipantClient, ParticipantApiError } from "./participant_api.mjs";
-import { initI18n, t, tm, bindText, label, formatDateTime, formatIsoDate } from "./i18n.mjs";
+import { initI18n, t, tm, bindText, label, unitLabel, formatDateTime, formatIsoDate } from "./i18n.mjs";
 import { renderErrorTechnical } from "./ui_messages.mjs";
 import {
   PARTICIPANT_DATA_ORIGIN,
@@ -385,7 +385,7 @@ export function initParticipantApp() {
       const kindLabel = label("goal_kind", target.kind);
       const valPart =
         target.value !== null && target.value !== undefined
-          ? `${target.value}${target.unit ? ` ${label("unit", target.unit)}` : ""}`
+          ? `${target.value}${target.unit ? ` ${unitLabel(target.unit)}` : ""}`
           : kindLabel;
       appendParagraph(li, t("pa.js.goal_line", { seg, target: valPart }));
       list.appendChild(li);
@@ -590,6 +590,7 @@ export function initParticipantApp() {
     }
     const nextSeq = state.activeSession.seq + 1;
     const occurredAt = nextMonotonicIso(state.activeSession.lastOccurredAt);
+    const tk = ctxStore.capture({ level: "principal" }); // BEFORE the await: the write is never aborted, only its rendering is guarded
     try {
       const ev = await buildSessionControlEvent({
         participantId: state.session.principal.id,
@@ -604,6 +605,7 @@ export function initParticipantApp() {
         action,
       });
       await client.postEventsBatch([ev]);
+      if (!tk.isCurrent()) return; // signed out meanwhile: the write is persisted server-side; nothing is shown or restored here
 
       state.activeSession = {
         ...state.activeSession,
@@ -623,7 +625,7 @@ export function initParticipantApp() {
       renderBox("session-result", (b) => appendParagraph(b, t(msgKey)));
       showSuccess(tm(msgKey));
     } catch (err) {
-      handleApiError(err);
+      if (tk.isCurrent()) handleApiError(err);
     }
   }
 
@@ -675,27 +677,44 @@ export function initParticipantApp() {
     }
   }
 
-  // --- Event bindings ---
-
-  btnSignout.addEventListener("click", () => {
-    ctxStore.reset("logout");
+  // FIX-43: logout / principal change empties EVERY visible surface and in-memory participant data at once
+  // (goals, prescription, publications, summary, evolution, identification, session/report results, feedback).
+  // Pending-session recovery data (pendingReport / command slots) is NOT touched here: that policy belongs to ARQ-05.
+  function clearParticipantSurfaces() {
     boxBuilders.clear();
-    state.session = null;
     state.prescription = null;
     state.goals = [];
     state.activeSession = null;
     state.summaryData = null;
     state.evolutionData = null;
     resetReportChoices();
-    writeStoredSession(null);
-    updateControlsState();
-    loadPublications();
-    for (const id of ["summary-view", "evolution-view"]) {
-      el(id).hidden = true;
-      clearElement(el(id));
+    for (const id of ["prescription-view", "session-result", "report-result", "signin-result", "summary-view", "evolution-view"]) {
+      const box = el(id);
+      if (!box) continue;
+      clearElement(box);
+      box.hidden = true;
+      for (const k of Object.keys(box.dataset)) delete box.dataset[k];
     }
-    el("summary-id-input").value = "";
-    el("evolution-id-input").value = "";
+    const goalsList = el("goals-list");
+    if (goalsList) clearElement(goalsList);
+    const goalsPanel = el("goals-panel");
+    if (goalsPanel) goalsPanel.hidden = true;
+    const pubList = el("publication-list");
+    if (pubList) clearElement(pubList);
+    for (const id of ["summary-id-input", "evolution-id-input"]) { const i = el(id); if (i) i.value = ""; }
+    clearError();
+    clearSuccess();
+    updateControlsState();
+  }
+
+  // --- Event bindings ---
+
+  btnSignout.addEventListener("click", () => {
+    ctxStore.reset("logout"); // aborts reads, invalidates write tickets: nothing in flight may repaint afterwards
+    state.session = null;
+    writeStoredSession(null);
+    clearParticipantSurfaces();
+    loadPublications();
     showSuccess(tm("pa.js.signed_out"));
     window.location.hash = "#sec-signin";
     el("invite-token")?.focus();
@@ -709,8 +728,11 @@ export function initParticipantApp() {
       showError("INVITE_INVALID", describeParticipantError({ code: "INVITE_INVALID", status: 400 }).msg);
       return;
     }
+    const authOp = ctxStore.begin("auth", { level: "principal" }); // PA-01: obsolete sign-in responses never install a session
     try {
       const res = await client.redeemInvite(tokenVal);
+      if (!authOp.isCurrent()) return;
+      authOp.done();
       state.session = {
         token: res.data.token,
         expires_at: res.data.expires_at,
@@ -718,13 +740,15 @@ export function initParticipantApp() {
       };
       writeStoredSession(state.session);
       ctxStore.switchTo({ principalId: res.data.principal.id, role: "participant", participantId: null });
-      updateControlsState();
+      clearParticipantSurfaces();
       loadPublications();
 
       renderBox("signin-result", (b) => appendParagraph(b, t("pa.js.access_granted")));
       showSuccess(tm("pa.js.signed_in_ok"));
     } catch (err) {
-      handleApiError(err);
+      authOp.fail(err, handleApiError);
+    } finally {
+      authOp.done();
     }
   });
 
@@ -741,6 +765,7 @@ export function initParticipantApp() {
       if (!loaded || !state.prescription) return;
     }
     const rxPayload = state.prescription.payload;
+    const tk = ctxStore.capture({ level: "principal" });
     const sessionId = generateSessionId();
     const t1 = nextMonotonicIso();
     const t2 = nextMonotonicIso(t1);
@@ -767,6 +792,7 @@ export function initParticipantApp() {
         action: "start",
       });
       await client.postEventsBatch([ev1, ev2]);
+      if (!tk.isCurrent()) return;
 
       state.activeSession = {
         sessionId,
@@ -785,7 +811,7 @@ export function initParticipantApp() {
       renderBox("session-result", (b) => appendParagraph(b, t("pa.js.started_detail")));
       showSuccess(tm("pa.js.started"));
     } catch (err) {
-      handleApiError(err);
+      if (tk.isCurrent()) handleApiError(err);
     }
   });
 
@@ -831,6 +857,7 @@ export function initParticipantApp() {
       );
       return;
     }
+    const tk = ctxStore.capture({ level: "principal" });
     const slot = `report@${state.activeSession.sessionId}`;
     const execution = state.reportExecution;
     const assistance = state.reportAssistance;
@@ -858,6 +885,7 @@ export function initParticipantApp() {
       }
       await client.postEventsBatch([state.pendingReport.ev]);
     });
+    if (!tk.isCurrent()) return; // signed out while in flight: nothing shown; the command slot keeps its state for recovery (ARQ-05)
     if (out.status === "ignored" || out.status === "settled") return; // same intention: one single outcome state
     if (out.status === "ambiguous") {
       showError("RESULT_UNCONFIRMED", tm("pa.js.cmd_retry"));

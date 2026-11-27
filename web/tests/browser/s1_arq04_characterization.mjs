@@ -60,7 +60,7 @@ await t.waitForSelector("#signin-result:not([hidden])");
 const ALFA = await mk("Alfa Carac");
 await t.waitForTimeout(400);
 const BETA = await mk("Beta Carac");
-await t.waitForFunction(() => document.getElementById("goal-target-unit").value === "sessions");
+await t.waitForFunction(() => document.getElementById("goal-target-unit").dataset.unit === "sessions");
 
 async function lateWrite(name, patternRx, armBtn, prep, resultSel) {
   await switchTo(ALFA);

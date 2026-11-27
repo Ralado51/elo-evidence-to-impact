@@ -26,7 +26,7 @@ function hold(pattern, method, { status = null } = {}) {
   const hitP = Promise.race([new Promise((r) => (hit = r)), new Promise((_, rej) => setTimeout(() => rej(new Error(`route ${pattern} never hit`)), 10000))]);
   const handler = async (route) => {
     const u = new URL(route.request().url());
-    if (armed && route.request().method() === method && (!status || true)) {
+    if (armed && route.request().method() === method) {
       armed = false; hit();
       const resp = await route.fetch();
       await gate;
@@ -67,7 +67,7 @@ assert.ok(ALFA);
 await t.waitForTimeout(400);
 const BETA = await mk("Beta Carac");
 assert.notEqual(BETA, ALFA, "fixture: Alfa and Beta must be distinct participants");
-await t.waitForFunction(() => document.getElementById("goal-target-unit").value === "sessions");
+await t.waitForFunction(() => document.getElementById("goal-target-unit").dataset.unit === "sessions");
 
 async function lateWrite(name, patternRx, armBtn, prep, resultSel) {
   await switchTo(ALFA);
@@ -171,8 +171,21 @@ await check("FX37-08 logout com leitura de lista em voo nao repovoa a lista (G-0
 await check("FX37-09 escrita nunca e abortada: meta tardia persistiu no servidor (FIX-37.1)", async () => {
   await t.fill("#signin-username", "terapeuta_demo"); await t.fill("#signin-password", "senha-sintetica-demo"); await t.click("#btn-signin");
   await t.waitForSelector("#signin-result:not([hidden])");
-  const n = await t.evaluate(async (id) => { const tok = JSON.parse(sessionStorage.getItem("elo_therapist_session") || localStorage.getItem("elo_therapist_session") || "{}").token; if (!tok) return -1; const r = await fetch(`/api/v3/participants/${id}/goals`, { headers: { Authorization: `Bearer ${tok}` } }); const j = await r.json(); return (j.data?.goals || j.goals || []).filter((g) => /Meta tardia Alfa/.test(g.text || g.goal_text || "")).length; }, ALFA);
-  assert.ok(n === -1 || n === 1, `late goal must exist exactly once (got ${n})`);
+  // TEC-03: no vacuous pass. Auth, HTTP status, JSON parsing and the record count are ALL hard requirements.
+  const res = await t.evaluate(async (id) => {
+    const raw = sessionStorage.getItem("elo_v3_therapist_session");
+    if (!raw) return { stage: "auth", detail: "no session in sessionStorage[elo_v3_therapist_session]" };
+    let tok; try { tok = JSON.parse(raw).token; } catch (e) { return { stage: "auth", detail: "session not JSON" }; }
+    if (!tok) return { stage: "auth", detail: "session has no token" };
+    const r = await fetch(`/api/v3/participants/${id}/goals`, { headers: { Authorization: `Bearer ${tok}` } });
+    if (r.status !== 200) return { stage: "query", detail: `HTTP ${r.status}` };
+    let j; try { j = await r.json(); } catch (e) { return { stage: "parse", detail: "response is not JSON" }; }
+    let n = 0; const walk = (v) => { if (Array.isArray(v)) v.forEach(walk); else if (v && typeof v === "object") { if (Object.values(v).some((x) => typeof x === "string" && /Meta tardia Alfa/.test(x))) n += 1; else Object.values(v).forEach(walk); } };
+    walk(j);
+    return { stage: "ok", n, shape: Object.keys(j) };
+  }, ALFA);
+  assert.equal(res.stage, "ok", `FX37-09 precondition failed at ${res.stage}: ${res.detail}`);
+  assert.equal(res.n, 1, `late goal must be persisted exactly once (got ${res.n}; response keys ${JSON.stringify(res.shape)})`);
 });
 await browser.close();
 const failed = results.filter((r) => !r.ok);

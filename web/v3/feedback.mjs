@@ -8,6 +8,12 @@
 export function createFeedback({ errorBanner, errorBannerText, successBanner, successBannerText, bindText, renderErrorTechnical, announce, now = () => Date.now(), dedupMs = 400 }) {
   let owner = null; // { kind: "participant"|"global" }
   let lastAnnounce = { text: "", at: 0, politeness: "" };
+  // FIX-41: lifecycle of result surfaces (assessment, goal, prescription, review, publication result boxes) lives HERE,
+  // so every app uses one rule: a new attempt replaces the previous attempt's feedback and results, even when it is stopped by
+  // local validation. Only a no-op attempt (same intention already saved / still in flight) gives the previous feedback back.
+  const surfaces = new Map(); // kind -> { clear(), restore() }
+  let parked = null; // success message hidden by the current attempt
+  let lastSuccess = null; // message currently shown in the success banner (a Msg keeps re-translating)
 
   function say(message, politeness) {
     const text = typeof message === "string" ? message : message?.text ?? "";
@@ -29,8 +35,10 @@ export function createFeedback({ errorBanner, errorBannerText, successBanner, su
     if (!successBanner) return;
     successBanner.hidden = true;
     bindText(successBannerText, "");
+    lastSuccess = null;
   }
   function showError(code, message, technical = "", { scope = "participant" } = {}) {
+    parked = null;
     clearSuccess();
     errorBanner.setAttribute("role", "alert");
     errorBanner.setAttribute("data-error-code", code || "ERROR");
@@ -41,8 +49,10 @@ export function createFeedback({ errorBanner, errorBannerText, successBanner, su
     say(message, "assertive");
   }
   function showSuccess(message, { scope = "participant" } = {}) {
+    parked = null;
     clearError();
     bindText(successBannerText, message);
+    lastSuccess = message;
     successBanner.hidden = false;
     owner = { kind: scope };
     say(message, "polite");
@@ -56,7 +66,23 @@ export function createFeedback({ errorBanner, errorBannerText, successBanner, su
       owner = null;
     }
   }
-  return { showError, showSuccess, clearError, clearSuccess, onContextChange, _owner: () => owner };
+  /** Registers how a result surface is emptied and (for no-op attempts) given back. History/records are never touched. */
+  function registerSurface(kind, adapter) { surfaces.set(kind, adapter); }
+  /** Every submit attempt starts here, before local validation. */
+  function beginAttempt(kind) {
+    parked = successBanner && !successBanner.hidden && lastSuccess !== null ? lastSuccess : null;
+    clearError();
+    clearSuccess();
+    surfaces.get(kind)?.clear();
+  }
+  /** The attempt turned out to be a no-op (same intention settled / already in flight): previous feedback and results come back. */
+  function restoreAttempt(kind) {
+    const msg = parked;
+    parked = null;
+    if (msg !== null) showSuccess(msg);
+    surfaces.get(kind)?.restore();
+  }
+  return { showError, showSuccess, clearError, clearSuccess, onContextChange, registerSurface, beginAttempt, restoreAttempt, _owner: () => owner };
 }
 
 /** ErrorMapper: normalises an API error to { code, field?, rule?, message key hints } — details object OR code list. */

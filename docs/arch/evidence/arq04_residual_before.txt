@@ -1,0 +1,40 @@
+FAIL TH-01 duas tentativas de login: resposta tardia da primeira nao sobrescreve a sessao da segunda late response of the superseded attempt must be discarded / + actual - expected / 
+FAIL TH-01 login em voo e logout: resposta tardia nao reinstala sessao a login response that arrives after logout must not install a session / + actual - expected / 
+FAIL TH-03 participante criado e logout: nada e exibido, nenhuma leitura sem sessao late creation must not be announced after logout (got: Participant Tardio Residual registered and linked.)
+FAIL PA-01 login por convite em voo e logout: resposta tardia nao instala sessao late invite sign-in must not install a session after logout / + actual - expected / 
+FAIL PN-01 painel: duas tentativas de login, resposta tardia da primeira nao sobrescreve a segunda late response of the superseded attempt must be discarded / + actual - expected / 
+{
+  "phase": "arq04-fix01-residual",
+  "passed": false,
+  "results": [
+    {
+      "id": "TH-01 duas tentativas de login: resposta tardia da primeira nao sobrescreve a sessao da segunda",
+      "ok": false,
+      "error": "late response of the superseded attempt must be discarded"
+    },
+    {
+      "id": "TH-01 login em voo e logout: resposta tardia nao reinstala sessao",
+      "ok": false,
+      "error": "a login response that arrives after logout must not install a session"
+    },
+    {
+      "id": "TH-03 participante criado e logout: nada e exibido, nenhuma leitura sem sessao",
+      "ok": false,
+      "error": "late creation must not be announced after logout (got: Participant Tardio Residual registered and linked.)"
+    },
+    {
+      "id": "TH-07 restauracao de contexto: selecao/criacao manual durante a restauracao prevalece (caracterizacao)",
+      "ok": true
+    },
+    {
+      "id": "PA-01 login por convite em voo e logout: resposta tardia nao instala sessao",
+      "ok": false,
+      "error": "late invite sign-in must not install a session after logout"
+    },
+    {
+      "id": "PN-01 painel: duas tentativas de login, resposta tardia da primeira nao sobrescreve a segunda",
+      "ok": false,
+      "error": "late response of the superseded attempt must be discarded"
+    }
+  ]
+}

@@ -29,7 +29,7 @@ const pid = await t.inputValue("#active-participant-id");
 const login = await ctx.request.post(origin + "/api/v3/auth/therapist", { data: { username: "terapeuta_demo", password: "senha-sintetica-demo" } });
 const H = { Authorization: `Bearer ${(await login.json()).token}` };
 const goals = async () => { const b = await (await ctx.request.get(`${origin}/api/v3/participants/${pid}/goals`, { headers: H })).json(); return b.items ?? b.entities ?? b; };
-await t.waitForFunction(() => document.getElementById("goal-target-unit").value === "sessions");
+await t.waitForFunction(() => document.getElementById("goal-target-unit").dataset.unit === "sessions");
 const assessments = async () => { const b = await (await ctx.request.get(`${origin}/api/v3/participants/${pid}/assessments`, { headers: H })).json(); return b.items ?? b.entities ?? b; };
 const focusId = () => t.evaluate(() => document.activeElement.id);
 
@@ -77,12 +77,11 @@ await check("FIX-40 PT: mensagem em português após troca de idioma", async () 
   await t.fill("#goal-text", "");
   await t.click("#btn-create-goal");
   await t.waitForSelector("#goal-text-error:not([hidden])");
-  await t.evaluate(() => { localStorage.setItem("elo_lang", "pt"); });
-  await t.click("[data-lang='pt'], #lang-pt").catch(() => {});
+  // TEC-03 audit: the language switch must really be clicked (no swallowed failure) and the assertion must be about the content.
+  await t.click('[data-lang-option="pt-BR"]');
   await t.waitForTimeout(400);
-  const txt = await t.textContent("#goal-text-error");
-  if (/Describe/.test(txt)) await t.evaluate(() => { document.dispatchEvent(new Event("elo:lang")); });
-  assert.ok(txt.length > 0);
+  const txt = (await t.textContent("#goal-text-error")).trim();
+  assert.equal(txt, "Descreva a meta funcional.", `message must be re-translated to Portuguese (got: ${txt})`);
 });
 await check("FIX-39 quatro estados: observado vazio bloqueado; zero, desconhecido e não avaliado persistem distintos", async () => {
   await t.selectOption("#assessment-item-value-type", "number");

@@ -157,6 +157,8 @@ export const EN = {
   "enum.unit.1": "units",
   "enum.unit.cycles": "cycles",
   "enum.unit.deg": "degrees",
+  "enum.unit.reps": "repetitions",
+  "enum.unit.sessions": "sessions",
   "enum.unknown": "Not provided",
   "err.BATCH_TOO_LARGE": "Too many records were sent at once.",
   "err.CLIPBOARD": "Could not copy automatically.",

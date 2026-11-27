@@ -1,0 +1,30 @@
+{
+  "phase": "arq04-fix01-residual",
+  "passed": true,
+  "results": [
+    {
+      "id": "TH-01 duas tentativas de login: resposta tardia da primeira nao sobrescreve a sessao da segunda",
+      "ok": true
+    },
+    {
+      "id": "TH-01 login em voo e logout: resposta tardia nao reinstala sessao",
+      "ok": true
+    },
+    {
+      "id": "TH-03 participante criado e logout: nada e exibido, nenhuma leitura sem sessao",
+      "ok": true
+    },
+    {
+      "id": "TH-07 restauracao de contexto: selecao/criacao manual durante a restauracao prevalece (caracterizacao)",
+      "ok": true
+    },
+    {
+      "id": "PA-01 login por convite em voo e logout: resposta tardia nao instala sessao",
+      "ok": true
+    },
+    {
+      "id": "PN-01 painel: duas tentativas de login, resposta tardia da primeira nao sobrescreve a segunda",
+      "ok": true
+    }
+  ]
+}
