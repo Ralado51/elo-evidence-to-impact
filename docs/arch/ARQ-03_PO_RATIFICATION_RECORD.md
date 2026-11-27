@@ -41,3 +41,13 @@ Reexportar as planilhas oficiais antes de iniciar a implementação. Atualizar o
 
 ## 6. Pendências remanescentes
 Parcela restante do CMP-05 (FormController: dirty/touched) para tratamento posterior; política de datas passado/futuro para `deadline`; decisões clínicas D-04 (grandezas), D-06b, D-07, D-05c com a terapeuta; reexportação das planilhas na Fase 0.
+
+## Ratificação FIX-01 (26/11/2026, PO)
+| Decisão | Resultado |
+|---|---|
+| `goal.count_ceiling` no A2 candidato | **Ratificado**, exclusivamente como o limite superior já ratificado, derivado do catálogo versionado (`goal-target-rules.v1.json`), preservando o código `OUT_OF_RANGE`. Sem código de erro novo e sem propriedade nova. |
+| `goal.text_required`, `item.observed_requires_value` | Mantidas como **regras de interface**; não entram no contrato; semântica contratual inalterada. |
+| I-01 (unidades não retraduzem na troca de idioma) | Registrado no planejamento do ARQ-04 (item CMP-02, i18n). |
+| A2 | Permanece **candidato (3.2.0), não congelado**; "não declarado totalmente retrocompatível". |
+| Código funcional | Sem novas alterações salvo achado confirmado. |
+| Próximo passo | Aguardar validação independente do Gemini e homologação dirigida do Codex. |

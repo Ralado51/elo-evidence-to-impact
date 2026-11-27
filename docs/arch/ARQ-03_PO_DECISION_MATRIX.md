@@ -124,3 +124,8 @@ Regras de D-02/D-06a/D-04 podem tornar inválidos dados usados por testes congel
 
 ## 7. Limitações
 Não houve entrevista com a terapeuta; nenhum conteúdo clínico foi presumido. A PROPOSTA V2.2 é proposta, não decisão. Dados históricos reais não existem (PD-05: apenas dados sintéticos).
+
+## FIX-01 — decisões ratificadas pelo PO (26/11/2026)
+- D-FIX01-1 `goal.count_ceiling`: ratificado (limite do catálogo, `OUT_OF_RANGE`, sem código/propriedade nova).
+- D-FIX01-2 `goal.text_required` / `item.observed_requires_value`: regras de UI, fora do contrato.
+- D-FIX01-3 I-01: planejado no ARQ-04 (CMP-02).

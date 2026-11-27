@@ -14,7 +14,7 @@ Baseline: ab0d753. Dados exclusivamente sintéticos. A2 permanece candidato (3.2
 - **FIX-40**: regra `goal.text_required` registrada em `createDomainRegistry` (ValidationRegistry) e exibida via `setFieldError`; mensagens PT/EN; limpeza ao corrigir e no reset de contexto.
 - **D01**: só o texto de `pa.guide.4` (PT/EN) citando os dois botões distintos; sem mudança de regras de interrupção/sessão.
 
-## 3. Decisões para ratificação do PO
+## 3. Decisões do PO (ratificadas em 26/11/2026; ver `ARQ-03_PO_RATIFICATION_RECORD.md`)
 1. Novo **rule id** `goal.count_ceiling` no A2 (sem código de erro novo, sem propriedade nova). Se preferir não estender o registro, o servidor pode voltar ao comportamento anterior (schema) e o limite fica só no front.
 2. Regras de UI `goal.text_required` e `item.observed_requires_value` não existem no contrato (só front).
 
@@ -30,3 +30,6 @@ Baseline: ab0d753. Dados exclusivamente sintéticos. A2 permanece candidato (3.2
 
 ## 6. Revisão candidata
 SHA e bundle: `4f59ad598f90abb01d0c36dbdb96b32caca8c030` (bundle `elo-arq03-fix01.bundle`, base ab0d753).
+
+## 7. Ratificação e integridade
+`goal.count_ceiling` ratificado (apenas o limite do catálogo, `OUT_OF_RANGE`); regras de UI mantidas fora do contrato; I-01 registrado no ARQ-04. Integridade do manifesto A2: `sha256sum -c INTEGRITY_MANIFEST.sha256` sem divergências, `test_v3_a2_package` 5/5, catálogos em sincronia. A2 não congelado.

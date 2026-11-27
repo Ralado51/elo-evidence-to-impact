@@ -108,3 +108,7 @@ Mecanismos existentes e a preservar (`i18n.mjs`): `Msg`/`tm`, `Ref`/`lref`/`kref
 2. `AbortController` altera o comportamento de erro: `AbortError` não pode virar mensagem ao usuário nem ser tratado como falha "ambígua" pelo `CommandController` (que reenvia). Escritas **nunca** abortam.
 3. Rate limit de 120 req/60 s: suítes de navegador devem continuar isoladas; reduzir requisições obsoletas (cancelamento) é efeito desejado, **não medido**.
 4. Interação com ARQ-05 (CMP-11/12, outbox/recuperação): o ContextStore deve expor o escopo `principal+participante+geração` que a outbox futura usará para chavear pendências; o ARQ-04 **não** implementa outbox.
+
+
+## Registro PO (26/11/2026)
+I-01 confirmado para o planejamento do ARQ-04 (CMP-02, i18n): opções dinâmicas de unidade devem usar `data-i18n`/`Msg` e retraduzir em `elo:lang`. ARQ-04 segue suspenso.
