@@ -1,0 +1,330 @@
+{
+  "origin": "http://127.0.0.1:8090",
+  "tool": "axe-core (wcag2a/2aa/21a/21aa/22aa) + custom checks",
+  "totalAxeViolations": 4,
+  "horizontalScroll": [],
+  "smallTargets": [
+    {
+      "at": "home-landing@desktop",
+      "items": [
+        "a#.on 98x34",
+        "a#. 81x34",
+        "a#. 64x34",
+        "a#. 121x34",
+        "a#. 117x34"
+      ]
+    },
+    {
+      "at": "home-landing@tablet",
+      "items": [
+        "a#.on 98x34",
+        "a#. 81x34",
+        "a#. 64x34",
+        "a#. 121x34",
+        "a#. 117x34"
+      ]
+    },
+    {
+      "at": "home-landing@mobile",
+      "items": [
+        "a#.on 98x34",
+        "a#. 81x34",
+        "a#. 64x34",
+        "a#. 121x34",
+        "a#. 117x34"
+      ]
+    },
+    {
+      "at": "home-landing@reflow320",
+      "items": [
+        "a#.on 98x34",
+        "a#. 81x34",
+        "a#. 64x34",
+        "a#. 121x34",
+        "a#. 117x34"
+      ]
+    }
+  ],
+  "results": [
+    {
+      "screen": "home-landing",
+      "viewport": "desktop",
+      "axeViolations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "nodes": 1,
+          "sample": ".pt > .notice"
+        }
+      ],
+      "horizontalScroll": false,
+      "smallTargets": [
+        "a#.on 98x34",
+        "a#. 81x34",
+        "a#. 64x34",
+        "a#. 121x34",
+        "a#. 117x34"
+      ]
+    },
+    {
+      "screen": "v3-base",
+      "viewport": "desktop",
+      "axeViolations": [],
+      "horizontalScroll": false,
+      "smallTargets": []
+    },
+    {
+      "screen": "styleguide",
+      "viewport": "desktop",
+      "axeViolations": [],
+      "horizontalScroll": false,
+      "smallTargets": []
+    },
+    {
+      "screen": "terapeuta-entrar",
+      "viewport": "desktop",
+      "axeViolations": [],
+      "horizontalScroll": false,
+      "smallTargets": []
+    },
+    {
+      "screen": "participante-entrar",
+      "viewport": "desktop",
+      "axeViolations": [],
+      "horizontalScroll": false,
+      "smallTargets": []
+    },
+    {
+      "screen": "painel-entrar",
+      "viewport": "desktop",
+      "axeViolations": [],
+      "horizontalScroll": false,
+      "smallTargets": []
+    },
+    {
+      "screen": "terapeuta-autenticado-completo",
+      "viewport": "desktop",
+      "axeViolations": [],
+      "horizontalScroll": false,
+      "smallTargets": []
+    },
+    {
+      "screen": "terapeuta-erro-de-campo",
+      "viewport": "desktop",
+      "axeViolations": [],
+      "horizontalScroll": false,
+      "smallTargets": []
+    },
+    {
+      "screen": "home-landing",
+      "viewport": "tablet",
+      "axeViolations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "nodes": 1,
+          "sample": ".pt > .notice"
+        }
+      ],
+      "horizontalScroll": false,
+      "smallTargets": [
+        "a#.on 98x34",
+        "a#. 81x34",
+        "a#. 64x34",
+        "a#. 121x34",
+        "a#. 117x34"
+      ]
+    },
+    {
+      "screen": "v3-base",
+      "viewport": "tablet",
+      "axeViolations": [],
+      "horizontalScroll": false,
+      "smallTargets": []
+    },
+    {
+      "screen": "styleguide",
+      "viewport": "tablet",
+      "axeViolations": [],
+      "horizontalScroll": false,
+      "smallTargets": []
+    },
+    {
+      "screen": "terapeuta-entrar",
+      "viewport": "tablet",
+      "axeViolations": [],
+      "horizontalScroll": false,
+      "smallTargets": []
+    },
+    {
+      "screen": "participante-entrar",
+      "viewport": "tablet",
+      "axeViolations": [],
+      "horizontalScroll": false,
+      "smallTargets": []
+    },
+    {
+      "screen": "painel-entrar",
+      "viewport": "tablet",
+      "axeViolations": [],
+      "horizontalScroll": false,
+      "smallTargets": []
+    },
+    {
+      "screen": "terapeuta-autenticado-completo",
+      "viewport": "tablet",
+      "axeViolations": [],
+      "horizontalScroll": false,
+      "smallTargets": []
+    },
+    {
+      "screen": "terapeuta-erro-de-campo",
+      "viewport": "tablet",
+      "axeViolations": [],
+      "horizontalScroll": false,
+      "smallTargets": []
+    },
+    {
+      "screen": "home-landing",
+      "viewport": "mobile",
+      "axeViolations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "nodes": 1,
+          "sample": ".pt > .notice"
+        }
+      ],
+      "horizontalScroll": false,
+      "smallTargets": [
+        "a#.on 98x34",
+        "a#. 81x34",
+        "a#. 64x34",
+        "a#. 121x34",
+        "a#. 117x34"
+      ]
+    },
+    {
+      "screen": "v3-base",
+      "viewport": "mobile",
+      "axeViolations": [],
+      "horizontalScroll": false,
+      "smallTargets": []
+    },
+    {
+      "screen": "styleguide",
+      "viewport": "mobile",
+      "axeViolations": [],
+      "horizontalScroll": false,
+      "smallTargets": []
+    },
+    {
+      "screen": "terapeuta-entrar",
+      "viewport": "mobile",
+      "axeViolations": [],
+      "horizontalScroll": false,
+      "smallTargets": []
+    },
+    {
+      "screen": "participante-entrar",
+      "viewport": "mobile",
+      "axeViolations": [],
+      "horizontalScroll": false,
+      "smallTargets": []
+    },
+    {
+      "screen": "painel-entrar",
+      "viewport": "mobile",
+      "axeViolations": [],
+      "horizontalScroll": false,
+      "smallTargets": []
+    },
+    {
+      "screen": "terapeuta-autenticado-completo",
+      "viewport": "mobile",
+      "axeViolations": [],
+      "horizontalScroll": false,
+      "smallTargets": []
+    },
+    {
+      "screen": "terapeuta-erro-de-campo",
+      "viewport": "mobile",
+      "axeViolations": [],
+      "horizontalScroll": false,
+      "smallTargets": []
+    },
+    {
+      "screen": "home-landing",
+      "viewport": "reflow320",
+      "axeViolations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "nodes": 1,
+          "sample": ".pt > .notice"
+        }
+      ],
+      "horizontalScroll": false,
+      "smallTargets": [
+        "a#.on 98x34",
+        "a#. 81x34",
+        "a#. 64x34",
+        "a#. 121x34",
+        "a#. 117x34"
+      ]
+    },
+    {
+      "screen": "v3-base",
+      "viewport": "reflow320",
+      "axeViolations": [],
+      "horizontalScroll": false,
+      "smallTargets": []
+    },
+    {
+      "screen": "styleguide",
+      "viewport": "reflow320",
+      "axeViolations": [],
+      "horizontalScroll": false,
+      "smallTargets": []
+    },
+    {
+      "screen": "terapeuta-entrar",
+      "viewport": "reflow320",
+      "axeViolations": [],
+      "horizontalScroll": false,
+      "smallTargets": []
+    },
+    {
+      "screen": "participante-entrar",
+      "viewport": "reflow320",
+      "axeViolations": [],
+      "horizontalScroll": false,
+      "smallTargets": []
+    },
+    {
+      "screen": "painel-entrar",
+      "viewport": "reflow320",
+      "axeViolations": [],
+      "horizontalScroll": false,
+      "smallTargets": []
+    },
+    {
+      "screen": "terapeuta-autenticado-completo",
+      "viewport": "reflow320",
+      "axeViolations": [],
+      "horizontalScroll": false,
+      "smallTargets": []
+    },
+    {
+      "screen": "terapeuta-erro-de-campo",
+      "viewport": "reflow320",
+      "axeViolations": [],
+      "horizontalScroll": false,
+      "smallTargets": []
+    }
+  ]
+}

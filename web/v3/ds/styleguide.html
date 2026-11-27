@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Elo — Design System (styleguide)</title>
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../base.css">
+<link rel="stylesheet" href="./ds-tokens.css">
+<link rel="stylesheet" href="./ds-components.css">
+<link rel="stylesheet" href="./styleguide.css">
+</head>
+<body data-ds="workspace">
+<a class="skip-link target" href="#main">Pular para o conteúdo principal</a>
+<header class="site-header">
+  <div class="site-header-inner">
+    <p class="site-brand">Elo — Design System</p>
+    <p class="step-lead">[Dados sintéticos] • v0.1 (pesquisa, branch research/frontend-v3)</p>
+    <nav class="therapist-nav" aria-label="Seções do styleguide">
+      <a class="target" href="#cores">Cores</a><a class="target" href="#tipografia">Tipografia</a><a class="target" href="#espaco">Espaço e forma</a>
+      <a class="target" href="#botoes">Botões e controles</a><a class="target" href="#campos">Campos</a><a class="target" href="#cartoes">Cartões e painéis</a>
+      <a class="target" href="#navegacao">Navegação</a><a class="target" href="#tabelas">Tabelas</a><a class="target" href="#estados">Estados e feedback</a><a class="target" href="#vazio">Vazio e carregando</a><a class="target" href="#dialogos">Diálogos</a><a class="target" href="#guiado">Densidade guiada</a>
+    </nav>
+  </div>
+</header>
+
+<main class="main" id="main" tabindex="-1">
+  <div class="sg-dark" style="margin-top:1.5rem">
+    <h1 style="color:#fff;margin-top:0">Elo Design System</h1>
+    <p>Extraído da home do Elo (<code>landing/index.html</code>): grafite, amarelo, branco, botões em pílula, grade de pontos. Dois modos de densidade, uma identidade: <b style="color:var(--ds-yellow)">workspace</b> (terapeuta, painel) e <b style="color:var(--ds-yellow)">guided</b> (participante).</p>
+    <div class="sg-row"><a class="btn btn-primary" href="#botoes">Ver componentes</a><a class="btn btn-secondary" href="../therapist.html">Abrir área do terapeuta</a></div>
+  </div>
+
+  <section id="cores" class="step-card" style="margin-top:1.5rem" aria-labelledby="h-cores">
+    <h2 id="h-cores">Cores</h2>
+    <p class="step-lead">Marca vem da home; tons de texto/borda de estado foram escurecidos para AA. Todos os pares são verificados por <code>scripts/ds_contrast.mjs</code>.</p>
+    <h3>Marca</h3>
+    <div class="sg-grid">
+      <div class="sg-swatch"><i style="background:#1c1c1c"></i><div><b>ink</b><code>#1c1c1c</code><br><span class="sg-code">texto, bordas fortes</span></div></div>
+      <div class="sg-swatch"><i style="background:#262626"></i><div><b>graphite</b><code>#262626</code><br><span class="sg-code">cabeçalho, ênfase</span></div></div>
+      <div class="sg-swatch"><i style="background:#fff56b"></i><div><b>yellow</b><code>#fff56b</code><br><span class="sg-code">ação primária, seleção</span></div></div>
+      <div class="sg-swatch"><i style="background:#fffbc7"></i><div><b>yellow-soft</b><code>#fffbc7</code><br><span class="sg-code">resultado, hover</span></div></div>
+      <div class="sg-swatch"><i style="background:#ffffff"></i><div><b>white</b><code>#ffffff</code><br><span class="sg-code">superfícies</span></div></div>
+      <div class="sg-swatch"><i style="background:#f6f5f1"></i><div><b>paper</b><code>#f6f5f1</code><br><span class="sg-code">fundo das telas de trabalho</span></div></div>
+    </div>
+    <h3>Estado (cor + texto + glifo, nunca só cor)</h3>
+    <div class="sg-grid">
+      <div class="sg-swatch"><i style="background:#d9eeea"></i><div><b>ok</b><code>#0f5e55 / #17766b</code></div></div>
+      <div class="sg-swatch"><i style="background:#f6dedb"></i><div><b>erro</b><code>#8f2a20 / #b4372c</code></div></div>
+      <div class="sg-swatch"><i style="background:#f5e8cc"></i><div><b>atenção</b><code>#6f4504 / #9a6208</code></div></div>
+      <div class="sg-swatch"><i style="background:#e3ecf7"></i><div><b>informação</b><code>#1f3f66 / #3a6ea5</code></div></div>
+    </div>
+    <p class="step-lead">Regra de uso: fundo escuro só no cabeçalho, barra de sessão e hero (como na home). Telas de trabalho ficam em <code>paper</code>/<code>white</code> para leitura prolongada.</p>
+  </section>
+
+  <section id="tipografia" class="step-card" aria-labelledby="h-tipo">
+    <h2 id="h-tipo">Tipografia</h2>
+    <div class="sg-type">
+      <h1 style="margin-top:0">Título de página (2xl)</h1>
+      <h2>Título de seção (lg)</h2>
+      <h3>Subtítulo (md)</h3>
+      <p>Texto base (1rem, 1.55). Fonte do sistema, a mesma da home. Linha de leitura limitada a ~45–72 caracteres nos cartões.</p>
+      <p class="step-lead">Texto de apoio (sm, muted #4a4a46 — 8,9:1 sobre branco).</p>
+      <p class="mono">Mono: p_ba86efcc34d2719c · 2026-03-10</p>
+    </div>
+  </section>
+
+  <section id="espaco" class="step-card" aria-labelledby="h-esp">
+    <h2 id="h-esp">Espaço, forma e profundidade</h2>
+    <div class="sg-row"><span class="sg-spacer" style="width:.25rem"></span><span class="sg-code">1 · 4px</span><span class="sg-spacer" style="width:.5rem"></span><span class="sg-code">2 · 8px</span><span class="sg-spacer" style="width:1rem"></span><span class="sg-code">4 · 16px</span><span class="sg-spacer" style="width:1.5rem"></span><span class="sg-code">6 · 24px</span><span class="sg-spacer" style="width:2rem"></span><span class="sg-code">8 · 32px</span></div>
+    <div class="sg-row">
+      <div class="sg-demo" style="border-radius:var(--ds-radius-sm)">radius-sm 8</div>
+      <div class="sg-demo" style="border-radius:var(--ds-radius-md)">radius-md 12</div>
+      <div class="sg-demo" style="border-radius:var(--ds-radius-lg)">radius-lg 16</div>
+      <div class="sg-demo" style="border-radius:var(--ds-radius-pill)">pill</div>
+      <div class="sg-demo" style="box-shadow:var(--ds-shadow-1);border-style:solid;border-color:var(--ds-line)">shadow-1</div>
+    </div>
+  </section>
+
+  <section id="botoes" class="step-card" aria-labelledby="h-bot">
+    <h2 id="h-bot">Botões e controles</h2>
+    <p class="step-lead">Pílula, alvo mínimo 48 px (56 px no modo guiado), foco em dois tons (ink + halo amarelo) visível em fundo claro e escuro.</p>
+    <div class="sg-row">
+      <button class="btn btn-primary" type="button">Primário</button>
+      <button class="btn btn-secondary" type="button">Secundário</button>
+      <button class="btn ds-btn-dark" type="button">Escuro</button>
+      <button class="btn btn-stop" type="button">Parar agora</button>
+      <button class="btn btn-primary" type="button" disabled>Desabilitado</button>
+    </div>
+    <div class="sg-row"><div class="choice-grid" style="width:100%"><button class="choice-btn" type="button" aria-pressed="false">Sem dor</button><button class="choice-btn" type="button" aria-pressed="true">Pouca dor</button><button class="choice-btn" type="button" aria-pressed="false">Muita dor</button></div></div>
+  </section>
+
+  <section id="campos" class="step-card" aria-labelledby="h-campos">
+    <h2 id="h-campos">Campos de formulário</h2>
+    <div class="field-grid field-grid-two">
+      <div class="field"><label for="sg-a">Apelido sintético</label><input id="sg-a" type="text" value="Participante 01"></div>
+      <div class="field"><label for="sg-b">Lado acompanhado</label><select id="sg-b"><option>Direito</option><option>Esquerdo</option></select></div>
+      <div class="field"><label for="sg-c">Campo somente leitura</label><input id="sg-c" type="text" value="sessões" readonly></div>
+      <div class="field"><label for="sg-d">Campo com erro</label><input id="sg-d" type="text" value="30/02/2026" aria-invalid="true" aria-describedby="sg-d-e"><p class="field-error" id="sg-d-e">Data inexistente. Use um dia real do calendário.</p></div>
+      <div class="field"><label for="sg-e">Campo desabilitado</label><input id="sg-e" type="text" value="—" disabled></div>
+    </div>
+  </section>
+
+  <section id="cartoes" class="step-card" aria-labelledby="h-cartoes">
+    <h2 id="h-cartoes">Cartões e painéis</h2>
+    <ul class="card-list">
+      <li class="data-card"><div class="meta-badges"><span class="badge badge-origin">[Dados sintéticos]</span><span class="badge badge-confirmed">Ativa</span></div><p>Meta: realizar 3 sessões por semana</p></li>
+      <li class="data-card" data-legacy="true"><div class="meta-badges"><span class="badge badge-origin">[Dados sintéticos]</span><span class="badge badge-legacy">Registro legado</span></div><p>Meta antiga exibida como foi gravada.</p></li>
+    </ul>
+    <div class="result-box"><p>Resultado de uma ação: meta registrada (situação: ativa).</p></div>
+    <div class="sub-panel"><p class="step-lead">Painel secundário para agrupar campos relacionados.</p></div>
+    <div class="session-bar" style="margin-top:1rem"><div><p>Sessão ativa: terapeuta_demo</p><p>Participante: Caso Demonstrativo 01</p></div><button class="btn btn-secondary" type="button">Sair da sessão</button></div>
+  </section>
+
+  <section id="navegacao" class="step-card" aria-labelledby="h-nav">
+    <h2 id="h-nav">Navegação</h2>
+    <p class="step-lead">Barra principal no cabeçalho grafite: item atual em amarelo (<code>aria-current</code>), marca com o símbolo da home, seletor de idioma em pílula.</p>
+    <div class="sg-dark" style="padding:1rem"><nav class="therapist-nav" aria-label="Exemplo"><a class="target" href="#navegacao" aria-current="page">1. Entrar</a><a class="target" href="#navegacao">2. Participante</a><a class="target" href="#navegacao">3. Avaliação</a></nav></div>
+  </section>
+
+  <section id="tabelas" class="step-card" aria-labelledby="h-tab">
+    <h2 id="h-tab">Tabelas</h2>
+    <div class="ds-table-wrap" role="region" aria-label="Exemplo de tabela de sessões" tabindex="0"><table><caption class="sr-only">Exemplo de sessões</caption><thead><tr><th scope="col">Sessão</th><th scope="col">Execução</th><th scope="col">Ajuda</th><th scope="col">Situação</th></tr></thead>
+    <tbody><tr><td>1</td><td>Parcial</td><td>Total</td><td><span class="badge badge-confirmed">Aprovado</span></td></tr><tr><td>2</td><td>Completa</td><td>Alguma</td><td><span class="badge badge-legacy">Em revisão</span></td></tr><tr><td>3</td><td>Completa</td><td>Nenhuma</td><td><span class="badge badge-rejected">Rejeitado</span></td></tr></tbody></table></div>
+  </section>
+
+  <section id="estados" class="step-card" aria-labelledby="h-est">
+    <h2 id="h-est">Estados e mensagens</h2>
+    <div class="banner banner-success"><p>Meta registrada.</p></div>
+    <div class="banner banner-error"><p>O valor está acima do limite permitido para esta meta.</p></div>
+    <div class="banner banner-warning"><p>Os dados podem estar desatualizados. Carregue de novo.</p></div>
+    <div class="banner banner-info"><p>Somente dados sintéticos nesta demonstração.</p></div>
+    <div class="sg-row"><span class="ds-badge ds-badge--ok">Aprovado</span><span class="ds-badge ds-badge--wait">Pendente</span><span class="ds-badge ds-badge--bad">Rejeitado</span><span class="ds-badge">Neutro</span></div>
+  </section>
+
+  <section id="vazio" class="step-card" aria-labelledby="h-vazio">
+    <h2 id="h-vazio">Vazio e carregando</h2>
+    <div class="ds-empty"><strong>Nenhuma evidência ainda</strong>Quando o participante relatar uma prática, ela aparece aqui.</div>
+    <div class="sg-row"><span class="ds-loading" role="status"><span class="ds-spinner" aria-hidden="true"></span>Carregando linha do tempo…</span></div>
+    <div class="sg-demo"><span class="ds-skeleton" style="width:60%"></span><br><span class="ds-skeleton" style="width:85%"></span><br><span class="ds-skeleton" style="width:40%"></span></div>
+  </section>
+
+  <section id="dialogos" class="step-card" aria-labelledby="h-dlg">
+    <h2 id="h-dlg">Diálogos e confirmações</h2>
+    <div class="sg-row"><button class="btn btn-primary" type="button" id="sg-open-confirm">Publicar resumo…</button><button class="btn btn-stop" type="button" id="sg-open-danger">Encerrar sessão…</button></div>
+    <dialog class="ds-dialog ds-confirm" id="sg-confirm" aria-labelledby="sg-confirm-t"><form method="dialog"><h2 id="sg-confirm-t">Publicar este resumo?</h2><p>Apenas os fatos aprovados serão incluídos. A ação fica registrada.</p><div class="actions-row"><button class="btn btn-primary" value="ok">Publicar</button><button class="btn btn-secondary" value="cancel">Cancelar</button></div></form></dialog>
+    <dialog class="ds-dialog ds-confirm ds-confirm--danger" id="sg-danger" aria-labelledby="sg-danger-t"><form method="dialog"><h2 id="sg-danger-t">Encerrar a sessão agora?</h2><p>A prática será interrompida. Você poderá relatar como foi.</p><div class="actions-row"><button class="btn btn-stop" value="ok">Encerrar</button><button class="btn btn-secondary" value="cancel">Continuar</button></div></form></dialog>
+  </section>
+
+  <section id="guiado" class="step-card ds-guided" aria-labelledby="h-g">
+    <h2 id="h-g">Densidade guiada (participante)</h2>
+    <p class="step-lead">Tipografia maior, alvos de 56 px, uma ação principal por etapa, instruções numeradas, texto + ícone nos estados.</p>
+    <ol class="guide-list"><li>Sente-se com o braço apoiado.</li><li>Toque em “Começar” quando estiver pronto.</li><li>Toque em “Parar” se sentir dor ou cansaço.</li></ol>
+    <div class="actions-row"><button class="btn btn-primary" type="button">Começar</button><button class="btn btn-stop" type="button">Parar</button></div>
+  </section>
+</main>
+<footer class="elo-footer"><p>Elo Design System v0.1 — dados sintéticos. Identidade extraída de landing/index.html.</p></footer>
+<script type="module" src="./styleguide.mjs"></script>
+</body>
+</html>

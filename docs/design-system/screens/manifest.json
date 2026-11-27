@@ -1,0 +1,381 @@
+{
+  "origin": "http://127.0.0.1:8090",
+  "count": 75,
+  "screens": [
+    {
+      "viewport": "desktop",
+      "screen": "home-landing",
+      "file": "docs/design-system/screens/desktop/01-home-landing.png"
+    },
+    {
+      "viewport": "desktop",
+      "screen": "v3-base-controles",
+      "file": "docs/design-system/screens/desktop/02-v3-base-controles.png"
+    },
+    {
+      "viewport": "desktop",
+      "screen": "styleguide",
+      "file": "docs/design-system/screens/desktop/03-styleguide.png"
+    },
+    {
+      "viewport": "desktop",
+      "screen": "terapeuta-autenticacao-entrar",
+      "file": "docs/design-system/screens/desktop/04-terapeuta-autenticacao-entrar.png"
+    },
+    {
+      "viewport": "desktop",
+      "screen": "terapeuta-gestao-participantes",
+      "file": "docs/design-system/screens/desktop/05-terapeuta-gestao-participantes.png"
+    },
+    {
+      "viewport": "desktop",
+      "screen": "terapeuta-avaliacao-funcional",
+      "file": "docs/design-system/screens/desktop/06-terapeuta-avaliacao-funcional.png"
+    },
+    {
+      "viewport": "desktop",
+      "screen": "terapeuta-metas",
+      "file": "docs/design-system/screens/desktop/07-terapeuta-metas.png"
+    },
+    {
+      "viewport": "desktop",
+      "screen": "terapeuta-prescricao",
+      "file": "docs/design-system/screens/desktop/08-terapeuta-prescricao.png"
+    },
+    {
+      "viewport": "desktop",
+      "screen": "terapeuta-revisao-evidencias",
+      "file": "docs/design-system/screens/desktop/09-terapeuta-revisao-evidencias.png"
+    },
+    {
+      "viewport": "desktop",
+      "screen": "terapeuta-resumo-e-evolucao-funcional",
+      "file": "docs/design-system/screens/desktop/10-terapeuta-resumo-e-evolucao-funcional.png"
+    },
+    {
+      "viewport": "desktop",
+      "screen": "terapeuta-linha-do-tempo",
+      "file": "docs/design-system/screens/desktop/11-terapeuta-linha-do-tempo.png"
+    },
+    {
+      "viewport": "desktop",
+      "screen": "terapeuta-pagina-completa",
+      "file": "docs/design-system/screens/desktop/12-terapeuta-pagina-completa.png"
+    },
+    {
+      "viewport": "desktop",
+      "screen": "terapeuta-feedback-erro-de-campo",
+      "file": "docs/design-system/screens/desktop/13-terapeuta-feedback-erro-de-campo.png"
+    },
+    {
+      "viewport": "desktop",
+      "screen": "participante-entrar",
+      "file": "docs/design-system/screens/desktop/14-participante-entrar.png"
+    },
+    {
+      "viewport": "desktop",
+      "screen": "participante-meu-plano",
+      "file": "docs/design-system/screens/desktop/15-participante-meu-plano.png"
+    },
+    {
+      "viewport": "desktop",
+      "screen": "participante-execucao-da-atividade",
+      "file": "docs/design-system/screens/desktop/16-participante-execucao-da-atividade.png"
+    },
+    {
+      "viewport": "desktop",
+      "screen": "participante-relato",
+      "file": "docs/design-system/screens/desktop/17-participante-relato.png"
+    },
+    {
+      "viewport": "desktop",
+      "screen": "participante-pagina-completa",
+      "file": "docs/design-system/screens/desktop/18-participante-pagina-completa.png"
+    },
+    {
+      "viewport": "desktop",
+      "screen": "painel-autenticacao",
+      "file": "docs/design-system/screens/desktop/19-painel-autenticacao.png"
+    },
+    {
+      "viewport": "desktop",
+      "screen": "painel-resumo-e-jornada",
+      "file": "docs/design-system/screens/desktop/20-painel-resumo-e-jornada.png"
+    },
+    {
+      "viewport": "desktop",
+      "screen": "painel-evolucao-funcional",
+      "file": "docs/design-system/screens/desktop/21-painel-evolucao-funcional.png"
+    },
+    {
+      "viewport": "desktop",
+      "screen": "painel-verificador-relatorio",
+      "file": "docs/design-system/screens/desktop/22-painel-verificador-relatorio.png"
+    },
+    {
+      "viewport": "desktop",
+      "screen": "painel-registros-publicados",
+      "file": "docs/design-system/screens/desktop/23-painel-registros-publicados.png"
+    },
+    {
+      "viewport": "desktop",
+      "screen": "painel-linha-do-tempo",
+      "file": "docs/design-system/screens/desktop/24-painel-linha-do-tempo.png"
+    },
+    {
+      "viewport": "desktop",
+      "screen": "painel-pagina-completa",
+      "file": "docs/design-system/screens/desktop/25-painel-pagina-completa.png"
+    },
+    {
+      "viewport": "tablet",
+      "screen": "home-landing",
+      "file": "docs/design-system/screens/tablet/01-home-landing.png"
+    },
+    {
+      "viewport": "tablet",
+      "screen": "v3-base-controles",
+      "file": "docs/design-system/screens/tablet/02-v3-base-controles.png"
+    },
+    {
+      "viewport": "tablet",
+      "screen": "styleguide",
+      "file": "docs/design-system/screens/tablet/03-styleguide.png"
+    },
+    {
+      "viewport": "tablet",
+      "screen": "terapeuta-autenticacao-entrar",
+      "file": "docs/design-system/screens/tablet/04-terapeuta-autenticacao-entrar.png"
+    },
+    {
+      "viewport": "tablet",
+      "screen": "terapeuta-gestao-participantes",
+      "file": "docs/design-system/screens/tablet/05-terapeuta-gestao-participantes.png"
+    },
+    {
+      "viewport": "tablet",
+      "screen": "terapeuta-avaliacao-funcional",
+      "file": "docs/design-system/screens/tablet/06-terapeuta-avaliacao-funcional.png"
+    },
+    {
+      "viewport": "tablet",
+      "screen": "terapeuta-metas",
+      "file": "docs/design-system/screens/tablet/07-terapeuta-metas.png"
+    },
+    {
+      "viewport": "tablet",
+      "screen": "terapeuta-prescricao",
+      "file": "docs/design-system/screens/tablet/08-terapeuta-prescricao.png"
+    },
+    {
+      "viewport": "tablet",
+      "screen": "terapeuta-revisao-evidencias",
+      "file": "docs/design-system/screens/tablet/09-terapeuta-revisao-evidencias.png"
+    },
+    {
+      "viewport": "tablet",
+      "screen": "terapeuta-resumo-e-evolucao-funcional",
+      "file": "docs/design-system/screens/tablet/10-terapeuta-resumo-e-evolucao-funcional.png"
+    },
+    {
+      "viewport": "tablet",
+      "screen": "terapeuta-linha-do-tempo",
+      "file": "docs/design-system/screens/tablet/11-terapeuta-linha-do-tempo.png"
+    },
+    {
+      "viewport": "tablet",
+      "screen": "terapeuta-pagina-completa",
+      "file": "docs/design-system/screens/tablet/12-terapeuta-pagina-completa.png"
+    },
+    {
+      "viewport": "tablet",
+      "screen": "terapeuta-feedback-erro-de-campo",
+      "file": "docs/design-system/screens/tablet/13-terapeuta-feedback-erro-de-campo.png"
+    },
+    {
+      "viewport": "tablet",
+      "screen": "participante-entrar",
+      "file": "docs/design-system/screens/tablet/14-participante-entrar.png"
+    },
+    {
+      "viewport": "tablet",
+      "screen": "participante-meu-plano",
+      "file": "docs/design-system/screens/tablet/15-participante-meu-plano.png"
+    },
+    {
+      "viewport": "tablet",
+      "screen": "participante-execucao-da-atividade",
+      "file": "docs/design-system/screens/tablet/16-participante-execucao-da-atividade.png"
+    },
+    {
+      "viewport": "tablet",
+      "screen": "participante-relato",
+      "file": "docs/design-system/screens/tablet/17-participante-relato.png"
+    },
+    {
+      "viewport": "tablet",
+      "screen": "participante-pagina-completa",
+      "file": "docs/design-system/screens/tablet/18-participante-pagina-completa.png"
+    },
+    {
+      "viewport": "tablet",
+      "screen": "painel-autenticacao",
+      "file": "docs/design-system/screens/tablet/19-painel-autenticacao.png"
+    },
+    {
+      "viewport": "tablet",
+      "screen": "painel-resumo-e-jornada",
+      "file": "docs/design-system/screens/tablet/20-painel-resumo-e-jornada.png"
+    },
+    {
+      "viewport": "tablet",
+      "screen": "painel-evolucao-funcional",
+      "file": "docs/design-system/screens/tablet/21-painel-evolucao-funcional.png"
+    },
+    {
+      "viewport": "tablet",
+      "screen": "painel-verificador-relatorio",
+      "file": "docs/design-system/screens/tablet/22-painel-verificador-relatorio.png"
+    },
+    {
+      "viewport": "tablet",
+      "screen": "painel-registros-publicados",
+      "file": "docs/design-system/screens/tablet/23-painel-registros-publicados.png"
+    },
+    {
+      "viewport": "tablet",
+      "screen": "painel-linha-do-tempo",
+      "file": "docs/design-system/screens/tablet/24-painel-linha-do-tempo.png"
+    },
+    {
+      "viewport": "tablet",
+      "screen": "painel-pagina-completa",
+      "file": "docs/design-system/screens/tablet/25-painel-pagina-completa.png"
+    },
+    {
+      "viewport": "mobile",
+      "screen": "home-landing",
+      "file": "docs/design-system/screens/mobile/01-home-landing.png"
+    },
+    {
+      "viewport": "mobile",
+      "screen": "v3-base-controles",
+      "file": "docs/design-system/screens/mobile/02-v3-base-controles.png"
+    },
+    {
+      "viewport": "mobile",
+      "screen": "styleguide",
+      "file": "docs/design-system/screens/mobile/03-styleguide.png"
+    },
+    {
+      "viewport": "mobile",
+      "screen": "terapeuta-autenticacao-entrar",
+      "file": "docs/design-system/screens/mobile/04-terapeuta-autenticacao-entrar.png"
+    },
+    {
+      "viewport": "mobile",
+      "screen": "terapeuta-gestao-participantes",
+      "file": "docs/design-system/screens/mobile/05-terapeuta-gestao-participantes.png"
+    },
+    {
+      "viewport": "mobile",
+      "screen": "terapeuta-avaliacao-funcional",
+      "file": "docs/design-system/screens/mobile/06-terapeuta-avaliacao-funcional.png"
+    },
+    {
+      "viewport": "mobile",
+      "screen": "terapeuta-metas",
+      "file": "docs/design-system/screens/mobile/07-terapeuta-metas.png"
+    },
+    {
+      "viewport": "mobile",
+      "screen": "terapeuta-prescricao",
+      "file": "docs/design-system/screens/mobile/08-terapeuta-prescricao.png"
+    },
+    {
+      "viewport": "mobile",
+      "screen": "terapeuta-revisao-evidencias",
+      "file": "docs/design-system/screens/mobile/09-terapeuta-revisao-evidencias.png"
+    },
+    {
+      "viewport": "mobile",
+      "screen": "terapeuta-resumo-e-evolucao-funcional",
+      "file": "docs/design-system/screens/mobile/10-terapeuta-resumo-e-evolucao-funcional.png"
+    },
+    {
+      "viewport": "mobile",
+      "screen": "terapeuta-linha-do-tempo",
+      "file": "docs/design-system/screens/mobile/11-terapeuta-linha-do-tempo.png"
+    },
+    {
+      "viewport": "mobile",
+      "screen": "terapeuta-pagina-completa",
+      "file": "docs/design-system/screens/mobile/12-terapeuta-pagina-completa.png"
+    },
+    {
+      "viewport": "mobile",
+      "screen": "terapeuta-feedback-erro-de-campo",
+      "file": "docs/design-system/screens/mobile/13-terapeuta-feedback-erro-de-campo.png"
+    },
+    {
+      "viewport": "mobile",
+      "screen": "participante-entrar",
+      "file": "docs/design-system/screens/mobile/14-participante-entrar.png"
+    },
+    {
+      "viewport": "mobile",
+      "screen": "participante-meu-plano",
+      "file": "docs/design-system/screens/mobile/15-participante-meu-plano.png"
+    },
+    {
+      "viewport": "mobile",
+      "screen": "participante-execucao-da-atividade",
+      "file": "docs/design-system/screens/mobile/16-participante-execucao-da-atividade.png"
+    },
+    {
+      "viewport": "mobile",
+      "screen": "participante-relato",
+      "file": "docs/design-system/screens/mobile/17-participante-relato.png"
+    },
+    {
+      "viewport": "mobile",
+      "screen": "participante-pagina-completa",
+      "file": "docs/design-system/screens/mobile/18-participante-pagina-completa.png"
+    },
+    {
+      "viewport": "mobile",
+      "screen": "painel-autenticacao",
+      "file": "docs/design-system/screens/mobile/19-painel-autenticacao.png"
+    },
+    {
+      "viewport": "mobile",
+      "screen": "painel-resumo-e-jornada",
+      "file": "docs/design-system/screens/mobile/20-painel-resumo-e-jornada.png"
+    },
+    {
+      "viewport": "mobile",
+      "screen": "painel-evolucao-funcional",
+      "file": "docs/design-system/screens/mobile/21-painel-evolucao-funcional.png"
+    },
+    {
+      "viewport": "mobile",
+      "screen": "painel-verificador-relatorio",
+      "file": "docs/design-system/screens/mobile/22-painel-verificador-relatorio.png"
+    },
+    {
+      "viewport": "mobile",
+      "screen": "painel-registros-publicados",
+      "file": "docs/design-system/screens/mobile/23-painel-registros-publicados.png"
+    },
+    {
+      "viewport": "mobile",
+      "screen": "painel-linha-do-tempo",
+      "file": "docs/design-system/screens/mobile/24-painel-linha-do-tempo.png"
+    },
+    {
+      "viewport": "mobile",
+      "screen": "painel-pagina-completa",
+      "file": "docs/design-system/screens/mobile/25-painel-pagina-completa.png"
+    }
+  ]
+}
