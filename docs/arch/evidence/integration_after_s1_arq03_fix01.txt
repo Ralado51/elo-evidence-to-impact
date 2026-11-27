@@ -1,0 +1,25 @@
+{
+  "passed": true,
+  "results": [
+    {
+      "id": "FIX-38 limite do catálogo: 100001 bloqueado antes da requisição; 100000 aceito; atributo max vem do catálogo",
+      "ok": true
+    },
+    {
+      "id": "FIX-40 descrição vazia: bloqueia, mensagem específica, aria, foco, limpa ao corrigir e ao trocar de participante",
+      "ok": true
+    },
+    {
+      "id": "FIX-40 PT: mensagem em português após troca de idioma",
+      "ok": true
+    },
+    {
+      "id": "FIX-39 quatro estados: observado vazio bloqueado; zero, desconhecido e não avaliado persistem distintos",
+      "ok": true
+    },
+    {
+      "id": "FIX-17/D01 texto do guia EN não menciona botão único",
+      "ok": true
+    }
+  ]
+}

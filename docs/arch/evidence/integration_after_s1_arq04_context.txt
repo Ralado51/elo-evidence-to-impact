@@ -1,0 +1,42 @@
+{
+  "phase": "arq04-fx37-blocking",
+  "passed": true,
+  "results": [
+    {
+      "id": "FX37-01 goals.create tardio: nada em Beta, aviso+recarga em Alfa (FIX-37.1)",
+      "ok": true
+    },
+    {
+      "id": "FX37-02 assessments.create tardio (FIX-37.1)",
+      "ok": true
+    },
+    {
+      "id": "FX37-03 invites.create tardio (FIX-37.1)",
+      "ok": true
+    },
+    {
+      "id": "FX37-04 timeline.get: erro tardio nao aparece em Beta (FIX-37.2)",
+      "ok": true
+    },
+    {
+      "id": "FX37-05 evolution.series: erro tardio nao aparece em Beta (FIX-37.2)",
+      "ok": true
+    },
+    {
+      "id": "FX37-06 facts.list: resposta tardia de Alfa nao repinta Beta (FX37-LATE-RESPONSE)",
+      "ok": true
+    },
+    {
+      "id": "FX37-07 facts.list: erro tardio de Alfa nao aparece em Beta (FX37-STALE-ERROR-LOADING)",
+      "ok": true
+    },
+    {
+      "id": "FX37-08 logout com leitura de lista em voo nao repovoa a lista (G-09)",
+      "ok": true
+    },
+    {
+      "id": "FX37-09 escrita nunca e abortada: meta tardia persistiu no servidor (FIX-37.1)",
+      "ok": true
+    }
+  ]
+}

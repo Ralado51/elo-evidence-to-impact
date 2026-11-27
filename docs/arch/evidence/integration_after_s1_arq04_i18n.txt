@@ -1,0 +1,18 @@
+{
+  "phase": "arq04-i18n-blocking",
+  "passed": true,
+  "results": [
+    {
+      "id": "I18N-01 I-01: unit options are retranslated on language switch, values unchanged",
+      "ok": true
+    },
+    {
+      "id": "I18N-02 I-02: no raw i18n key or 'enum.' leaks into visible text in either language",
+      "ok": true
+    },
+    {
+      "id": "I18N-03 selected unit survives a language switch (user input is never reset)",
+      "ok": true
+    }
+  ]
+}

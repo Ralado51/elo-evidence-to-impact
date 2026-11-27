@@ -655,13 +655,13 @@ export function initParticipantApp() {
     panel.dataset.syncPending = String(r.pending);
     status.textContent = r.conflict ? t("pa.js.sync_conflict")
       : r.pending ? t("pa.js.sync_pending", { n: r.pending }) : t("pa.js.sync_synced");
-    let msg = "";
-    let kind = "";
-    if (r.pending && r.needsReauth) { msg = t("pa.js.sync_recovered"); kind = "recovered"; }
-    if (r.pending && r.expired) { msg = t("pa.js.sync_expired"); kind = "expired"; }
-    if (r.phase === "active" && state.recoveredOrphan) { msg = t("pa.js.sync_orphan"); kind = "orphan"; }
-    notice.textContent = msg;
-    notice.dataset.noticeKind = kind;
+    const msgs = [];
+    const kinds = [];
+    if (r.pending && r.needsReauth) { msgs.push(t("pa.js.sync_recovered")); kinds.push("recovered"); }
+    if (r.pending && r.expired) { msgs.push(t("pa.js.sync_expired")); kinds.push("expired"); }
+    if (r.phase === "active" && state.recoveredOrphan) { msgs.push(t("pa.js.sync_orphan")); kinds.push("orphan"); }
+    notice.textContent = msgs.join(" ");
+    notice.dataset.noticeKind = kinds.join(" ");
     el("btn-sync-now").hidden = !r.pending || Boolean(r.conflict);
     el("btn-dismiss-report").hidden = r.phase !== "ended" || state.dismissArmed;
   }

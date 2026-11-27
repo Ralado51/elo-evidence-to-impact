@@ -1,0 +1,20 @@
+s1_arq04_context rc=0
+s1_arq04_i18n rc=0
+s1_arq04_fix01 rc=0
+s1_arq04_residual rc=0
+s1_arq03_fix01 rc=0
+s1_arq03_domain rc=0
+s1_arq02_fix01 rc=0
+s1_arq02_fix03 rc=0
+s1_arq02_fix03b_concurrency rc=0
+s1_arq02_commands rc=0
+s1_arq01_dates rc=0
+s1_corr_ae rc=0
+s1_corr_e01 rc=0
+s1_corr_e02e03 rc=0
+s1_stab_a rc=0
+s1_stab_e rc=0
+therapist_journey rc=0
+participant_journey rc=0
+e2e_journey rc=0
+DONE

@@ -1,0 +1,49 @@
+{
+  "passed": true,
+  "results": [
+    {
+      "id": "BR-A2-01 meta: padrão válido, unidade derivada somente leitura, medida livre (measure_value) fora das opções",
+      "ok": true
+    },
+    {
+      "id": "BR-A2-02 trocar o tipo muda a unidade derivada; descritivo desabilita o valor",
+      "ok": true
+    },
+    {
+      "id": "BR-A2-03 valor fracionário/zero: erro no campo, foco, nenhuma escrita, nada persiste",
+      "ok": true
+    },
+    {
+      "id": "BR-A2-04 meta válida (3 sessões) é gravada com unidade derivada",
+      "ok": true
+    },
+    {
+      "id": "BR-A2-05 o servidor continua autoridade: POST direto com unidade incompatível é recusado com details.rule",
+      "ok": true
+    },
+    {
+      "id": "BR-A2-06 instrumento: seletor do registro; versão e situação derivadas e não editáveis",
+      "ok": true
+    },
+    {
+      "id": "BR-A2-07 avaliação com os padrões do registro é gravada; POST direto fora do registro é recusado e nada persiste",
+      "ok": true
+    },
+    {
+      "id": "BR-A2-08 item: tipo numérico habilita unidade do registro; não avaliado desabilita valor; texto numérico inválido é bloqueado no campo",
+      "ok": true
+    },
+    {
+      "id": "BR-A2-09 item não avaliado é gravado com valor nulo e flag; zero observado é gravado como 0",
+      "ok": true
+    },
+    {
+      "id": "BR-A2-10 dose: produto acima do limite técnico (10×11) e 15 sessões/semana são bloqueados no campo, sem escrita e sem ajuste automático",
+      "ok": true
+    },
+    {
+      "id": "BR-A2-11 prazo opcional: ausente não é enviado; válido é gravado; impossível é bloqueado no campo; servidor também recusa",
+      "ok": true
+    }
+  ]
+}

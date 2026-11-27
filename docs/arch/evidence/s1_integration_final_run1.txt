@@ -1,0 +1,59 @@
+{
+  "suite": "s1_integration_final",
+  "total": 13,
+  "failed": 0,
+  "results": [
+    {
+      "id": "INT-01 start grava local primeiro e transmite ao ledger real (sincronizado)",
+      "ok": true
+    },
+    {
+      "id": "INT-02 ledger real: reenvio direto dos mesmos eventos e 'duplicate' (ja armazenados)",
+      "ok": true
+    },
+    {
+      "id": "INT-03 bloqueia nova sessao com sessao aberta e com relato pendente (nenhum evento novo)",
+      "ok": true
+    },
+    {
+      "id": "INT-04 recuperacao apos RECARGA REAL: fase 'ended' restaurada, nada e transmitido sozinho, relato conclui",
+      "ok": true
+    },
+    {
+      "id": "INT-05 sessao orfa apos recarga e sinalizada, sem retomada nem envio automatico",
+      "ok": true
+    },
+    {
+      "id": "INT-06 resposta perdida: servidor armazena, cliente nao recebe; reenvio com os MESMOS ids vira 'duplicate'",
+      "ok": true
+    },
+    {
+      "id": "INT-07 duplicacao: duplo clique no relato gera 1 evento; reenvio da cadeia inteira e idempotente",
+      "ok": true
+    },
+    {
+      "id": "INT-08 dispensa: recusada com eventos nao confirmados; permitida (sem perda) quando tudo confirmado",
+      "ok": true
+    },
+    {
+      "id": "INT-09 aviso de perda ao fechar a aba visivel e traduzido PT/EN",
+      "ok": true
+    },
+    {
+      "id": "INT-10 isolamento: pendencias de B nao saem com sessao de outro; logout preserva o registro isolado; reautorizacao antes de enviar",
+      "ok": true
+    },
+    {
+      "id": "INT-11 conflito real: reenvio suspenso, cadeia nao reconstruida, nova sessao bloqueada",
+      "ok": true
+    },
+    {
+      "id": "INT-12 logout com series carregadas esvazia grafico, transicoes, sessoes, KPIs, evidencias e linha do tempo",
+      "ok": true
+    },
+    {
+      "id": "INT-13 logout durante leitura em voo nao repovoa a tela (resposta tardia)",
+      "ok": true
+    }
+  ]
+}

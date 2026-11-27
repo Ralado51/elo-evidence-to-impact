@@ -1,0 +1,6 @@
+PASS C1 carga de fatos do Alfa atrasada + troca para Beta: resposta tardia não preenche o contexto do Beta
+PASS C2 aprovação do Alfa em voo + troca para Beta: nada vaza para o Beta e o Alfa mantém a aprovação
+PASS C3 aprovar durante recarga de fatos: estado final reflete a aprovação (recarga repetida)
+PASS C4 aprovar → rejeitar → aprovar em sequência: estado final coerente, cada decisão gera uma revisão
+PASS C5 duas cargas sobrepostas do mesmo participante: vale a mais recente, sem duplicar itens
+ALL PASS

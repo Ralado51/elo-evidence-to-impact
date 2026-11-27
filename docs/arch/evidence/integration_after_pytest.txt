@@ -1,0 +1,4 @@
+api/tests/test_v3_session_rules.py:437: AssertionError
+=========================== short test summary info ============================
+FAILED api/tests/test_v3_session_rules.py::test_cl06_1_streams_fixtures_exact_parity
+1 failed, 524 passed, 1 skipped in 93.60s (0:01:33)

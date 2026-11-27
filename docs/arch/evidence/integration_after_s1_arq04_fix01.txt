@@ -1,0 +1,38 @@
+{
+  "phase": "arq04-fix01-blocking",
+  "passed": true,
+  "results": [
+    {
+      "id": "FIX42-01 prescription.publish: leitura secundaria tardia nao vaza para Beta (TH-11)",
+      "ok": true
+    },
+    {
+      "id": "FIX42-02 prescription.publish: leitura secundaria usa o participante de ORIGEM",
+      "ok": true
+    },
+    {
+      "id": "FIX41-01 avaliacao valida e depois tentativa sem data: feedback anterior substituido (UAT-01)",
+      "ok": true
+    },
+    {
+      "id": "FIX41-02 meta valida e depois tentativa invalida: superficies de resultado limpas",
+      "ok": true
+    },
+    {
+      "id": "I-01 unidade derivada (meta) traduzida; canonico preservado; sem escrita ao alternar idioma",
+      "ok": true
+    },
+    {
+      "id": "FIX44 meta historica com unidade fora do catalogo (cm): literal + marcador legado, nunca 'Nao informado'",
+      "ok": true
+    },
+    {
+      "id": "FIX43 / PA-02 logout limpa todas as superficies e leitura tardia nao repopula",
+      "ok": true
+    },
+    {
+      "id": "FIX43 terapeuta: logout limpa participante, listas e resultados",
+      "ok": true
+    }
+  ]
+}

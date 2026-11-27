@@ -1,0 +1,33 @@
+{
+  "passed": true,
+  "results": [
+    {
+      "id": "E01-D0 contexto limpo (sem localStorage): idioma padrão pt-BR em todas as páginas",
+      "ok": true
+    },
+    {
+      "id": "E01-D1 convite copiado: mensagem retraduzida EN→PT→EN; link e uso do convite preservados",
+      "ok": true
+    },
+    {
+      "id": "E01-D2 participante inexistente: erro retraduzido EN→PT→EN, sem requisição extra, campo preservado",
+      "ok": true
+    },
+    {
+      "id": "E01-D4 valor-padrão 'parcial' é amostra editável localizada; valor digitado é preservado",
+      "ok": true
+    },
+    {
+      "id": "E01-D1b convite usado após alternância de idioma",
+      "ok": true
+    },
+    {
+      "id": "E01-D3 painel: 'carregado' PT→EN→PT sem nova requisição; alias preservado",
+      "ok": true
+    },
+    {
+      "id": "E01-D5 (coberto em D1b)",
+      "ok": true
+    }
+  ]
+}
