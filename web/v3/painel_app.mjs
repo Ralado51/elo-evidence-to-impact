@@ -7,6 +7,7 @@
 
 import { announce } from "./a11y.mjs";
 import { createV3Client } from "./api_client.mjs";
+import { createContextStore } from "./context_store.mjs";
 import { describeApiError } from "./therapist_model.mjs";
 import { initI18n, t, tm, bindText, label as enumLabel, formatDateTime } from "./i18n.mjs";
 import { renderErrorTechnical } from "./ui_messages.mjs";
@@ -93,8 +94,12 @@ function el(tag, props = {}, children = []) {
   return node;
 }
 
-async function rawFetch(method, path, body) {
+// ARQ-04 / CMP-10: one store per page; the dashboard had no guard against late responses.
+const ctxStore = createContextStore();
+
+async function rawFetch(method, path, body, signal) {
   const res = await fetch(path, {
+    ...(signal ? { signal } : {}),
     method,
     headers: {
       Accept: "application/json",
@@ -288,7 +293,9 @@ async function runVerify(kind) {
   const level = exaggerated ? exaggeratedLevel(realLevel) : null;
   const proposal = proposalFromFact(fact, level);
   const claim = exaggerated ? exaggeratedSentence(idx + 1, level) : fact.rendered.text_ptbr;
+  const ticket = ctxStore.capture();
   const res = await rawFetch("POST", "/api/v3/facts/verify", proposal);
+  if (!ticket.isCurrent()) return; // verification result of a previous patient must not be shown on the current one
   const out = $("verify-output");
   out.hidden = false;
   $("verify-claim").textContent = claim;
@@ -344,16 +351,19 @@ async function openPatient(participantId) {
     return;
   }
   $("participant-id").value = id;
+  ctxStore.switchTo({ principalId: state.session?.principal?.id ?? null, role: "therapist", participantId: id });
+  const op = ctxStore.begin("open");
   try {
     const c = state.client;
     const [ent, goals, rx, facts, series, timeline] = await Promise.all([
-      rawFetch("GET", `/api/v3/entities/${encodeURIComponent(id)}/versions`),
-      c.listGoals(id),
-      c.getCurrentPrescription(id).catch(() => ({ data: null })),
-      c.listFacts(id),
-      c.getEvolutionSeries(id),
-      c.getTimeline(id),
+      rawFetch("GET", `/api/v3/entities/${encodeURIComponent(id)}/versions`, undefined, op.signal),
+      c.listGoals(id, { signal: op.signal }),
+      c.getCurrentPrescription(id, { signal: op.signal }).catch((e) => { if (e && e.code === "ABORTED") throw e; return { data: null }; }),
+      c.listFacts(id, {}, { signal: op.signal }),
+      c.getEvolutionSeries(id, {}, { signal: op.signal }),
+      c.getTimeline(id, { signal: op.signal }),
     ]);
+    if (!op.isCurrent()) return; // the last requested patient wins; a late response never repaints
     if (ent.status !== 200) throw { code: ent.data?.error?.code || "HTTP_ERROR", status: ent.status };
     const latest = ent.data[ent.data.length - 1];
     const alias = latest?.payload?.alias || t("pn.js.participant");
@@ -372,7 +382,9 @@ async function openPatient(participantId) {
     renderRecents();
     announce(tm("pn.js.loaded", { alias }));
   } catch (error) {
-    showError(error);
+    op.fail(error, showError);
+  } finally {
+    op.done();
   }
 }
 
@@ -382,6 +394,7 @@ async function onSignin(event) {
   try {
     const res = await state.client.loginTherapist($("signin-username").value.trim(), $("signin-password").value);
     state.session = { token: res.data.token, principal: res.data.principal, expires_at: res.data.expires_at };
+    ctxStore.switchTo({ principalId: res.data.principal.id, role: "therapist", participantId: null });
     saveSession(state.session);
     $("signin-password").value = "";
     afterSignin();
@@ -399,6 +412,7 @@ function afterSignin() {
 }
 
 function signOut() {
+  ctxStore.reset("logout"); // logout is a context boundary
   state.session = null;
   state.patient = null;
   try {

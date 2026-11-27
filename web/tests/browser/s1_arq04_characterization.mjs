@@ -71,9 +71,10 @@ async function lateWrite(name, patternRx, armBtn, prep, resultSel) {
   await switchTo(BETA);
   const before = { active: await activeId(), resultVisible: await vis(resultSel) };
   await h.release(); await settle(1200);
-  const after = { active: await activeId(), resultVisibleInBeta: await vis(resultSel), successBanner: await bannerOk(), errorBanner: await bannerErr() };
+  const bannerText = await t.evaluate(() => document.getElementById("success-banner-text")?.textContent || "");
+  const after = { active: await activeId(), resultVisibleInBeta: await vis(resultSel), successBanner: await bannerOk(), bannerText, errorBanner: await bannerErr() };
   await h.off();
-  obs[name] = { before, after, defect: after.resultVisibleInBeta || after.successBanner };
+  obs[name] = { before, after, defect: after.resultVisibleInBeta || /saved|salv|gravad|recorded|registr/i.test(after.bannerText) && !/active|ativo/i.test(after.bannerText) };
 }
 
 await check("C0-1 FX37.1 meta tardia (G-01)", async () => {

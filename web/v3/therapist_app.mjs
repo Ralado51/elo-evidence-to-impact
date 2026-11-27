@@ -14,6 +14,7 @@ import { renderErrorTechnical } from "./ui_messages.mjs";
 import { validateDateFields } from "./date_field.mjs";
 import { setFieldError } from "./field_error.mjs";
 import { violationFromApiError } from "./validation_registry.mjs";
+import { createContextStore } from "./context_store.mjs";
 import { loadCatalogs, instrumentEntries, instrumentFromSelection, instrumentViolations, doseViolations, buildItem, createDomainRegistry, goalTargetSpec, buildGoalTarget, goalTargetViolations, FIELD_FOR_PATH } from "./domain_fields.mjs";
 import { applyI18n, initI18n, t, tm, lref, bindText, label, formatDate, formatDateTime, formatIsoDate } from "./i18n.mjs";
 import {
@@ -124,9 +125,7 @@ export function initTherapistApp() {
     side: "right",
     factEntries: [],
     effectiveReviews: {},
-    ctxSeq: 0, // bumps on every participant change: late responses of a previous context are discarded
     reviewEpoch: 0, // bumps on every recorded review: a fact load that raced with it is repeated
-    factsLoadSeq: 0,
     evolutionSeries: [],
     evolutionNotices: [],
     evolutionContextChanges: {},
@@ -135,6 +134,9 @@ export function initTherapistApp() {
     timelineItems: [],
     listView: null,
   };
+  // ARQ-04 / CMP-10: one ContextStore replaces ctxSeq/factsLoadSeq. Reads are aborted/dropped, writes are never aborted.
+  const ctxStore = createContextStore();
+  ctxStore.switchTo({ principalId: state.session?.principal?.id ?? null, role: "therapist", participantId: null });
 
   const client = createV3Client({
     getToken: () => state.session?.token || null,
@@ -235,21 +237,31 @@ export function initTherapistApp() {
     });
     successBanner.appendChild(btn);
   }
-  async function cmd(rawFormId, send, onOk, signature) {
+  async function cmd(rawFormId, send, onOk, signature, { onOrphan } = {}) {
     const formId = slotOf(rawFormId);
     errorBanner.querySelector("#btn-cmd-new-intention")?.remove();
+    const ticket = ctxStore.capture(); // BEFORE the await: the write itself is never aborted (FIX-37.1)
     const out = await commands.run(formId, send, { signature });
     if (out.status === "ignored") return;
     if (out.status === "settled") {
-      announce(tm("th.js.cmd_settled"), { politeness: "polite" }); // same intention already fulfilled: no new record
+      if (ticket.isCurrent()) announce(tm("th.js.cmd_settled"), { politeness: "polite" }); // same intention already fulfilled: no new record
+      return;
+    }
+    if (!ticket.isCurrent()) {
+      // The context moved on while the write was in flight: never render here; reconcile for the participant it belongs to.
+      if (out.status === "error" && (out.error?.status === 401 || out.error?.code === "UNAUTHENTICATED")) { handleApiError(out.error); return; }
+      if (out.status === "ok") {
+        if (onOrphan) onOrphan(out.result, ticket.scope);
+        else ctxStore.addNotice(ticket.participantId, { kind: rawFormId });
+      } else ctxStore.addNotice(ticket.participantId, { kind: rawFormId, failed: true });
       return;
     }
     if (out.status === "ok") {
       try {
-        const r = await onOk(out.result);
+        const r = await onOk(out.result, ticket);
         if (r !== "stale") offerAnotherIntention(formId);
       } catch (err) {
-        handleApiError(err);
+        if (ticket.isCurrent()) handleApiError(err);
       }
       return;
     }
@@ -372,7 +384,7 @@ export function initTherapistApp() {
   function setActiveParticipant(participantId, alias = "", careLinkId = "", side = "") {
     const changed = state.participantId !== participantId;
     if (changed) {
-      state.ctxSeq += 1;
+      ctxStore.switchTo({ principalId: state.session?.principal?.id ?? null, role: "therapist", participantId });
       // Isolation between participants: nothing from the previous one may stay on screen or in memory.
       state.participantAlias = "";
       state.careLinkId = "";
@@ -417,6 +429,7 @@ export function initTherapistApp() {
     updateSessionBar();
     const inviteBtn = el("btn-create-invite");
     if (inviteBtn) inviteBtn.disabled = !participantId;
+    if (changed && participantId) deliverNotices(participantId);
     writeStoredContext(
       participantId
         ? { participantId, alias: state.participantAlias, careLinkId: state.careLinkId, side: state.side, therapistId: state.session?.principal?.id || "" }
@@ -481,16 +494,20 @@ export function initTherapistApp() {
       renderParticipantList([]);
       return [];
     }
+    const op = ctxStore.begin("list", { level: "principal" });
     try {
-      const res = await client.listParticipants(q);
+      const res = await client.listParticipants(q, { signal: op.signal });
+      if (!op.isCurrent()) return [];
       const items = res.data.participants || [];
       state.listView = { items, q, total: res.data.total };
       renderParticipantList(items);
       paintParticipantStatus();
       return items;
     } catch (err) {
-      handleApiError(err);
+      op.fail(err, handleApiError);
       return [];
+    } finally {
+      op.done();
     }
   }
 
@@ -507,6 +524,21 @@ export function initTherapistApp() {
       return;
     }
     setActiveParticipant(hit.participant_id, hit.alias, hit.care_link_id, hit.side);
+  }
+
+  // Reconciliation of writes that completed while another participant was active (FIX-37.1, D-ARQ4-02).
+  function deliverNotices(pid) {
+    const notes = ctxStore.takeNotices(pid);
+    if (!notes.length) return;
+    const failed = notes.filter((n) => n.failed).length;
+    const done = notes.filter((n) => !n.failed && n.kind !== "invite");
+    for (const n of notes) if (n.kind === "invite" && !n.failed) renderInviteBox(pid, n.alias, n.link, n.expiresAt);
+    if (done.length) {
+      showSuccess(tm("th.js.late_notice", { n: done.length }));
+      el("btn-load-timeline")?.click(); // reload the origin's readable data (read-only)
+    } else if (failed) {
+      showError("RESULT_UNCONFIRMED", tm("th.js.late_notice_failed", { n: failed }));
+    }
   }
 
   function updatePublishGates() {
@@ -647,10 +679,8 @@ export function initTherapistApp() {
       decision,
       note,
     };
-    const seq = state.ctxSeq;
     await cmd(`review:${entry.fact.fact_id}:${decision}`, (key) => client.recordReview(reviewBody, { idempotencyKey: key }), async (res) => {
       state.reviewEpoch += 1; // the ledger changed: any fact load still in flight must be repeated
-      if (seq !== state.ctxSeq) return "stale"; // recorded for its own participant; never touches the current context
       if (decision === "approve" || decision === "reject") {
         const live = state.factEntries.find((e) => e.fact.fact_id === entry.fact.fact_id) || entry;
         entry.effectiveReview = {
@@ -902,6 +932,7 @@ export function initTherapistApp() {
   // --- Event bindings ---
 
   btnSignout.addEventListener("click", () => {
+    ctxStore.reset("logout"); // logout is a context boundary: reads in flight are aborted, tickets invalidated, secrets destroyed
     state.session = null;
     writeStoredSession(null);
     writeStoredContext(null);
@@ -933,6 +964,7 @@ export function initTherapistApp() {
         principal: res.data.principal,
       };
       writeStoredSession(state.session);
+      ctxStore.switchTo({ principalId: res.data.principal.id, role: "therapist", participantId: null });
       updateSessionBar();
 
       renderBox("signin-result", (box) => {
@@ -987,7 +1019,12 @@ export function initTherapistApp() {
 
       showSuccess(tm("th.js.registered", { alias: ent.payload.alias }));
       refreshParticipantList("");
-    }, [alias, side]);
+    }, [alias, side], {
+      onOrphan: (res) => { // created while another participant became active: do not switch; the list shows it
+        showSuccess(tm("th.js.registered", { alias: res.data.payload.alias }));
+        refreshParticipantList("");
+      },
+    });
   });
 
   // Step 2b (support/advanced): select by identifier. The identifier must belong to the authorized list
@@ -1008,8 +1045,10 @@ export function initTherapistApp() {
       return;
     }
     selectBusy = true;
+    const op = ctxStore.begin("select", { level: "principal" });
     try {
-      const res = await client.listParticipants("");
+      const res = await client.listParticipants("", { signal: op.signal });
+      if (!op.isCurrent()) return;
       const hit = (res.data.participants || []).find((it) => it.participant_id === pid);
       if (!hit) {
         showError("NOT_FOUND", tm("err.NOT_FOUND"), "[NOT_FOUND] participant not in the authorized list");
@@ -1019,9 +1058,9 @@ export function initTherapistApp() {
       setActiveParticipant(hit.participant_id, hit.alias, hit.care_link_id, hit.side);
       showSuccess(tm("th.js.active_participant", { name: hit.alias }));
     } catch (err) {
-      restoreField();
-      handleApiError(err);
+      op.fail(err, (e) => { restoreField(); handleApiError(e); });
     } finally {
+      op.done();
       selectBusy = false;
     }
   });
@@ -1034,31 +1073,16 @@ export function initTherapistApp() {
 
   // Invite generation: one click, link ready to share (the code travels in the URL fragment, never in a query string).
   let inviteBusy = false;
-  el("btn-create-invite").addEventListener("click", async () => {
-    if (!requireAuth() || inviteBusy) return;
-    if (!state.participantId) {
-      showError("MISSING_FIELD", tm("th.js.invite_need_participant"));
-      return;
-    }
-    inviteBusy = true;
-    el("btn-create-invite").disabled = true;
-    try {
-      const ttl = Number(el("invite-ttl").value) || 3600;
-      const inv = await commands.singleFlightOnly("invite", () => client.createInvite(state.participantId, ttl));
-      if (inv.status === "ignored") return;
-      if (inv.status === "error") throw inv.error;
-      const res = inv.result;
-      const link = new URL("participant.html", window.location.href);
-      link.hash = `invite=${encodeURIComponent(res.data.invite_token)}`;
+  function renderInviteBox(pid, alias, link, expiresAt) {
       renderBox("invite-result", (box) => {
-        box.dataset.inviteFor = state.participantId;
-        const when = new Date(res.data.expires_at);
-        appendParagraph(box, t("th.js.invite_made", { name: state.participantAlias || t("th.js.the_participant"), when: formatDateTime(when) }));
+        box.dataset.inviteFor = pid;
+        const when = new Date(expiresAt);
+        appendParagraph(box, t("th.js.invite_made", { name: alias || t("th.js.the_participant"), when: formatDateTime(when) }));
         const input = document.createElement("input");
         input.type = "text";
         input.readOnly = true;
         input.id = "invite-link";
-        input.value = link.toString();
+        input.value = link;
         input.setAttribute("aria-label", t("th.js.invite_link_aria"));
         box.appendChild(input);
         const copy = document.createElement("button");
@@ -1078,9 +1102,36 @@ export function initTherapistApp() {
         });
         box.appendChild(copy);
       });
-      announce(tm("th.js.invite_done"));
+    announce(tm("th.js.invite_done"));
+  }
+
+  el("btn-create-invite").addEventListener("click", async () => {
+    if (!requireAuth() || inviteBusy) return;
+    if (!state.participantId) {
+      showError("MISSING_FIELD", tm("th.js.invite_need_participant"));
+      return;
+    }
+    const pid = state.participantId; // captured BEFORE the await (FIX-37.1: the invite belongs to this participant)
+    const alias = state.participantAlias;
+    const ticket = ctxStore.capture();
+    inviteBusy = true;
+    el("btn-create-invite").disabled = true;
+    try {
+      const ttl = Number(el("invite-ttl").value) || 3600;
+      const inv = await commands.singleFlightOnly("invite", () => client.createInvite(pid, ttl));
+      if (inv.status === "ignored") return;
+      if (inv.status === "error") throw inv.error;
+      const res = inv.result;
+      const link = new URL("participant.html", window.location.href);
+      link.hash = `invite=${encodeURIComponent(res.data.invite_token)}`;
+      if (!ticket.isCurrent()) {
+        // Single-use secret: never shown in the new context, never lost. Kept in memory for its own participant only (D-ARQ4-02).
+        ctxStore.addNotice(pid, { kind: "invite", link: link.toString(), expiresAt: res.data.expires_at, alias });
+        return;
+      }
+      renderInviteBox(pid, alias, link.toString(), res.data.expires_at);
     } catch (err) {
-      handleApiError(err);
+      if (ticket.isCurrent()) handleApiError(err);
     } finally {
       inviteBusy = false;
       el("btn-create-invite").disabled = !state.participantId;
@@ -1271,18 +1322,18 @@ export function initTherapistApp() {
   // Step 6: Load verified facts & resolve execution_mode from evidence
   el("btn-load-facts").addEventListener("click", async () => {
     if (!requireParticipant()) return;
-    const seq = state.ctxSeq;
-    const loadId = ++state.factsLoadSeq;
     const pid = state.participantId;
+    const op = ctxStore.begin("facts");
     try {
       let facts = [];
       let projected = null;
       let entries = [];
+      let settled = false;
       // Repeat while a review was recorded during the load (projection could predate it).
       for (let attempt = 0; attempt < 3; attempt += 1) {
         const epoch = state.reviewEpoch;
-        const res = await client.listFacts(pid, { includeReviews: true });
-        if (seq !== state.ctxSeq || loadId !== state.factsLoadSeq) return; // late response: discard
+        const res = await client.listFacts(pid, { includeReviews: true }, { signal: op.signal });
+        if (!op.isCurrent()) return; // late response: discard
         facts = Array.isArray(res.data?.facts) ? res.data.facts : [];
         // Eligibility is rebuilt from the server ledger projection on every load (no client-only truth).
         projected = res.data?.effective_reviews;
@@ -1295,8 +1346,8 @@ export function initTherapistApp() {
           const sid = fact.scope?.session_id || "";
           let executionMode = sessionModeCache.get(sid);
           if (!executionMode) {
-            const evRes = await client.getFactEvidence(fact.fact_id);
-            if (seq !== state.ctxSeq || loadId !== state.factsLoadSeq) return;
+            const evRes = await client.getFactEvidence(fact.fact_id, { signal: op.signal });
+            if (!op.isCurrent()) return;
             const evList = Array.isArray(evRes.data?.events) ? evRes.data.events : [];
             const startEv = evList.find((e) => e.type === "session.started") || evList[0];
             executionMode = startEv?.execution_mode || "report_only";
@@ -1311,9 +1362,10 @@ export function initTherapistApp() {
             draftNote: "",
           });
         }
-        if (seq !== state.ctxSeq || loadId !== state.factsLoadSeq) return;
+        if (!op.isCurrent()) return;
         state.effectiveReviews = reviews;
-        if (epoch === state.reviewEpoch) break;
+        settled = epoch === state.reviewEpoch;
+        if (settled) break;
       }
 
       state.factEntries = entries;
@@ -1330,9 +1382,13 @@ export function initTherapistApp() {
         summaryBox,
         t("th.js.facts_loaded_detail", { n: entries.length })
       );
-      showSuccess(tm("th.js.facts_loaded_detail", { n: entries.length }));
+      // FIX-37.4: when the attempts are exhausted the projection may predate a review: say so, never present it as current.
+      if (settled) showSuccess(tm("th.js.facts_loaded_detail", { n: entries.length }));
+      else showError("STALE_DATA", tm("th.js.facts_stale", { n: entries.length }));
     } catch (err) {
-      if (seq === state.ctxSeq) handleApiError(err); // errors of a previous context are not shown in the current one
+      op.fail(err, handleApiError); // errors of a previous context are not shown in the current one
+    } finally {
+      op.done();
     }
   });
 
@@ -1357,11 +1413,9 @@ export function initTherapistApp() {
       period: { from: periodFrom, to: periodTo },
       note_refs: [],
     };
-    const seq = state.ctxSeq;
-    await cmd("summary", (key) => client.publishSummary(summaryBody, { idempotencyKey: key }), async (pubRes) => {
-      if (seq !== state.ctxSeq) return "stale";
+    await cmd("summary", (key) => client.publishSummary(summaryBody, { idempotencyKey: key }), async (pubRes, ticket) => {
       const getRes = await client.getSummary(pubRes.data.summary_id);
-      if (seq !== state.ctxSeq) return "stale";
+      if (!ticket.isCurrent()) return "stale";
       state.publishedSummary = getRes.data;
       renderPublishedSummary(getRes.data);
       showSuccess(tm("th.js.summary_ok"));
@@ -1371,10 +1425,10 @@ export function initTherapistApp() {
   // Step 7b: Load comparable evolution series (cmp-v1)
   el("btn-load-evolution-series").addEventListener("click", async () => {
     if (!requireParticipant()) return;
+    const op = ctxStore.begin("series");
     try {
-      const seq = state.ctxSeq;
-      const res = await client.getEvolutionSeries(state.participantId);
-      if (seq !== state.ctxSeq) return;
+      const res = await client.getEvolutionSeries(state.participantId, {}, { signal: op.signal });
+      if (!op.isCurrent()) return;
       state.evolutionSeries = Array.isArray(res.data?.series) ? res.data.series : [];
       state.evolutionNotices = Array.isArray(res.data?.notices) ? res.data.notices : [];
       state.evolutionContextChanges = res.data?.context_changes || {};
@@ -1383,7 +1437,9 @@ export function initTherapistApp() {
       showSuccess(tm("th.js.series_loaded", { n: state.evolutionSeries.length })
       );
     } catch (err) {
-      handleApiError(err);
+      op.fail(err, handleApiError);
+    } finally {
+      op.done();
     }
   });
 
@@ -1412,11 +1468,9 @@ export function initTherapistApp() {
       period: { from: periodFrom, to: periodTo },
       series_keys: seriesKeys,
     };
-    const seq = state.ctxSeq;
-    await cmd("evolution", (key) => client.publishEvolution(evolutionBody, { idempotencyKey: key }), async (pubRes) => {
-      if (seq !== state.ctxSeq) return "stale";
+    await cmd("evolution", (key) => client.publishEvolution(evolutionBody, { idempotencyKey: key }), async (pubRes, ticket) => {
       const getRes = await client.getEvolution(pubRes.data.evolution_id);
-      if (seq !== state.ctxSeq) return "stale";
+      if (!ticket.isCurrent()) return "stale";
       state.publishedEvolution = getRes.data;
       renderPublishedEvolution(getRes.data);
       showSuccess(tm("th.js.evo_ok"));
@@ -1426,10 +1480,10 @@ export function initTherapistApp() {
   // Step 8: Load participant timeline
   el("btn-load-timeline").addEventListener("click", async () => {
     if (!requireParticipant()) return;
+    const op = ctxStore.begin("timeline");
     try {
-      const seq = state.ctxSeq;
-      const res = await client.getTimeline(state.participantId);
-      if (seq !== state.ctxSeq) return;
+      const res = await client.getTimeline(state.participantId, { signal: op.signal });
+      if (!op.isCurrent()) return;
       const items = Array.isArray(res.data?.items) ? res.data.items : [];
       state.timelineItems = items;
       renderTimeline(items);
@@ -1439,7 +1493,9 @@ export function initTherapistApp() {
       });
       showSuccess(tm("th.js.timeline_loaded", { n: items.length }));
     } catch (err) {
-      handleApiError(err);
+      op.fail(err, handleApiError);
+    } finally {
+      op.done();
     }
   });
 

@@ -9,6 +9,7 @@
  * - Single live region via a11y.mjs.
  */
 
+import { createContextStore } from "./context_store.mjs";
 import { announce } from "./a11y.mjs";
 import { createCommandController } from "./command_controller.mjs";
 import { createParticipantClient, ParticipantApiError } from "./participant_api.mjs";
@@ -104,6 +105,10 @@ export function initParticipantApp() {
     reportExecution: null,
     reportAssistance: null,
   };
+
+  // ARQ-04 / CMP-10: logout and sign-in are context boundaries; reads in flight never repaint another principal.
+  const ctxStore = createContextStore();
+  ctxStore.switchTo({ principalId: state.session?.principal?.id ?? null, role: "participant", participantId: null });
 
   const client = createParticipantClient({
     getToken: () => state.session?.token || null,
@@ -250,8 +255,10 @@ export function initParticipantApp() {
       status.textContent = t("pa.js.pub_signin");
       return;
     }
+    const op = ctxStore.begin("publications", { level: "principal" });
     try {
-      const res = await client.listPublications(state.session.principal.id);
+      const res = await client.listPublications(state.session.principal.id, { signal: op.signal });
+      if (!op.isCurrent()) return;
       const items = res.data.publications || [];
       status.textContent = items.length
         ? t("pa.js.pub_tap")
@@ -278,8 +285,10 @@ export function initParticipantApp() {
         li.appendChild(btn);
         list.appendChild(li);
       }
-    } catch {
-      status.textContent = t("pa.js.pub_fail");
+    } catch (err) {
+      op.fail(err, () => { status.textContent = t("pa.js.pub_fail"); });
+    } finally {
+      op.done();
     }
   }
 
@@ -550,11 +559,13 @@ export function initParticipantApp() {
   async function loadPlan() {
     if (!requireAuth()) return false;
     const pid = state.session.principal.id;
+    const op = ctxStore.begin("plan", { level: "principal" });
     try {
       const [rxRes, goalsRes] = await Promise.all([
-        client.getCurrentPrescription(pid),
-        client.listGoals(pid),
+        client.getCurrentPrescription(pid, { signal: op.signal }),
+        client.listGoals(pid, { signal: op.signal }),
       ]);
+      if (!op.isCurrent()) return false;
       state.prescription = rxRes.data;
       state.goals = Array.isArray(goalsRes.data) ? goalsRes.data : [];
       renderPrescription(state.prescription);
@@ -562,8 +573,10 @@ export function initParticipantApp() {
       showSuccess(tm("pa.js.plan_loaded"));
       return true;
     } catch (err) {
-      handleApiError(err);
+      op.fail(err, handleApiError);
       return false;
+    } finally {
+      op.done();
     }
   }
 
@@ -630,14 +643,20 @@ export function initParticipantApp() {
       showError("NOT_FOUND", tm("pa.js.need_sum_id"));
       return;
     }
+    const op = ctxStore.begin("summary", { level: "principal" });
     try {
-      const res = await client.getSummary(clean);
+      const res = await client.getSummary(clean, { signal: op.signal });
+      if (!op.isCurrent()) return;
       renderSummaryView(res.data);
       showSuccess(tm("pa.js.sum_loaded", { id: res.data.summary_id }));
     } catch (err) {
-      el("summary-view").hidden = true;
-      clearElement(el("summary-view"));
-      handleApiError(err);
+      op.fail(err, (e) => {
+        el("summary-view").hidden = true;
+        clearElement(el("summary-view"));
+        handleApiError(e);
+      });
+    } finally {
+      op.done();
     }
   }
 
@@ -648,20 +667,27 @@ export function initParticipantApp() {
       showError("NOT_FOUND", tm("pa.js.need_evo_id"));
       return;
     }
+    const op = ctxStore.begin("evolution", { level: "principal" });
     try {
-      const res = await client.getEvolution(clean);
+      const res = await client.getEvolution(clean, { signal: op.signal });
+      if (!op.isCurrent()) return;
       renderEvolutionView(res.data);
       showSuccess(tm("pa.js.evo_loaded"));
     } catch (err) {
-      el("evolution-view").hidden = true;
-      clearElement(el("evolution-view"));
-      handleApiError(err);
+      op.fail(err, (e) => {
+        el("evolution-view").hidden = true;
+        clearElement(el("evolution-view"));
+        handleApiError(e);
+      });
+    } finally {
+      op.done();
     }
   }
 
   // --- Event bindings ---
 
   btnSignout.addEventListener("click", () => {
+    ctxStore.reset("logout");
     boxBuilders.clear();
     state.session = null;
     state.prescription = null;
@@ -700,6 +726,7 @@ export function initParticipantApp() {
         principal: res.data.principal,
       };
       writeStoredSession(state.session);
+      ctxStore.switchTo({ principalId: res.data.principal.id, role: "participant", participantId: null });
       updateControlsState();
       loadPublications();
 
