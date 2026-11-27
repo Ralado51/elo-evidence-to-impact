@@ -8,7 +8,7 @@ Status: **preparação e análise somente**. Nenhuma branch foi integrada. A Eta
 | ARQ-04 FIX-01 | `demo/claude` | `7e93248de04f9003ba7b751ce95639d1ffecebef` | bundle local (SHA-256 `ecf471f1…72c83`) | gerado e verificado nesta sessão |
 | Design System v0.1 | `research/frontend-v3` | `8f83b5b` (1 commit sobre `b1e7a51`) | branch já local | ancestralidade confirmada |
 | ARQ-05 Core | `research/arq05-core` | `83ccf7dcc2bc34b0e1b1481422cd46249b83171b` | Drive `elo-arq05-core.bundle` | SHA-256 `cd7b29e8eb3528218f709423ef8b8b0c81c36b061f7d6fc1a8df0ed0dbc2519a` **confere** com o `.sha256` publicado; `git bundle verify` ok; head confere |
-| ARQ-06 Core | `research/arq06-core` | `fe4ec4f6c359d0c4903925969dabc927a8f4757e` | Drive `elo-arq06-core.bundle` | SHA-256 calculado `10c05d8cef3b9242c566bc0e585e7e22e020b40142fe5401ed6eb6ca478cff16` (**não há `.sha256` publicado para comparar**); `git bundle verify` ok; head confere |
+| ARQ-06 Core | `research/arq06-core` | `fe4ec4f6c359d0c4903925969dabc927a8f4757e` | Drive `elo-arq06-core.bundle` | SHA-256 calculado `10c05d8cef3b9242c566bc0e585e7e22e020b40142fe5401ed6eb6ca478cff16` (**confere** com o hash esperado informado pelo PO: `10c05d8c…78cff16`); `git bundle verify` ok; head confere |
 
 Ancestralidade: as três branches de pesquisa partem de `b1e7a51`, **não** do FIX-01 (`7e93248`); cada uma tem 1 commit próprio. Branches de origem preservadas sem alteração. Worktree `integration/s1-final` criada em `7e93248` (nenhum merge feito).
 
@@ -27,7 +27,7 @@ Merges de teste em árvore descartável (removida): DS, ARQ-05 e ARQ-06 em sequ�
 3. **Isolamento por principal**: o outbox deve ser criado só após autenticar e ser chaveado por organização/participante; o logout (`ctxStore.reset`) não pode apagar a pendência nem deixá-la visível a outro principal.
 4. **DS**: o painel e as telas ganham `ds-*` por atributo; a ordem proposta (DS primeiro) mantém o FIX-01 porque não há sobreposição, mas a suíte de navegador deve rodar com o DS ativo (seletores e `data-lang-option`).
 5. **Roteiro do Codex**: ainda não disponível nesta sessão; este documento deve ser reconciliado com ele quando chegar. Também **não** localizei relatórios do Gemini/Codex sobre o FIX-01 (necessários para o gate).
-6. `ARQ-06-Core.md` no Drive está vazio (0 bytes de conteúdo); o relatório do ARQ-06 foi lido pela rastreabilidade, matriz e plano.
+6. Relatório `ARQ-06-Core.md` lido na íntegra após atualização: 141/141 Node e 25/25 de backend dirigido na origem; homologação em navegador ficou fora; checkout Windows converteu catálogos para CRLF e quebrou a paridade binária (no ambiente Linux desta integração `sync_catalogs --check` passa).
 7. Limites declarados pelos próprios núcleos: ARQ-05 sem multiaba e só em `sessionStorage`; ARQ-06 não integra ARQ-05 e não cobre FIX-09/FIX-37 (login/logout) — o **requisito "autenticação, progresso e evidências" do passo 5 precisa ser definido** com as decisões abaixo.
 
 ## 4. Decisões que efetivamente bloqueiam a implementação (recomendações ao PO)
@@ -53,3 +53,10 @@ Não bloqueiam e ficam no backlog pós-entrega: D-ARQ5-07/08/09/11/13/14, ARQ06-
 5. Requisitos de autenticação, progresso e evidências conforme decisões 7–8.
 6. Homologação integrada: regressão completa + fluxos novos + evidência antes/depois, bundle e SHA.
 Restrições mantidas: contratos 3.0.0/3.1.0/3.2.0 congelados, sem regras clínicas, sem push/deploy, dados sintéticos, sem ARQ-08/09/10/S2.
+
+## 6. Revisão após a resposta do PO (sequência candidata)
+Sequência candidata: **1) Design System → 2) ARQ-06 Core independente → 3) ARQ-05 Core + ativação da recuperação de sessão → 4) requisitos obrigatórios restantes do S1 → 5) homologação integrada.** Substitui a ordem do plano da seção 5 (ARQ-06 passa a vir antes do ARQ-05). Observação técnica: a mudança é compatível, pois ARQ-05 e ARQ-06 não se sobrepõem em arquivos; ARQ-06 mexe em `painel_app`/`i18n_*` e ARQ-05 só adiciona `web/v3/arq05/`.
+
+Teste obrigatório adicional: **logout com listas de séries carregadas** (painel com ≥2 séries de assistência F04, transições e sessões por série renderizadas) deve esvaziar gráfico, transições, sessões, KPIs, evidências aprovadas, seletor de verificação e linha do tempo, sem repovoamento por resposta tardia, preservando todas as proteções do FIX-01 (`s1_arq04_fix01`, `s1_arq04_residual`, `s1_arq04_context`).
+
+Gate: Etapa 3 **continua bloqueada** até a homologação independente do FIX-01 e a ratificação formal das decisões 2–8 da seção 4. Nenhuma implementação adicional foi iniciada.
