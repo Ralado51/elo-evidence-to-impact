@@ -1,11 +1,12 @@
 # Dependências e licenças
 
-O inventário inicial de arquivos na conta, /tmp, /opt e /usr/share não localizou modelo ou runtime MediaPipe reutilizável. O usuário autorizou a obtenção neste mandato. Os artefatos foram baixados para diretório temporário, verificados por inventário e os arquivos de execução foram copiados para app/vendor/mediapipe, sem instalação global.
+O repositório e o bundle de release incluem o runtime MediaPipe, as variantes WASM SIMD e fallback e o modelo `hand_landmarker.task` em `web/s2/vendor/`. O navegador carrega esses arquivos pela mesma origem. Esses componentes de terceiros são distribuídos com o texto integral da Apache License, Version 2.0 em [LICENSE](LICENSE) e os avisos no [NOTICE](../../../NOTICE).
 
-| Dependência | Origem e licença | Tamanho e finalidade |
+| Dependência | Versão e licença | Origem |
 |---|---|---|
-| @mediapipe/tasks-vision 0.10.21 | Distribuição oficial Google no registro npm, Apache-2.0. [Tarball](https://registry.npmjs.org/@mediapipe/tasks-vision/-/tasks-vision-0.10.21.tgz) · [Licença upstream](https://github.com/google-ai-edge/mediapipe/blob/master/LICENSE) | 5,9 MiB comprimidos; cerca de 19 MiB locais incluindo WASM SIMD e fallback. |
-| Hand Landmarker float16 v1 | Artefato do Google AI Edge. A ficha da família Hand Tracking declara Apache-2.0; a ficha descreve a família e não é arquivo de licença interno do bundle. [Modelo oficial](https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task) · [Ficha da família](https://storage.googleapis.com/mediapipe-assets/Model%20Card%20Hand%20Tracking%20%28Lite_Full%29%20with%20Fairness%20Oct%202021.pdf) | 7,5 MiB, pesos locais de detecção e landmarks. |
-| Python 3 e Node.js | Ferramentas já presentes | Python serve arquivos estáticos. Node 24 executa testes, sem npm install. |
+| MediaPipe Tasks Vision | `@mediapipe/tasks-vision@0.10.21`, Apache-2.0 | [Pacote npm](https://registry.npmjs.org/@mediapipe/tasks-vision/-/tasks-vision-0.10.21.tgz) |
+| MediaPipe Hand Landmarker (Full) | float16 v1, Apache-2.0 | [Model Card do Google, p. 2](https://storage.googleapis.com/mediapipe-assets/Model%20Card%20Hand%20Tracking%20%28Lite_Full%29%20with%20Fairness%20Oct%202021.pdf#page=2) · [Modelo e procedência LiteRT](https://huggingface.co/litert-community/MediaPipe-HandLandmarker-Full) · [Arquivo e SHA-256 publicados](https://huggingface.co/litert-community/MediaPipe-HandLandmarker-Full/blob/main/hand_landmarker.task) |
 
-O diretório distribuído mede aproximadamente 27 MiB. O navegador carrega a variante WASM adequada, o módulo e o modelo pela mesma origem. A política de conteúdo impede conexões de aplicação com outras origens. A captura é ligada somente após ação explícita. [API Hand Landmarker](https://developers.google.com/edge/mediapipe/solutions/vision/hand_landmarker)
+SHA-256 verificado do modelo distribuído: `fbc2a30080c3c557093b5ddfc334698132eb341044ccee322ccf8bcf3607cde1`.
+
+Consulte o [registro de verificação](../../../docs/third-party/mediapipe-hand-landmarker.md) para a correspondência entre o arquivo distribuído e a revisão publicada pelo LiteRT.

@@ -1,5 +1,17 @@
 # Third-Party Licence Record — MediaPipe Hand Landmarker (`hand_landmarker.task`)
 
+## Release v1.0.1-mvp — verification completed on 2026-11-27
+
+The release includes Google's MediaPipe Hand Landmarker (Full), float16 v1, at `web/s2/vendor/hand_landmarker.task` and the `@mediapipe/tasks-vision@0.10.21` browser runtime under `web/s2/vendor/`. The model and runtime are distributed under Apache-2.0. The [full license text](../../web/s2/vendor/LICENSE) and [third-party notices](../../NOTICE) accompany them.
+
+- Page 2 of the [Google Hand Tracking Model Card](https://storage.googleapis.com/mediapipe-assets/Model%20Card%20Hand%20Tracking%20%28Lite_Full%29%20with%20Fairness%20Oct%202021.pdf#page=2) identifies the license as Apache License, Version 2.0.
+- The [Google AI Edge guide](https://developers.google.com/edge/mediapipe/solutions/vision/hand_landmarker) links to the [LiteRT Community model](https://huggingface.co/litert-community/MediaPipe-HandLandmarker-Full). Its provenance table identifies Google's float16 version 1 artifact and states that the mirrored binary is byte-identical. The [published file record](https://huggingface.co/litert-community/MediaPipe-HandLandmarker-Full/blob/main/hand_landmarker.task) identifies the artifact and lists its SHA-256.
+- The SHA-256 measured on the release file matches the published file record and the expected digest: `fbc2a30080c3c557093b5ddfc334698132eb341044ccee322ccf8bcf3607cde1`.
+
+This verification supersedes the conditional classification in the historical S0-06 record below. That record describes the sources and scope of the earlier review.
+
+## Historical S0-06 record
+
 Status: Verification record produced under `S0-06` (PO-F14, PO-F10 / PD-13). No model file, runtime package, or code is added or bundled by this task.
 
 ---
