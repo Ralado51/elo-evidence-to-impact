@@ -247,6 +247,17 @@ async function startGateway(apiBase) {
       return;
     }
 
+    if (pathname.startsWith("/s2/arq08/")) {
+      // S2: exact allowlist of ARQ-08 modules imported by the participant app (no camera.mjs, no tests, no counter.js)
+      const name = pathname.slice("/s2/arq08/".length);
+      const ok = ["activity_runner.mjs", "simulation_source.mjs", "capture_events.mjs", "protocol.mjs", "motion.mjs"].includes(name);
+      const fp = path.join(WEB_DIR, "s2", "arq08", name);
+      if (!ok || !fs.existsSync(fp)) { res.writeHead(404); res.end("Not found"); return; }
+      res.writeHead(200, { "content-type": "text/javascript; charset=utf-8" });
+      res.end(fs.readFileSync(fp));
+      return;
+    }
+
     if (pathname.startsWith("/v3/")) {
       const rel = pathname.slice("/v3/".length);
       const filePath = path.resolve(V3_DIR, rel);
@@ -616,6 +627,8 @@ function attachLoopbackGuardAndLog(context, allowedOrigin, browserRequests) {
 function assertParticipantRequestsValid(browserRequests, contractMatchers) {
   const calledRoutes = new Set();
   for (const req of browserRequests) {
+    // S2: exact authorized ARQ-08 modules (GET, same-origin static ES modules); every other non-v3 path stays forbidden.
+    if (req.method === "GET" && /^\/s2\/arq08\/(activity_runner|simulation_source|capture_events|protocol|motion)\.mjs$/.test(req.pathname)) continue;
     // Approved read-only index views (docs/PROPOSTA_API_CONSOLE.md): GET only, no record content.
     if (req.method === "GET" && /^\/api\/console\/v1\/participants(\/[^/]+\/publications)?$/.test(req.pathname)) continue;
     assert.equal(
