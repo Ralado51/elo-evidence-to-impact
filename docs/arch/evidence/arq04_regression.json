@@ -1,0 +1,15 @@
+{
+  "generated": "2026-11-27",
+  "data": "synthetic only",
+  "pytest": {"passed": 524, "skipped": 1, "failed": 1, "failed_test": "api/tests/test_v3_session_rules.py::test_cl06_1_streams_fixtures_exact_parity", "classification": "pre-existing / external (same result at the ARQ-03 accepted baseline)"},
+  "node_unit": {"tests": 137, "pass": 137, "fail": 0, "new": ["feedback.test.mjs (4)", "http_transport HT-06..08 (3)", "domain_fields legacyFindings + unit labels (2)"]},
+  "catalogs_parity": "in sync",
+  "browser_suites_isolated_one_at_a_time_demo_restarted": {
+    "s1_arq04_context (NEW, blocking, 9 assertions, 3 consecutive stable runs)": "pass",
+    "s1_arq04_i18n (NEW, blocking, 3 assertions)": "pass",
+    "s1_arq03_fix01": "pass", "s1_arq03_domain": "pass",
+    "s1_arq02_fix01": "pass", "s1_arq02_fix03": "pass", "s1_arq02_fix03b_concurrency": "pass", "s1_arq02_commands": "pass",
+    "s1_arq01_dates": "pass", "s1_corr_ae": "pass", "s1_corr_e01": "pass", "s1_corr_e02e03": "pass", "s1_stab_a": "pass", "s1_stab_e": "pass",
+    "therapist_journey": "pass", "participant_journey": "pass", "e2e_journey": "pass"
+  }
+}
