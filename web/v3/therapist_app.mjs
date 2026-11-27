@@ -1,3 +1,4 @@
+import { mountAssistedDraft } from "./assistance/assisted_draft.mjs";
 /**
  * Elo v3 — Therapist journey browser controller (S1-03).
  *
@@ -404,7 +405,11 @@ export function initTherapistApp() {
     build(box);
   }
 
+  const draftPreview = new URLSearchParams(location.search).get("s4") === "1"
+    ? mountAssistedDraft(el("assisted-draft")) : null;
+
   function setActiveParticipant(participantId, alias = "", careLinkId = "", side = "") {
+    draftPreview?.setContext(state.session?.token ? participantId : "");
     const changed = state.participantId !== participantId;
     if (changed) {
       ctxStore.switchTo({ principalId: state.session?.principal?.id ?? null, role: "therapist", participantId });
