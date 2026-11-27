@@ -99,7 +99,7 @@ const SHOT = process.env.MESA_SHOTS || "";
 const shot = async (p, name) => { if (SHOT) await p.locator("#activity-panel").screenshot({ path: `${SHOT}/${name}.png` }); };
 const hand = (p, s) => p.evaluate((v) => { window.__hand = v; }, s);
 
-await check("MESA-01 motor c04-hand-1: calibracao, contagem, dose e ledger (algorithm_version c04-hand-1, modo camera)", async () => {
+await check("MESA-01 motor c04-hand-1: calibracao, contagem, dose e ledger (algorithm_version c04-hand-1-elo-cycle-1, modo camera)", async () => {
   const pa = await open(A, await newCtx());
   await pa.evaluate(() => { window.__hand = "none"; });
   await pa.check("#act-camera-consent");
@@ -124,7 +124,7 @@ await check("MESA-01 motor c04-hand-1: calibracao, contagem, dose e ledger (algo
   const s = await session(pa, A);
   const cycles = s.events.filter((e) => e.type === "cycle.accepted");
   assert.equal(cycles.length, 2, s.events.map((e) => e.type).join());
-  assert.ok(s.events.every((e) => e.source?.algorithm_version === "c04-hand-1" || e.type === "report.submitted"), "algorithm_version pinned");
+  assert.ok(s.events.every((e) => e.source?.algorithm_version === "c04-hand-1-elo-cycle-1" || e.type === "report.submitted"), "algorithm_version pinned");
   assert.ok(s.events.every((e) => e.execution_mode === "camera" && e.data_origin === "experimental_capture" && /^[0-9a-f]{64}$/.test(e.origin_ref)));
   assert.equal(s.events.filter((e) => e.type === "cycle.accepted").length + s.events.filter((e) => e.type === "cycle.rejected").length, cycles.length);
   assert.ok(s.events.some((e) => e.type === "calibration.applied"));

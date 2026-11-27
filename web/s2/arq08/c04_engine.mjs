@@ -1,11 +1,14 @@
-// Movement engine `c04-hand-1`, recovered from elo-research-lab/experiments/elo-integrated-demo/app/movement.mjs (measurement, quality guards,
+// Movement engine derived from `c04-hand-1` (integrated variant `c04-hand-1-elo-cycle-1`), recovered from elo-research-lab/experiments/elo-integrated-demo/app/movement.mjs (measurement, quality guards,
 // calibration stability checks, state machine). Nothing here stores or transmits frames: only derived numbers leave the detector.
 //
 // Integration rule (PO: no double counting, no silent change of the repetition definition):
 //  - the measurement, guards and calibration checks below feed the existing Elo motion core through `c04Protocol`;
 //  - the ledger counts with the Elo definition (cycle = open -> closed -> open, counted on return to open);
 //  - `ReferenceGesture` (the original state machine, counted on closing) is kept for comparison tests ONLY and is never wired to the ledger.
-export const ALGORITHM_VERSION = "c04-hand-1";
+export const ORIGIN_ALGORITHM = "c04-hand-1"; // algorithm of origin (research lab)
+// Own identifier of the integrated variant: same measurement, guards and thresholds, but Elo cycle definition (open -> closed -> open) and
+// without the original temporal windows (3 samples/125 ms per zone, 180 ms armed->closed). PO decision 2026-11-27.
+export const ALGORITHM_VERSION = "c04-hand-1-elo-cycle-1";
 export const METHOD = "world_tip_distance_over_palm_length_median";
 export const MIN_SPAN = 0.22; // same value as the v3 calibration contract
 export const OPEN_AT = 0.72;
