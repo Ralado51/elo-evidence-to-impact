@@ -1,3 +1,4 @@
+import { performRequest } from "./http_transport.mjs";
 /**
  * Elo v3 — Participant HTTP client strictly constrained to participant-allowed
  * /api/v3 contract routes (ACCEPTANCE Row 2, Row 3, Row 9, Row 12).
@@ -117,59 +118,16 @@ export function createParticipantClient(options = {}) {
       headers.Authorization = `Bearer ${token}`;
     }
 
-    let response;
-    try {
-      response = await fetchImpl(`${baseUrl}${path}`, {
-        method,
-        headers,
-        body: reqOptions.body !== undefined ? JSON.stringify(reqOptions.body) : undefined,
-      });
-    } catch (err) {
-      throw new ParticipantApiError({
-        code: "NETWORK_ERROR",
-        status: 0,
-        message: err instanceof Error ? err.message : "Network request failed.",
-      });
-    }
-
-    let data = null;
-    const contentType = response.headers.get("content-type") || "";
-    if (contentType.includes("application/json")) {
-      try {
-        data = await response.json();
-      } catch {
-        data = null;
-      }
-    }
-
-    if (!response.ok) {
-      const errObj = data && typeof data === "object" && data.error ? data.error : null;
-      const code =
-        (errObj && typeof errObj.code === "string" && errObj.code) ||
-        (response.status === 401
-          ? "UNAUTHENTICATED"
-          : response.status === 403
-            ? "FORBIDDEN"
-            : response.status === 404
-              ? "NOT_FOUND"
-              : "HTTP_ERROR");
-      const message =
-        (errObj && typeof errObj.message === "string" && errObj.message) ||
-        `HTTP ${response.status}`;
-      throw new ParticipantApiError({
-        code,
-        status: response.status,
-        message,
-        details: errObj?.details ?? null,
-      });
-    }
-
-    return {
-      endpointId,
-      status: response.status,
-      headers: response.headers,
-      data,
-    };
+    const out = await performRequest({
+      fetchImpl,
+      url: `${baseUrl}${path}`,
+      method,
+      headers,
+      body: reqOptions.body,
+      signal: reqOptions.signal,
+      makeError: (info) => new ParticipantApiError(info),
+    });
+    return { endpointId, status: out.status, headers: out.headers, data: out.data };
   }
 
   return {
@@ -179,16 +137,18 @@ export function createParticipantClient(options = {}) {
         body: { invite_token: inviteToken },
       });
     },
-    getCurrentPrescription(participantId) {
+    getCurrentPrescription(participantId, opts = {}) {
       return request(
         "GET",
-        `/api/v3/participants/${encodeURIComponent(participantId)}/prescription/current`
+        `/api/v3/participants/${encodeURIComponent(participantId)}/prescription/current`,
+        { signal: opts.signal }
       );
     },
-    listGoals(participantId) {
+    listGoals(participantId, opts = {}) {
       return request(
         "GET",
-        `/api/v3/participants/${encodeURIComponent(participantId)}/goals`
+        `/api/v3/participants/${encodeURIComponent(participantId)}/goals`,
+        { signal: opts.signal }
       );
     },
     async postEventsBatch(events) {
@@ -210,14 +170,14 @@ export function createParticipantClient(options = {}) {
       }
       return res;
     },
-    listPublications(participantId) {
-      return request("GET", `/api/console/v1/participants/${encodeURIComponent(participantId)}/publications`);
+    listPublications(participantId, opts = {}) {
+      return request("GET", `/api/console/v1/participants/${encodeURIComponent(participantId)}/publications`, { signal: opts.signal });
     },
-    getSummary(summaryId) {
-      return request("GET", `/api/v3/summaries/${encodeURIComponent(summaryId)}`);
+    getSummary(summaryId, opts = {}) {
+      return request("GET", `/api/v3/summaries/${encodeURIComponent(summaryId)}`, { signal: opts.signal });
     },
-    getEvolution(evolutionId) {
-      return request("GET", `/api/v3/evolution/${encodeURIComponent(evolutionId)}`);
+    getEvolution(evolutionId, opts = {}) {
+      return request("GET", `/api/v3/evolution/${encodeURIComponent(evolutionId)}`, { signal: opts.signal });
     },
   };
 }

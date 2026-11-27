@@ -1,3 +1,4 @@
+import { performRequest } from "./http_transport.mjs";
 /**
  * Elo v3 — Typed HTTP client strictly constrained to /api/v3 contract routes.
  *
@@ -108,59 +109,16 @@ export function createV3Client(options = {}) {
       headers.Authorization = `Bearer ${token}`;
     }
 
-    let response;
-    try {
-      response = await fetchImpl(`${baseUrl}${path}`, {
-        method,
-        headers,
-        body: reqOptions.body !== undefined ? JSON.stringify(reqOptions.body) : undefined,
-      });
-    } catch (err) {
-      throw new V3ApiError({
-        code: "NETWORK_ERROR",
-        status: 0,
-        message: err instanceof Error ? err.message : "Network request failed.",
-      });
-    }
-
-    let data = null;
-    const contentType = response.headers.get("content-type") || "";
-    if (contentType.includes("application/json")) {
-      try {
-        data = await response.json();
-      } catch {
-        data = null;
-      }
-    }
-
-    if (!response.ok) {
-      const errObj = data && typeof data === "object" && data.error ? data.error : null;
-      const code =
-        (errObj && typeof errObj.code === "string" && errObj.code) ||
-        (response.status === 401
-          ? "UNAUTHENTICATED"
-          : response.status === 403
-            ? "FORBIDDEN"
-            : response.status === 404
-              ? "NOT_FOUND"
-              : "HTTP_ERROR");
-      const message =
-        (errObj && typeof errObj.message === "string" && errObj.message) ||
-        `HTTP ${response.status}`;
-      throw new V3ApiError({
-        code,
-        status: response.status,
-        message,
-        details: errObj?.details ?? null,
-      });
-    }
-
-    return {
-      endpointId,
-      status: response.status,
-      headers: response.headers,
-      data,
-    };
+    const out = await performRequest({
+      fetchImpl,
+      url: `${baseUrl}${path}`,
+      method,
+      headers,
+      body: reqOptions.body,
+      signal: reqOptions.signal,
+      makeError: (info) => new V3ApiError(info),
+    });
+    return { endpointId, status: out.status, headers: out.headers, data: out.data };
   }
 
   return {
@@ -173,12 +131,12 @@ export function createV3Client(options = {}) {
         body: { username, password },
       });
     },
-    listParticipants(q = "") {
+    listParticipants(q = "", opts = {}) {
       const qs = q ? `?q=${encodeURIComponent(q)}` : "";
-      return request("GET", `/api/console/v1/participants${qs}`, { console: true });
+      return request("GET", `/api/console/v1/participants${qs}`, { console: true, signal: opts.signal });
     },
-    listPublications(participantId) {
-      return request("GET", `/api/console/v1/participants/${encodeURIComponent(participantId)}/publications`, { console: true });
+    listPublications(participantId, opts = {}) {
+      return request("GET", `/api/console/v1/participants/${encodeURIComponent(participantId)}/publications`, { console: true, signal: opts.signal });
     },
     createInvite(participantId, ttlSeconds = 3600) {
       return request("POST", "/api/v3/invites", { body: { participant_id: participantId, ttl_seconds: ttlSeconds } });
@@ -195,8 +153,8 @@ export function createV3Client(options = {}) {
         idempotencyKey: opts.idempotencyKey,
       });
     },
-    listAssessments(participantId) {
-      return request("GET", `/api/v3/participants/${encodeURIComponent(participantId)}/assessments`);
+    listAssessments(participantId, opts = {}) {
+      return request("GET", `/api/v3/participants/${encodeURIComponent(participantId)}/assessments`, { signal: opts.signal });
     },
     createGoal(participantId, payload, opts = {}) {
       return request("POST", `/api/v3/participants/${encodeURIComponent(participantId)}/goals`, {
@@ -204,8 +162,8 @@ export function createV3Client(options = {}) {
         idempotencyKey: opts.idempotencyKey,
       });
     },
-    listGoals(participantId) {
-      return request("GET", `/api/v3/participants/${encodeURIComponent(participantId)}/goals`);
+    listGoals(participantId, opts = {}) {
+      return request("GET", `/api/v3/participants/${encodeURIComponent(participantId)}/goals`, { signal: opts.signal });
     },
     publishPrescription(draft, opts = {}) {
       return request("POST", "/api/v3/prescriptions", {
@@ -213,22 +171,23 @@ export function createV3Client(options = {}) {
         idempotencyKey: opts.idempotencyKey,
       });
     },
-    getCurrentPrescription(participantId) {
+    getCurrentPrescription(participantId, opts = {}) {
       return request(
         "GET",
-        `/api/v3/participants/${encodeURIComponent(participantId)}/prescription/current`
+        `/api/v3/participants/${encodeURIComponent(participantId)}/prescription/current`,
+        { signal: opts.signal }
       );
     },
-    listFacts(participantId, range = {}) {
+    listFacts(participantId, range = {}, opts = {}) {
       const qs = new URLSearchParams();
       if (range.from) qs.set("from", range.from);
       if (range.to) qs.set("to", range.to);
       if (range.includeReviews) qs.set("include", "reviews");
       const suffix = qs.toString() ? `?${qs.toString()}` : "";
-      return request("GET", `/api/v3/participants/${encodeURIComponent(participantId)}/facts${suffix}`);
+      return request("GET", `/api/v3/participants/${encodeURIComponent(participantId)}/facts${suffix}`, { signal: opts.signal });
     },
-    getFactEvidence(factId) {
-      return request("GET", `/api/v3/facts/${encodeURIComponent(factId)}/evidence`);
+    getFactEvidence(factId, opts = {}) {
+      return request("GET", `/api/v3/facts/${encodeURIComponent(factId)}/evidence`, { signal: opts.signal });
     },
     recordReview(payload, opts = {}) {
       return request("POST", "/api/v3/reviews", {
@@ -242,17 +201,18 @@ export function createV3Client(options = {}) {
         idempotencyKey: opts.idempotencyKey,
       });
     },
-    getSummary(summaryId) {
-      return request("GET", `/api/v3/summaries/${encodeURIComponent(summaryId)}`);
+    getSummary(summaryId, opts = {}) {
+      return request("GET", `/api/v3/summaries/${encodeURIComponent(summaryId)}`, { signal: opts.signal });
     },
-    getEvolutionSeries(participantId, range = {}) {
+    getEvolutionSeries(participantId, range = {}, opts = {}) {
       const qs = new URLSearchParams();
       if (range.from) qs.set("from", range.from);
       if (range.to) qs.set("to", range.to);
       const suffix = qs.toString() ? `?${qs.toString()}` : "";
       return request(
         "GET",
-        `/api/v3/participants/${encodeURIComponent(participantId)}/evolution/series${suffix}`
+        `/api/v3/participants/${encodeURIComponent(participantId)}/evolution/series${suffix}`,
+        { signal: opts.signal }
       );
     },
     publishEvolution(payload, opts = {}) {
@@ -261,11 +221,11 @@ export function createV3Client(options = {}) {
         idempotencyKey: opts.idempotencyKey,
       });
     },
-    getEvolution(evolutionId) {
-      return request("GET", `/api/v3/evolution/${encodeURIComponent(evolutionId)}`);
+    getEvolution(evolutionId, opts = {}) {
+      return request("GET", `/api/v3/evolution/${encodeURIComponent(evolutionId)}`, { signal: opts.signal });
     },
-    getTimeline(participantId) {
-      return request("GET", `/api/v3/participants/${encodeURIComponent(participantId)}/timeline`);
+    getTimeline(participantId, opts = {}) {
+      return request("GET", `/api/v3/participants/${encodeURIComponent(participantId)}/timeline`, { signal: opts.signal });
     },
   };
 }
