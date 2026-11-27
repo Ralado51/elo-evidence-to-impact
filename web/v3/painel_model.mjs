@@ -5,6 +5,7 @@
  */
 
 import { t, label } from "./i18n.mjs";
+import { hashCanonical } from "./canonical.mjs";
 
 const mkLevel = (rank, value) =>
   Object.freeze({
@@ -30,38 +31,69 @@ export function describeVerifyFailure(code) {
   return VERIFY_CODES.includes(code) ? t(`pn.verify.${code}`) : t("pn.verify.default");
 }
 
-/** Ordered chain (one entry per session) taken from the approved comparable F04 series. */
-export function chainFromSeries(seriesResponse) {
-  const all = Array.isArray(seriesResponse?.series) ? seriesResponse.series : [];
-  const f4 = all.find((s) => s?.series_key?.fact_type === "F04");
-  if (!f4 || !Array.isArray(f4.items)) return [];
-  return f4.items
-    .map((it) => ({ factId: it.fact_id, level: it?.context?.assistance_level, date: it.session_date_local }))
-    .filter((c) => Object.prototype.hasOwnProperty.call(ASSISTANCE_LEVELS, c.level));
-}
+/**
+ * Project each approved F04 series separately. Execution is optional and must
+ * be approved for the same session and content version.
+ */
+export async function assistanceSeries(seriesResponse, facts) {
+  const all = (seriesResponse?.series ?? []).filter(({ series_key }) =>
+    series_key.fact_type === "F03" || series_key.fact_type === "F04"
+  );
+  const factsById = new Map(facts.map((fact) => [fact.fact_id, fact]));
+  const approved = new Map();
+  await Promise.all(all.flatMap((series) => series.items.map(async (item) => {
+    const fact = factsById.get(item.fact_id);
+    if (fact?.type === series.series_key.fact_type &&
+        fact.scope?.participant_id === series.series_key.participant_id &&
+        fact.scope.session_id && await hashCanonical(fact) === item.content_hash) {
+      approved.set(item.fact_id, fact);
+    }
+  })));
 
-/** Direction between consecutive sessions, derived only from the chain. */
-export function transitionsFromChain(chain) {
-  const out = [];
-  for (let i = 1; i < chain.length; i += 1) {
-    const a = ASSISTANCE_LEVELS[chain[i - 1].level].rank;
-    const b = ASSISTANCE_LEVELS[chain[i].level].rank;
-    out.push({
-      from: i,
-      to: i + 1,
-      direction: b < a ? "less_help_reported" : b > a ? "more_help_reported" : "unchanged",
-    });
+  const executions = new Map();
+  for (const series of all.filter(({ series_key }) => series_key.fact_type === "F03")) {
+    for (const item of series.items) {
+      const fact = approved.get(item.fact_id);
+      if (!fact) continue;
+      const key = sessionKey(fact);
+      executions.set(key, executions.has(key) ? "unreported" : fact.params?.execution ?? "unreported");
+    }
   }
-  return out;
+
+  const series = all.filter(({ series_key }) => series_key.fact_type === "F04").map((series) => {
+    const chain = series.items
+      .map((item) => {
+        const fact = approved.get(item.fact_id);
+        return {
+          factId: item.fact_id,
+          level: item.context.assistance_level,
+          date: item.session_date_local,
+          execution: fact ? executions.get(sessionKey(fact)) ?? "unreported" : "unreported",
+        };
+      })
+      .filter(({ level }) => Object.hasOwn(ASSISTANCE_LEVELS, level));
+    const positions = new Map(chain.map((item, index) => [item.factId, index + 1]));
+    const transitions = [];
+    for (const change of seriesResponse.context_changes?.[series.series_key_hash] ?? []) {
+      const from = positions.get(change.from_fact_id);
+      const to = positions.get(change.to_fact_id);
+      if (change.dimension !== "assistance_level" || from === undefined || to !== from + 1) continue;
+      const previous = ASSISTANCE_LEVELS[chain[from - 1].level].rank;
+      const current = ASSISTANCE_LEVELS[chain[to - 1].level].rank;
+      if (previous === current) continue;
+      transitions.push({ from, to, direction: current < previous ? "less_help_reported" : "more_help_reported" });
+    }
+    const splitKeys = (seriesResponse.notices ?? [])
+      .filter((notice) => notice.kind === "series_split" && notice.series_key_hashes.includes(series.series_key_hash))
+      .flatMap((notice) => notice.differing_keys);
+    return { chain, transitions, splitKeys: [...new Set(splitKeys)] };
+  });
+  return { series, approvedIds: new Set(approved.keys()) };
 }
 
-/** Execution category (F03) per session, aligned to the chain order via the F03 series. */
-export function executionBySession(seriesResponse, facts) {
-  const all = Array.isArray(seriesResponse?.series) ? seriesResponse.series : [];
-  const f3 = all.find((s) => s?.series_key?.fact_type === "F03");
-  if (!f3 || !Array.isArray(f3.items)) return [];
-  const byId = new Map((Array.isArray(facts) ? facts : []).map((f) => [f.fact_id, f]));
-  return f3.items.map((it) => byId.get(it.fact_id)?.params?.execution ?? "unreported");
+function sessionKey(fact) {
+  const { org_id, participant_id, session_id, prescription_id, prescription_revision } = fact.scope;
+  return JSON.stringify([org_id, participant_id, session_id, prescription_id, prescription_revision]);
 }
 
 /** Counts and latest values for the KPI cards, from the facts list. */
@@ -83,18 +115,14 @@ export function computeKpis(facts, chain) {
   };
 }
 
-/** Plain-language headline that only states what the published chain supports. */
-export function headline(chain) {
-  if (chain.length < 2) {
-    return t("pn.headline.few");
-  }
-  const a = ASSISTANCE_LEVELS[chain[0].level];
-  const b = ASSISTANCE_LEVELS[chain[chain.length - 1].level];
-  if (!a || !b) return t("pn.headline.published");
-  if (a.rank === b.rank) {
-    return t("pn.headline.same", { level: b.label.toLowerCase(), n: chain.length });
-  }
-  return t(b.rank < a.rank ? "pn.headline.down" : "pn.headline.up", { from: a.label.toLowerCase(), to: b.label.toLowerCase(), n: chain.length });
+/** Summarize only changes reported by the authorized server projection. */
+export function headline(series) {
+  const changes = series.flatMap((entry) => entry.transitions);
+  const more = changes.filter((change) => change.direction === "more_help_reported").length;
+  const less = changes.length - more;
+  return changes.length
+    ? t("pn.headline.changes", { more, less })
+    : t("pn.headline.no_confirmed_changes");
 }
 
 /**

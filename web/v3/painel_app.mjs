@@ -16,16 +16,14 @@ import { renderErrorTechnical } from "./ui_messages.mjs";
 import {
   ASSISTANCE_LEVELS,
   executionLabel,
-  chainFromSeries,
+  assistanceSeries,
   chartGeometry,
   computeKpis,
   describeVerifyFailure,
   exaggeratedLevel,
   exaggeratedSentence,
-  executionBySession,
   headline,
   proposalFromFact,
-  transitionsFromChain,
 } from "./painel_model.mjs";
 
 const SESSION_KEY = "elo_v3_therapist_session";
@@ -169,13 +167,10 @@ function svg(tag, attrs = {}) {
   return node;
 }
 
-function renderChart(chain, executions) {
-  const host = $("evolution-chart");
-  host.replaceChildren();
+function renderChart(host, { chain, transitions }) {
   if (chain.length === 0) {
     host.append(el("p", { class: "elo-muted", text: t("pn.js.no_chart") }));
-    $("evolution-chart-desc").textContent = "";
-    return;
+    return "";
   }
   const g = chartGeometry(chain);
   const root = svg("svg", { viewBox: `0 0 ${g.width} ${g.height}`, "aria-hidden": "true", focusable: "false" });
@@ -186,12 +181,11 @@ function renderChart(chain, executions) {
     ax.textContent = ASSISTANCE_LEVELS[lvl].label;
     root.append(ax);
   }
-  root.append(
-    svg("polyline", {
-      class: "series-line",
-      points: g.points.map((p) => `${p.x},${p.y}`).join(" "),
-    })
-  );
+  for (const { from, to } of transitions) {
+    const a = g.points[from - 1];
+    const b = g.points[to - 1];
+    root.append(svg("line", { class: "series-line", x1: a.x, y1: a.y, x2: b.x, y2: b.y }));
+  }
   for (const p of g.points) {
     const shape = p.level === "none" ? "rect" : "circle";
     const common = { class: `pt pt-${p.level}` };
@@ -204,21 +198,18 @@ function renderChart(chain, executions) {
     tx.textContent = t("pn.js.session_n", { n: p.index });
     root.append(tx);
     const ex = svg("text", { class: "tick-label", x: p.x, y: g.height - 10, "text-anchor": "middle" });
-    ex.textContent = executions[p.index - 1] ? executionLabel(executions[p.index - 1]) : "";
+    ex.textContent = executionLabel(chain[p.index - 1].execution);
     root.append(ex);
   }
   host.append(root);
   const levelsText = chain
-    .map((c, i) => t("pn.js.chart_item", { n: i + 1, level: ASSISTANCE_LEVELS[c.level].label.toLowerCase() }))
+    .map((c, i) => t("pn.js.chart_item", { n: i + 1, level: ASSISTANCE_LEVELS[c.level].label.toLowerCase() }) + " · " + executionLabel(c.execution))
     .join("; ");
-  $("evolution-chart-desc").textContent = t("pn.js.chart_desc", { items: levelsText });
-  host.setAttribute("aria-label", $("evolution-chart-desc").textContent);
+  return t("pn.js.chart_desc", { items: levelsText });
 }
 
-function renderTransitions(chain) {
-  const ul = $("transition-list");
-  ul.replaceChildren();
-  for (const tr of transitionsFromChain(chain)) {
+function renderTransitions(ul, transitions) {
+  for (const tr of transitions) {
     const arrow = tr.direction === "less_help_reported" ? "↓ " : tr.direction === "more_help_reported" ? "↑ " : "= ";
     const text = arrow + enumLabel("transition", tr.direction).toLowerCase();
     const cls = tr.direction === "less_help_reported" ? "chip chip-good" : tr.direction === "more_help_reported" ? "chip chip-warn" : "chip chip-same";
@@ -226,11 +217,9 @@ function renderTransitions(chain) {
   }
 }
 
-function renderSessions(chain, executions) {
-  const ol = $("session-list");
-  ol.replaceChildren();
+function renderSessions(ol, chain) {
   chain.forEach((c, i) => {
-    const exec = executionLabel(executions[i] || "unreported");
+    const exec = executionLabel(c.execution);
     ol.append(
       el("li", { class: "session-row" }, [
         el("span", { class: "session-n", text: t("pn.js.session_n", { n: i + 1 }) }),
@@ -240,6 +229,36 @@ function renderSessions(chain, executions) {
     );
   });
   if (chain.length === 0) ol.append(el("li", { class: "elo-muted", text: t("pn.js.no_sessions") }));
+}
+
+function renderAssistance(series) {
+  const chart = $("evolution-chart");
+  const transitionList = $("transition-list");
+  const sessionList = $("session-list");
+  chart.replaceChildren();
+  transitionList.replaceChildren();
+  sessionList.replaceChildren();
+  const descriptions = [];
+  if (series.length === 0) {
+    descriptions.push(renderChart(chart, { chain: [], transitions: [] }));
+    renderSessions(sessionList, []);
+  }
+  for (const [index, group] of series.entries()) {
+    const name = t("pn.js.series_n", { n: index + 1 });
+    const note = group.splitKeys.length
+      ? t("pn.js.series_split_keys", { keys: group.splitKeys.join(", ") })
+      : "";
+    const title = [name, note].filter(Boolean).join(" · ");
+    chart.append(el("p", { text: title }));
+    descriptions.push(title + " " + renderChart(chart, group));
+    const transitions = el("ul", { "aria-label": title });
+    renderTransitions(transitions, group.transitions);
+    if (transitions.childElementCount) transitionList.append(el("li", {}, [el("p", { text: name }), transitions]));
+    const sessions = el("ol", { "aria-label": title });
+    renderSessions(sessions, group.chain);
+    sessionList.append(el("li", {}, [el("p", { text: name }), sessions]));
+  }
+  $("evolution-chart-desc").textContent = descriptions.join(" ");
 }
 
 function renderApproved(facts, approvedIds) {
@@ -340,11 +359,9 @@ function renderPatientView() {
   $("patient-rx").textContent = p
     ? t("pn.js.rx", { sets: p.target_sets, reps: p.target_repetitions, per: p.sessions_per_week, mode: enumLabel("exec_mode", "report_only").toLowerCase() })
     : t("pn.js.no_rx");
-  renderKpis(computeKpis(pt.facts, pt.chain));
-  $("evolution-headline").textContent = headline(pt.chain);
-  renderChart(pt.chain, pt.executions);
-  renderTransitions(pt.chain);
-  renderSessions(pt.chain, pt.executions);
+  renderKpis(computeKpis(pt.facts, pt.assistance.length === 1 ? pt.assistance[0].chain : []));
+  $("evolution-headline").textContent = headline(pt.assistance);
+  renderAssistance(pt.assistance);
   renderApproved(pt.facts, pt.approvedIds);
   fillVerifySelect(pt.chain, pt.facts);
   renderTimeline(pt.timeline);
@@ -377,12 +394,12 @@ async function openPatient(participantId) {
     const latest = ent.data[ent.data.length - 1];
     const alias = latest?.payload?.alias || t("pn.js.participant");
     const factList = facts.data?.facts || [];
-    const chain = chainFromSeries(series.data);
-    const executions = executionBySession(series.data, factList);
-    const approvedIds = new Set((series.data?.series || []).flatMap((s) => (s.items || []).map((it) => it.fact_id)));
+    const { series: assistance, approvedIds } = await assistanceSeries(series.data, factList);
+    if (!op.isCurrent()) return;
+    const chain = assistance.flatMap((group) => group.chain).filter((item) => approvedIds.has(item.factId));
 
     const goal = (goals.data || [])[goals.data.length - 1]?.payload;
-    state.patient = { id, alias, side: latest?.payload?.side || "", origin: latest?.data_origin || "", goal: goal || null, rx: rx.data?.payload || null, timeline: timeline.data?.items || [], facts: factList, chain, executions, approvedIds };
+    state.patient = { id, alias, side: latest?.payload?.side || "", origin: latest?.data_origin || "", goal: goal || null, rx: rx.data?.payload || null, timeline: timeline.data?.items || [], facts: factList, chain, assistance, approvedIds };
     renderPatientView();
     $("verify-output").hidden = true;
     $("paciente").hidden = false;
