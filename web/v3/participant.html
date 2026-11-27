@@ -91,9 +91,16 @@
 <li data-i18n="pa.act.instr2">2. Comece a contar e repita abrir e fechar a mão, no seu ritmo.</li>
 <li data-i18n="pa.act.instr3">3. Se sentir dor ou cansaço, pare a qualquer momento com os botões de parar acima.</li>
 </ol>
-<p id="act-camera-status" data-i18n="pa.act.camera_unavailable">Câmera indisponível nesta versão: os arquivos do detector ainda não foram verificados. Use a simulação abaixo ou o autorrelato (“Iniciar sessão”).</p>
-<label><input disabled="" id="act-camera-consent" type="checkbox"/> <span data-i18n="pa.act.camera_consent">Autorizo o uso da câmera quando ela estiver disponível</span></label>
-<button aria-disabled="true" class="btn btn-secondary target" data-i18n="pa.act.btn_camera" disabled="" id="btn-act-camera" type="button">Usar câmera (indisponível)</button>
+<h4 data-i18n="pa.act.cam_label">Câmera local (experimental)</h4>
+<p id="act-camera-status" aria-live="polite" data-i18n="pa.act.camera_ready_hint">A câmera é lida só neste navegador. Nenhuma imagem ou ponto da mão é guardado ou enviado; só números derivados (ciclos, tempos) entram no registro. Você pode parar a qualquer momento ou usar o autorrelato.</p>
+<label><input id="act-camera-consent" type="checkbox"/> <span data-i18n="pa.act.camera_consent">Autorizo o uso da câmera neste teste experimental</span></label>
+<div class="actions-row">
+<button class="btn btn-primary target" data-i18n="pa.act.btn_camera" id="btn-act-camera" type="button">Iniciar atividade com a câmera</button>
+<button class="btn btn-secondary target" data-i18n="pa.act.btn_cal_open" disabled="" id="btn-act-cal-open" type="button">Calibrar: mão aberta</button>
+<button class="btn btn-secondary target" data-i18n="pa.act.btn_cal_closed" disabled="" id="btn-act-cal-closed" type="button">Calibrar: mão fechada</button>
+<button class="btn btn-secondary target" data-i18n="pa.act.btn_revoke" disabled="" id="btn-act-revoke" type="button">Parar a câmera e revogar a autorização</button>
+</div>
+<video id="act-cam" muted="" playsinline="" hidden="" aria-label="Pré-visualização local da câmera"></video>
 <h4 data-i18n="pa.act.sim_label">Modo de simulação (teste, sem câmera)</h4>
 <div class="actions-row">
 <button class="btn btn-primary target" data-i18n="pa.act.btn_begin" id="btn-act-begin" type="button">Iniciar atividade (simulação)</button>

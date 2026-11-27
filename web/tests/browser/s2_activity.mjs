@@ -115,11 +115,13 @@ await check("S2-02 verificador: fatos derivados do stream de simulacao pelo serv
   assert.ok(j.facts.every((x) => x.data_origin === "synthetic_fixture"), "origin preserved, never promoted");
   assert.equal(types.has("F10"), false, "opening index (F10) is not derived for the experimental counter");
 });
-await check("S2-03 camera indisponivel: nenhuma chamada a getUserMedia, consentimento desabilitado, autorrelato disponivel", async () => {
-  assert.equal(await pa.evaluate(() => window.__gum), 0);
-  assert.equal(await pa.isDisabled("#btn-act-camera"), true);
-  assert.equal(await pa.isDisabled("#act-camera-consent"), true);
-  assert.match(await pa.textContent("#act-camera-status"), /indispon/i);
+await check("S2-03 simulacao nao aciona a camera; camera exige consentimento marcado; autorrelato disponivel", async () => {
+  assert.equal(await pa.evaluate(() => window.__gum), 0, "simulation never asks for the camera");
+  assert.equal(await pa.isDisabled("#act-camera-consent"), false);
+  assert.equal(await pa.isChecked("#act-camera-consent"), false);
+  await pa.click("#btn-act-camera");
+  await pa.waitForFunction(() => /autoriza/i.test(document.getElementById("error-banner-text").textContent));
+  assert.equal(await pa.evaluate(() => window.__gum), 0, "no consent, no getUserMedia");
   assert.equal(await pa.isDisabled("#btn-session-start"), false, "self-report alternative stays available");
 });
 await check("S2-04 autorrelato continua funcionando no mesmo outbox apos atividade com contagem", async () => {

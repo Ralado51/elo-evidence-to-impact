@@ -26,8 +26,10 @@ export function evaluateCalibration({ id, open, closed, method, version, minSpan
 }
 
 export function createMotionSession({ scope, prescription, limits, protocol, calibration, executionMode, dataOrigin }) {
-  if (executionMode !== "simulation" || dataOrigin !== "synthetic_fixture")
-    throw new TypeError("The motion core is limited to synthetic simulation");
+  // Simulation is synthetic; camera is real local capture and is only ever experimental_capture (PO B1), never "simulation".
+  if (!((executionMode === "simulation" && dataOrigin === "synthetic_fixture") ||
+        (executionMode === "camera" && dataOrigin === "experimental_capture")))
+    throw new TypeError("Invalid execution mode and data origin pair");
   const { targetSets, targetRepetitions, prescribedSide, limitsVersion } = prescription;
   const target = targetSets * targetRepetitions;
   if (!side(prescribedSide) || !Number.isInteger(targetSets) || !Number.isInteger(targetRepetitions) ||

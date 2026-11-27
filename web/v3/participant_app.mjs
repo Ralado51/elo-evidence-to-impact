@@ -35,6 +35,7 @@ import { EventOutbox } from "./arq05/event_outbox.mjs";
 import { EventDispatcher } from "./arq05/event_dispatcher.mjs";
 import { SessionController } from "./arq05/session_controller.mjs";
 import { CaptureController } from "./arq05/capture_controller.mjs";
+import { ConsentOutbox } from "./arq05/consent_outbox.mjs";
 import { createActivityRunner } from "../s2/arq08/activity_runner.mjs";
 import { simulateCalibrationSamples, simulateCycleFrames } from "../s2/arq08/simulation_source.mjs";
 import { retentionState } from "./arq05/retention.mjs";
@@ -595,22 +596,36 @@ export function initParticipantApp() {
     try {
       const store = new RecoveryStore({ orgId: p.org_id, participantId: p.id }, new StorageAdapter());
       const outbox = new EventOutbox(store);
+      const transport = async (evs) => {
+        try {
+          const res = await client.postEventsBatch(evs);
+          if (recovery) recovery.lastError = null;
+          return res;
+        } catch (err) {
+          if (recovery) recovery.lastError = err;
+          throw err;
+        }
+      };
+      // Camera consent chain: own local key (it outlives a session record), same transport/dispatcher. Unavailable storage only disables the camera.
+      let consent = null;
+      try { const consentStore = new ConsentOutbox(new RecoveryStore({ orgId: p.org_id, participantId: p.id }, new StorageAdapter(globalThis.localStorage), { keyPrefix: "elo:s2:consent:v1:" })); consent = consentStore; } catch { consent = null; }
+      // A revocation is only sent after the capture events recorded under that consent are stored (the ledger judges consent at ingestion).
+      const consentTransport = async (evs) => {
+        const cur = await outbox.read().catch(() => null);
+        const hold = cur && cur.acknowledged < cur.events.length && cur.mode === "camera";
+        const cut = hold ? evs.findIndex((e) => e.type === "consent.revoked") : -1;
+        const part = cut >= 0 ? evs.slice(0, cut) : evs;
+        if (!part.length) return { data: { results: [] } };
+        return transport(part);
+      };
       recovery = {
+        consent, consentDispatcher: consent ? new EventDispatcher(consent, consentTransport) : null, cam: null, camCal: null,
         outbox,
         controller: new SessionController(outbox),
         capture: new CaptureController(outbox),
         runner: null,
         lastError: null,
-        dispatcher: new EventDispatcher(outbox, async (evs) => {
-          try {
-            const res = await client.postEventsBatch(evs);
-            if (recovery) recovery.lastError = null;
-            return res;
-          } catch (err) {
-            if (recovery) recovery.lastError = err;
-            throw err;
-          }
-        }),
+        dispatcher: new EventDispatcher(outbox, transport),
         tk: ctxStore.capture({ level: "principal" }),
         needsReauth: true, // recovered events need an explicit user action before being transmitted
       };
@@ -639,6 +654,7 @@ export function initParticipantApp() {
     state.rec = {
       phase: r.phase, mode: r.mode, accepted: r.accepted, candidates: r.candidates, pending: r.pending, conflict: r.conflict,
       expired: ret.expired, fullyConfirmed: ret.fullyConfirmed, needsReauth: rec.needsReauth,
+      consentActive: Boolean(rec.consent && (await rec.consent.read().catch(() => ({ active: false }))).active),
     };
     if (r.phase !== "ended") state.dismissArmed = false;
     renderSync();
@@ -684,7 +700,17 @@ export function initParticipantApp() {
     if (!manual && rec.needsReauth) return null;
     clearTimeout(retryTimer);
     let res = null;
-    try { res = await rec.dispatcher.dispatch(); } catch { res = null; }
+    try {
+      // The consent chain is stored first: capture events of a camera session are refused by the ledger without an active camera consent.
+      let consentRes = rec.consentDispatcher ? await rec.consentDispatcher.dispatch() : null;
+      const cs = rec.consent ? await rec.consent.read() : null;
+      if (consentRes && consentRes.status !== "synced" && cs?.events[cs.acknowledged]?.type === "consent.accepted") res = consentRes;
+      else {
+        res = await rec.dispatcher.dispatch();
+        if (consentRes && consentRes.status === "pending" && res.status === "synced") consentRes = await rec.consentDispatcher.dispatch();
+        if (res.status === "synced" && consentRes) res = consentRes;
+      }
+    } catch { res = null; }
     if (recovery !== rec || !rec.tk.isCurrent()) return null;
     await refreshRecovery();
     if (res?.status !== "synced" && rec.lastError) {
@@ -709,7 +735,7 @@ export function initParticipantApp() {
     return { dismissReport };
   }
 
-  // ---- S2 experimental activity (simulation). Real camera is NOT available in this candidate (MediaPipe assets pending). ----
+  // ---- S2 experimental activity: simulation (synthetic) and local camera (experimental_capture) on the same runner/outbox. ----
   let simClock = 0;
   let limitsCatalog = null;
   async function loadLimits() {
@@ -731,17 +757,24 @@ export function initParticipantApp() {
     if (!signed) return;
     const ph = state.activeSession?.phase ?? "idle";
     const sim = state.activeSession?.mode === "simulation";
+    const cam = state.activeSession?.mode === "camera";
+    const camLive = Boolean(recovery?.cam?.active);
     const rx = state.prescription?.payload;
     el("act-dose").textContent = rx ? t("pa.act.dose", { sets: rx.target_sets, reps: rx.target_repetitions, side: label("side", rx.side) }) : t("pa.act.dose_unknown");
     const target = (rx?.target_sets ?? 0) * (rx?.target_repetitions ?? 0);
-    const accepted = sim ? state.rec.accepted : 0;
+    const accepted = sim || cam ? state.rec.accepted : 0;
     const prog = el("act-progress");
     prog.max = Math.max(target, 1);
     prog.value = Math.min(accepted, prog.max);
-    el("act-progress-text").textContent = t("pa.act.progress", { a: accepted, t: target, c: sim ? state.rec.candidates : 0 });
+    el("act-progress-text").textContent = t("pa.act.progress", { a: accepted, t: target, c: sim || cam ? state.rec.candidates : 0 });
     el("btn-act-begin").disabled = ["created", "calibrated", "active"].includes(ph);
+    const open = ["created", "calibrated", "active"].includes(ph);
+    el("btn-act-camera").disabled = open || !recovery?.consent;
+    el("btn-act-cal-open").disabled = !(cam && camLive && (ph === "created" || ph === "calibrated") && recovery?.runner);
+    el("btn-act-cal-closed").disabled = el("btn-act-cal-open").disabled;
+    el("btn-act-revoke").disabled = !camLive && !state.rec?.consentActive;
     el("btn-act-calibrate").disabled = !(sim && (ph === "created" || ph === "calibrated") && recovery?.runner);
-    el("btn-act-start").disabled = !(sim && ph === "calibrated" && recovery?.runner);
+    el("btn-act-start").disabled = !((sim || (cam && camLive)) && ph === "calibrated" && recovery?.runner);
     el("btn-act-cycle").disabled = !(sim && ph === "active" && recovery?.runner);
     el("act-sim-side").disabled = el("btn-act-cycle").disabled;
   }
@@ -749,33 +782,34 @@ export function initParticipantApp() {
     el("act-status").textContent = t(key, extra);
     showSuccess(tm(key, extra));
   }
-  async function beginActivity() {
-    if (!requireAuth()) return;
+  async function beginActivity({ mode = "simulation", frame = { width: 640, height: 480 }, deviceHint, beforeBegin } = {}) {
+    if (!requireAuth()) return false;
     const rec = recovery;
-    if (!rec) { showError("RECOVERY_UNAVAILABLE", tm("pa.js.storage_unavailable")); return; }
+    if (!rec) { showError("RECOVERY_UNAVAILABLE", tm("pa.js.storage_unavailable")); return false; }
     await refreshRecovery();
     const r = state.rec;
-    if (!r || r.error) { showError("RECOVERY_UNAVAILABLE", tm("pa.js.storage_unavailable")); return; }
+    if (!r || r.error) { showError("RECOVERY_UNAVAILABLE", tm("pa.js.storage_unavailable")); return false; }
     const gate = startGate(r);
-    if (!gate) return;
+    if (!gate) return false;
     if (!state.prescription) {
       const loaded = await loadPlan();
-      if (!loaded || !state.prescription) return;
+      if (!loaded || !state.prescription) return false;
     }
     const tk = ctxStore.capture({ level: "principal" });
     try {
       const p = state.session.principal;
       rec.runner = createActivityRunner({
         controller: rec.capture, scope: { org_id: p.org_id, participant_id: p.id },
-        prescription: state.prescription.payload, limits: await loadLimits(),
+        prescription: state.prescription.payload, limits: await loadLimits(), mode,
       });
-      await rec.runner.begin({ width: 640, height: 480 }, { dismissReport: gate.dismissReport });
+      if (beforeBegin) await beforeBegin();
+      await rec.runner.begin(frame, { dismissReport: gate.dismissReport }, deviceHint);
     } catch (err) {
       rec.runner = null;
       if (tk.isCurrent()) showError("SESSION_BLOCKED", tm(err?.message === "RECOVERY_STREAM_UNRESOLVED" ? "pa.js.sync_blocked_unresolved" : "pa.act.err_begin"));
-      return;
+      return false;
     }
-    if (!tk.isCurrent() || recovery !== rec) return;
+    if (!tk.isCurrent() || recovery !== rec) return false;
     state.dismissArmed = false;
     state.recoveredOrphan = false;
     simClock = 0;
@@ -783,11 +817,12 @@ export function initParticipantApp() {
     await refreshRecovery();
     const resBox = el("session-result");
     resBox.dataset.sessionPhase = "created";
-    resBox.dataset.sessionMode = "simulation";
+    resBox.dataset.sessionMode = mode;
     resBox.dataset.sessionId = state.activeSession?.sessionId || "";
     renderBox("session-result", (b) => appendParagraph(b, t("pa.act.begun")));
-    actMessage("pa.act.begun");
+    actMessage(mode === "camera" ? "pa.act.cam_ready" : "pa.act.begun");
     dispatchNow();
+    return true;
   }
   async function activityStep(fn, okKey) {
     const rec = recovery;
@@ -840,10 +875,139 @@ export function initParticipantApp() {
     actMessage(key);
     dispatchNow();
   }
-  el("btn-act-begin")?.addEventListener("click", beginActivity);
+  el("btn-act-begin")?.addEventListener("click", () => beginActivity());
   el("btn-act-calibrate")?.addEventListener("click", calibrateActivity);
-  el("btn-act-start")?.addEventListener("click", () => activityStep((r) => r.start(), "pa.act.counting"));
+  el("btn-act-start")?.addEventListener("click", () => (state.activeSession?.mode === "camera" ? startCameraCounting() : activityStep((r) => r.start(), "pa.act.counting")));
   el("btn-act-cycle")?.addEventListener("click", simulateCycle);
+
+  // ---- S2 local camera (MediaPipe from ./vendor, same origin). Consent first; images and raw landmarks never leave the detector. ----
+  const camHint = () => {
+    const ua = globalThis.navigator?.userAgent ?? "";
+    const mobile = /Android|iPhone|iPad|Mobile/i.test(ua);
+    if (/Edg\//.test(ua)) return mobile ? "mobile-other" : "desktop-edge";
+    if (/Chrome\//.test(ua)) return mobile ? "mobile-chrome" : "desktop-chrome";
+    if (/Safari\//.test(ua) && mobile) return "mobile-safari";
+    return mobile ? "mobile-other" : "desktop-other";
+  };
+  const camStatus = (key, extra) => { el("act-camera-status").textContent = t(key, extra); announce(t(key, extra)); };
+  async function refreshAfterCamera(rec) {
+    if (recovery !== rec) return;
+    await refreshRecovery();
+    updateControlsState();
+    renderActivity();
+  }
+  async function closeCameraActivity(rec, { action, interruptReason = null, messageKey, doseReached = false }) {
+    rec.cam?.unwatch();
+    rec.cam?.stop();
+    rec.camCal = null;
+    if (rec.runner && ["created", "calibrated", "active"].includes(state.activeSession?.phase ?? "")) {
+      try { await rec.runner.finish({ action, interruptReason }); } catch { /* the summary is appended once; a failed append stays visible as pending */ }
+    } else if (doseReached && rec.runner && state.rec?.phase === "ended" && state.activeSession?.phase === "ended") {
+      try { await rec.runner.finish({ action: "end" }); } catch { /* dose already reached */ }
+    }
+    if (recovery !== rec) return;
+    resetReportChoices();
+    await refreshAfterCamera(rec);
+    if (messageKey) actMessage(messageKey);
+    dispatchNow();
+  }
+  async function startCameraActivity() {
+    if (!requireAuth()) return;
+    const rec = recovery;
+    if (!rec?.consent) { showError("CAMERA_UNAVAILABLE", tm("pa.act.cam_fallback")); return; }
+    if (!el("act-camera-consent").checked) { showError("CONSENT_REQUIRED", tm("pa.act.cam_consent_needed")); return; }
+    await refreshRecovery();
+    const gate = state.rec && !state.rec.error ? startGate(state.rec) : null;
+    if (!gate) return;
+    const tk = ctxStore.capture({ level: "principal" });
+    camStatus("pa.act.cam_loading");
+    try {
+      // 1) Consent is recorded and stored on the ledger BEFORE the camera is turned on.
+      await rec.consent.record("consent.accepted");
+      await dispatchNow({ manual: true });
+      const cs = await rec.consent.read();
+      if (cs.acknowledged !== cs.events.length || cs.conflict || !cs.active) {
+        if (tk.isCurrent()) { camStatus("pa.act.cam_consent_unsent"); showError("CONSENT_UNCONFIRMED", tm("pa.act.cam_consent_unsent")); }
+        return;
+      }
+      // 2) Local detector + camera. Any failure falls back to self-report with nothing captured.
+      const { createCameraSession } = await import("../s2/arq08/camera_session.mjs");
+      const cam = createCameraSession({ video: el("act-cam"), onInterrupted: (reason) => { closeCameraActivity(rec, { action: "interrupt", interruptReason: reason, messageKey: "pa.act.cam_interrupted" }); } });
+      const out = await cam.start({ consent: true });
+      if (out.status !== "ready") {
+        cam.stop();
+        if (tk.isCurrent()) { camStatus("pa.act.cam_fallback"); showError("CAMERA_UNAVAILABLE", tm("pa.act.cam_fallback")); }
+        return;
+      }
+      rec.cam = cam;
+      // 3) The same ActivityRunner/outbox, now in camera mode.
+      const ok = await beginActivity({ mode: "camera", frame: out.frame, deviceHint: camHint() });
+      if (!ok) { cam.stop(); rec.cam = null; return; }
+      camStatus("pa.act.cam_ready");
+      renderActivity();
+    } catch {
+      rec.cam?.stop();
+      rec.cam = null;
+      if (tk.isCurrent()) { camStatus("pa.act.cam_fallback"); showError("CAMERA_UNAVAILABLE", tm("pa.act.cam_fallback")); }
+    }
+  }
+  async function calibrateCamera(posture) {
+    const rec = recovery;
+    if (!rec?.cam?.active || !rec.runner) return;
+    if (posture === "closed" && !rec.camCal?.open) { showError("CALIBRATION_FAILED", tm("pa.act.cam_closed_first")); return; }
+    const tk = ctxStore.capture({ level: "principal" });
+    el("btn-act-cal-open").disabled = el("btn-act-cal-closed").disabled = true;
+    camStatus(posture === "open" ? "pa.act.cam_collect_open" : "pa.act.cam_collect_closed");
+    const values = await rec.cam.collect(3000);
+    if (!tk.isCurrent() || recovery !== rec || !rec.cam?.active) return;
+    rec.camCal = { ...(rec.camCal ?? {}), [posture]: values };
+    if (posture === "open") { camStatus("pa.act.cam_open_done"); renderActivity(); return; }
+    const samples = { open: rec.camCal.open, closed: rec.camCal.closed };
+    rec.camCal = null;
+    let out;
+    try { out = await rec.runner.calibrate(samples); } catch { showError("INVALID_TRANSITION", describeParticipantError({ code: "INVALID_TRANSITION", status: 200 }).msg); renderActivity(); return; }
+    await refreshAfterCamera(rec);
+    el("btn-act-cal-open").dataset.calibration = out.status;
+    if (out.status === "ready") { camStatus("pa.act.calibrated"); showSuccess(tm("pa.act.calibrated")); }
+    else showError("CALIBRATION_FAILED", tm(out.status === "invalid_span" ? "pa.act.cal_span" : "pa.act.cal_insufficient"));
+    dispatchNow();
+  }
+  async function startCameraCounting() {
+    const rec = recovery;
+    if (!rec?.cam?.active || !rec.runner) return;
+    await activityStep((r) => r.start(), null);
+    if ((await rec.capture.restore()).phase !== "active") return;
+    camStatus("pa.act.cam_counting_hint");
+    let busy = false;
+    rec.cam.watch((frame) => {
+      const r = rec.runner.feed(frame);
+      if ((r.status === "accepted" || r.status === "rejected") && !busy) {
+        busy = true;
+        rec.runner.flush().then(async () => {
+          await refreshAfterCamera(rec);
+          if (state.rec?.phase === "ended") await closeCameraActivity(rec, { action: "end", messageKey: "pa.act.dose_reached", doseReached: true });
+          else dispatchNow();
+        }).finally(() => { busy = false; });
+      }
+    });
+  }
+  async function revokeCamera() {
+    const rec = recovery;
+    if (!rec) return;
+    const open = ["created", "calibrated", "active"].includes(state.activeSession?.phase ?? "");
+    // The camera is switched off first; the session (if any) is closed as interrupted; the revocation is chained after it.
+    await closeCameraActivity(rec, { action: "interrupt", interruptReason: open ? "consent_revoked" : null });
+    try { await rec.consent?.record("consent.revoked"); } catch { /* chain unresolved: shown through the sync panel */ }
+    rec.cam = null;
+    el("act-camera-consent").checked = false;
+    await refreshAfterCamera(rec);
+    camStatus("pa.act.cam_revoked");
+    dispatchNow({ manual: true });
+  }
+  el("btn-act-camera")?.addEventListener("click", startCameraActivity);
+  el("btn-act-cal-open")?.addEventListener("click", () => calibrateCamera("open"));
+  el("btn-act-cal-closed")?.addEventListener("click", () => calibrateCamera("closed"));
+  el("btn-act-revoke")?.addEventListener("click", revokeCamera);
 
   async function endActiveSession(action) {
     if (!requireAuth()) return;
@@ -857,7 +1021,7 @@ export function initParticipantApp() {
     }
     const tk = ctxStore.capture({ level: "principal" }); // BEFORE the await: the write is never aborted, only its rendering is guarded
     try {
-      if (state.activeSession.mode === "simulation") await finishCapture(rec, action);
+      if (state.activeSession.mode === "simulation" || state.activeSession.mode === "camera") { rec.cam?.stop(); await finishCapture(rec, action); }
       else await rec.controller.stop(action);
     } catch {
       if (tk.isCurrent()) showError("INVALID_TRANSITION", describeParticipantError({ code: "INVALID_TRANSITION", status: 200 }).msg);
@@ -1128,7 +1292,7 @@ export function initParticipantApp() {
     const assistance = state.reportAssistance;
     // The report is appended ONCE to the local chain (one event_id/seq/hash per intention); transmission is separate.
     const out = await commands.run(slot, async () => {
-      await (state.activeSession?.mode === "simulation" ? rec.capture : rec.controller).submitReport({ execution, assistance });
+      await (state.activeSession?.mode === "simulation" || state.activeSession?.mode === "camera" ? rec.capture : rec.controller).submitReport({ execution, assistance });
     });
     if (!tk.isCurrent()) return; // signed out while in flight: nothing shown; the command slot keeps its state for recovery (ARQ-05)
     if (out.status === "ignored" || out.status === "settled") return; // same intention: one single outcome state

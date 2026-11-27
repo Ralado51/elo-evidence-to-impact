@@ -1,5 +1,5 @@
 // Experimental capture (S2) on the SAME outbox/recovery/dispatch used by the S1 report-only flow.
-// Phases: created -> calibrated -> active -> ended -> reported. Real camera is not supported yet (assets pending).
+// Phases: created -> calibrated -> active -> ended -> reported. Mode is "simulation" (synthetic) or "camera" (real local capture, experimental_capture).
 import { generateSessionId, nextMonotonicIso } from "../participant_model.mjs";
 import { buildCaptureEvent, PROTOCOL_VERSION } from "../../s2/arq08/capture_events.mjs";
 import { SESSION_PHASE } from "./session_state.mjs";
@@ -27,7 +27,8 @@ export class CaptureController {
     };
   }
 
-  async begin({ prescriptionId, prescriptionRevision, exerciseId, frame = { width: 640, height: 480 }, deviceHint = "desktop-other" }, { dismissReport = false } = {}) {
+  async begin({ prescriptionId, prescriptionRevision, exerciseId, frame = { width: 640, height: 480 }, deviceHint = "desktop-other", mode = "simulation" }, { dismissReport = false } = {}) {
+    if (mode !== "simulation" && mode !== "camera") throw new Error("INVALID_SESSION_MODE");
     const current = await this.#outbox.read();
     const dismissed = dismissReport && current.phase === SESSION_PHASE.ENDED;
     const completed = current.phase === SESSION_PHASE.REPORTED || dismissed;
@@ -40,7 +41,7 @@ export class CaptureController {
     const first = await buildCaptureEvent({
       type: "session.started", scope: { org_id: scope.orgId, participant_id: scope.participantId, session_id: sessionId, prescription_id: prescriptionId, prescription_revision: prescriptionRevision, exercise_id: scope.exercise_id },
       seq: 1, prevHash: null, occurredAt: nextMonotonicIso(), tMonoMs: 0,
-      payload: { source_mode: "simulation", prescription_id: prescriptionId, prescription_revision: prescriptionRevision,
+      mode, payload: { source_mode: mode, prescription_id: prescriptionId, prescription_revision: prescriptionRevision,
         capture_context: { device_hint: deviceHint, frame_width: frame.width, frame_height: frame.height } },
     });
     await this.#outbox.append(current, [first], { replaceCompleted: completed, dismissed });
@@ -103,7 +104,7 @@ export class CaptureController {
     const record = await this.#outbox.read();
     const phase = record.phase;
     const ok = allowed.split("|").includes(phase);
-    if (record.mode !== "simulation" || !ok) throw new Error("INVALID_SESSION_TRANSITION");
+    if ((record.mode !== "simulation" && record.mode !== "camera") || !ok) throw new Error("INVALID_SESSION_TRANSITION");
     if (record.conflict) throw new Error("RECOVERY_STREAM_UNRESOLVED");
     const events = [];
     let prev = record.events.at(-1);
@@ -115,7 +116,7 @@ export class CaptureController {
         const ev = await buildCaptureEvent({
           type, scope: scopeOf, seq: last.seq + 1, prevHash: last.hash, occurredAt: nextMonotonicIso(last.occurred_at),
           tMonoMs: Math.max(Number.isFinite(tMonoMs) ? Math.round(tMonoMs) : 0, last.t_mono_ms ?? 0), payload,
-          algorithmVersion: PROTOCOL_VERSION,
+          algorithmVersion: PROTOCOL_VERSION, mode: record.mode,
         });
         events.push(ev);
         return ev;

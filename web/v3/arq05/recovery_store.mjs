@@ -6,12 +6,12 @@ export class RecoveryStore {
   #key;
   #scope;
 
-  constructor({ orgId, participantId }, adapter = new StorageAdapter()) {
+  constructor({ orgId, participantId }, adapter = new StorageAdapter(), { keyPrefix = "elo:arq05:v1:" } = {}) {
     if (![orgId, participantId].every(v => typeof v === "string" && v.length > 0)) {
       throw new Error("RECOVERY_SCOPE_REQUIRED");
     }
     this.#scope = Object.freeze({ orgId, participantId });
-    this.#key = "elo:arq05:v1:" + JSON.stringify([orgId, participantId]);
+    this.#key = keyPrefix + JSON.stringify([orgId, participantId]);
     this.#adapter = adapter;
   }
 

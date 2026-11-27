@@ -39,7 +39,7 @@ export class EventOutbox {
     const record = await this.#store.read();
     let previous = null;
     let phase = SESSION_PHASE.IDLE;
-    let mode = null; // "report_only" (S1) or "simulation" (S2 experimental capture); real camera is not supported yet
+    let mode = null; // "report_only" (S1), "simulation" or "camera" (S2 experimental capture)
     let cap = null; // exact capture phase of the ledger rules: created|calibrated|active|paused|ended|completed
     let summarySeen = false;
     for (const event of record.events) {
@@ -48,12 +48,16 @@ export class EventOutbox {
       const previousScope = previous?.scope;
       if (!previous) {
         mode = event.type === "session.started" ? event.payload?.source_mode : null;
-        if (mode !== "report_only" && mode !== "simulation") throw new Error("RECOVERY_RECORD_INVALID");
+        if (mode !== "report_only" && mode !== "simulation" && mode !== "camera") throw new Error("RECOVERY_RECORD_INVALID");
       }
       const reportOnly = mode === "report_only";
-      if (event.data_origin !== "synthetic_fixture" || event.execution_mode !== mode ||
+      // Camera = real local capture: experimental_capture + origin_ref, never synthetic_fixture (PO B1). Others stay synthetic.
+      const camera = mode === "camera";
+      if (event.data_origin !== (camera ? "experimental_capture" : "synthetic_fixture") ||
+          (camera ? !/^[0-9a-f]{64}$/.test(event.origin_ref ?? "") : "origin_ref" in event) ||
+          event.execution_mode !== mode ||
           event.actor?.role !== "participant" || event.actor.id !== this.scope.participantId ||
-          (!reportOnly && event.source?.type !== (event.type === "report.submitted" ? "participant_report" : "simulation")) ||
+          (!reportOnly && event.source?.type !== (event.type === "report.submitted" ? "participant_report" : mode)) ||
           event.stream_id !== "session:" + scope.session_id ||
           event.seq !== (previous?.seq ?? 0) + 1 || event.prev_hash !== (previous?.hash ?? null) ||
           (previous && (event.stream_id !== previous.stream_id ||
